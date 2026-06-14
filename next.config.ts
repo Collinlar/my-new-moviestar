@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   eslint: { ignoreDuringBuilds: true },
   images: {
+    // External poster URLs (YouTube, Supabase) — skip Netlify's /_next/image
+    // optimizer, which returns 502 on this stack. Sources are already sized.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -29,7 +32,6 @@ const nextConfig: NextConfig = {
         hostname: '**.supabase.co',
       },
     ],
-    formats: ['image/avif', 'image/webp'],
   },
   async headers() {
     return [
