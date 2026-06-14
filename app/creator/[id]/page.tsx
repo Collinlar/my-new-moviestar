@@ -7,6 +7,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { MovieCard } from '@/components/MovieCard'
 import { getCreatorById, getCreatorMovies, getAllCreatorIds } from '@/lib/queries'
+import { hasSupabaseConfig } from '@/lib/supabase/env'
 import { personSchema, breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
 
@@ -15,8 +16,14 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  const ids = await getAllCreatorIds()
-  return ids.map((id) => ({ id }))
+  if (!hasSupabaseConfig()) return []
+
+  try {
+    const ids = await getAllCreatorIds()
+    return ids.map((id) => ({ id }))
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

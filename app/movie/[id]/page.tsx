@@ -10,6 +10,7 @@ import {
   getMovieById, getMovieReviews, getMovieCast,
   getMovieAwards, getAllMovieIds, browseMovies,
 } from '@/lib/queries'
+import { hasSupabaseConfig } from '@/lib/supabase/env'
 import { ReviewForm } from '@/components/ReviewForm'
 import { WatchlistButton } from '@/components/WatchlistButton'
 import { HelpfulButton } from '@/components/HelpfulButton'
@@ -22,8 +23,14 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  const ids = await getAllMovieIds()
-  return ids.slice(0, 500).map((id) => ({ id }))
+  if (!hasSupabaseConfig()) return []
+
+  try {
+    const ids = await getAllMovieIds()
+    return ids.slice(0, 500).map((id) => ({ id }))
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
