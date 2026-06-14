@@ -1,0 +1,31 @@
+# humanstxt.org/
+# The humans responsible & technology colophon
+
+# TEAM
+
+    Developer: MuvieStars.com Team
+    Contact: info [at] muvieStars.com
+    From: Africa
+
+# THANKS
+
+    Community: African Cinema Enthusiasts
+    Contributors: Movie Reviewers & Critics
+
+# TECHNOLOGY COLOPHON
+
+    Frontend: React, TypeScript, Vite
+    UI Framework: Tailwind CSS, shadcn/ui
+    Backend: Supabase (PostgreSQL)
+    Hosting: Vercel/Netlify
+    Analytics: Google Analytics
+    Search: Full-text search with Supabase
+    Icons: Lucide React
+    Fonts: System fonts
+
+# SITE
+
+    Last update: 2024/01/17
+    Language: English
+    Doctype: HTML5
+    IDE: Cursor, VS Code

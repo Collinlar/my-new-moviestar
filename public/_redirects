@@ -1,0 +1,8 @@
+# Netlify SPA Redirect Configuration
+# All routes should redirect to index.html to support React Router
+/*    /index.html   200
+
+# This ensures that all client-side routes work correctly
+# When users navigate to /admin, /movie/:id, etc., Netlify will serve index.html
+# and React Router will handle the routing
+

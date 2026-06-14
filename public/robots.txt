@@ -1,0 +1,49 @@
+# MuvieStars.com Robots.txt
+# Optimized for search engine crawling
+
+User-agent: *
+Allow: /
+
+# Allow all major crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Yandexbot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+# Sitemap location
+Sitemap: https://muviestars.com/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Disallow admin and auth pages
+Disallow: /admin
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /edit-profile
+Disallow: /watchlist
+Disallow: /favorites
+
+# Allow all movie pages for indexing
+Allow: /movie/*
+Allow: /creator/*
+Allow: /movies
+Allow: /creators
+Allow: /trending
+Allow: /featured
+Allow: /browse
+Allow: /search
+Allow: /all-reviews

@@ -1,0 +1,22 @@
+{
+  "name": "african-reel-reviews-admin-scripts",
+  "version": "1.0.0",
+  "description": "Admin management scripts for African Reel Reviews",
+  "type": "module",
+  "main": "grant-admin-access.js",
+  "scripts": {
+    "grant-admin": "node grant-admin-access.js",
+    "list-users": "node grant-admin-access.js --list"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.55.0"
+  },
+  "keywords": [
+    "supabase",
+    "admin",
+    "user-management",
+    "african-reel-reviews"
+  ],
+  "author": "African Reel Reviews Team",
+  "license": "MIT"
+}
