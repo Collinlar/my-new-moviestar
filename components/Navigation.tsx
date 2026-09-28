@@ -13,7 +13,7 @@ const ADMIN_EMAIL = 'kofcollkcl100@gmail.com'
 const navLinks = [
   { href: '/',        label: 'Home',     exact: true  },
   { href: '/swipe',   label: 'Swipe',    exact: false },
-  { href: '/browse',  label: 'Discover', exact: false },
+  { href: '/browse',  label: 'Browse',   exact: false },
   { href: '/club',    label: 'Club',     exact: false },
 ]
 
