@@ -27,15 +27,16 @@ const TAGS = [
   { slug: 'ending',    label: 'Ending'    },
 ]
 
-type Step = 'reaction' | 'tags' | 'oneliner'
+type Step = 'reaction' | 'tags' | 'oneliner' | 'auth'
 
 interface Props {
   movie: Movie
-  onSave: () => void
+  isLoggedIn: boolean
+  onSave: (reactionKey: string) => void
   onSkip: () => void
 }
 
-export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
+export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props) {
   const [step, setStep]         = useState<Step>('reaction')
   const [reaction, setReaction] = useState<string | null>(null)
   const [tags, setTags]         = useState<string[]>([])
@@ -69,12 +70,20 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
     setSaving(true)
     await persist()
     setSaving(false)
-    onSave()
+    onSave(reaction || '')
+  }
+
+  const handleSaveClick = () => {
+    if (!isLoggedIn) {
+      setStep('auth')
+      return
+    }
+    saveAndNext()
   }
 
   return (
     <>
-      {/* Backdrop — tap to skip */}
+      {/* Backdrop */}
       <div
         onClick={onSkip}
         style={{
@@ -84,7 +93,7 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
         }}
       />
 
-      {/* Bottom sheet */}
+      {/* Sheet */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -93,7 +102,7 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
           width: '100%', maxWidth: '480px',
           background: '#18150F',
           borderRadius: '28px 28px 0 0',
-          padding: '20px 24px env(safe-area-inset-bottom, 32px)',
+          padding: '20px 24px',
           paddingBottom: 'max(32px, env(safe-area-inset-bottom, 32px))',
           boxShadow: '0 -32px 80px rgba(0,0,0,0.85)',
         }}
@@ -106,7 +115,7 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
           </p>
         </div>
 
-        {/* ── Step A — reaction ───────────────────────────────────────── */}
+        {/* ── Step A — reaction ───────────────────────────── */}
         {step === 'reaction' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,6vw,38px)', lineHeight: 1, color: '#F6EFE2', margin: 0, textAlign: 'center' }}>
@@ -142,7 +151,7 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
           </div>
         )}
 
-        {/* ── Step B — tags ────────────────────────────────────────────── */}
+        {/* ── Step B — tags ───────────────────────────────── */}
         {step === 'tags' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
@@ -193,7 +202,7 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
           </div>
         )}
 
-        {/* ── Step C — one-liner ───────────────────────────────────────── */}
+        {/* ── Step C — one-liner ──────────────────────────── */}
         {step === 'oneliner' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,6vw,38px)', lineHeight: 1, color: '#F6EFE2', margin: 0, textAlign: 'center' }}>
@@ -225,7 +234,7 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
             </div>
 
             <button
-              onClick={saveAndNext}
+              onClick={handleSaveClick}
               disabled={saving}
               style={{
                 height: '56px', borderRadius: '18px',
@@ -245,6 +254,53 @@ export function QuickReactionSheet({ movie, onSave, onSkip }: Props) {
             >
               Want to say more? Write a full review →
             </Link>
+          </div>
+        )}
+
+        {/* ── Step D — auth gate ──────────────────────────── */}
+        {step === 'auth' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <h3 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,5vw,36px)', lineHeight: 1.1, color: '#F6EFE2', margin: 0 }}>
+                Save your movie taste?
+              </h3>
+              <p style={{ margin: 0, fontSize: '15px', color: '#A39B8F', lineHeight: 1.6 }}>
+                Sign in to keep this reaction and build a permanent record of what you have watched.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <a
+                href="/auth?mode=signup&redirect=/swipe"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  height: '56px', borderRadius: '18px',
+                  background: '#C8963E', color: '#0B0A09',
+                  fontSize: '16px', fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Create a free account
+              </a>
+              <a
+                href="/auth?redirect=/swipe"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  height: '56px', borderRadius: '18px',
+                  border: '1px solid rgba(237,228,210,0.18)',
+                  color: '#EDE4D2', fontSize: '16px',
+                  textDecoration: 'none',
+                }}
+              >
+                Sign in
+              </a>
+              <button
+                onClick={onSkip}
+                style={{ background: 'none', border: 'none', color: '#8C857A', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}
+              >
+                Skip for now
+              </button>
+            </div>
           </div>
         )}
       </div>

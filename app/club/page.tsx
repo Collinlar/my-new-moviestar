@@ -4,6 +4,8 @@ import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getFeaturedMovies, getTrendingMovies } from '@/lib/queries'
+import { ClubParticipationBar } from '@/components/ClubParticipationBar'
+import { createClient } from '@/lib/supabase/server'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://muviestars.com/club' },
 }
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
 function daysLeftThisWeek(): number {
   const day = new Date().getDay()
@@ -23,9 +25,38 @@ function daysLeftThisWeek(): number {
 }
 
 export default async function ClubPage() {
+  const supabase  = await createClient() as any
   const featured  = await getFeaturedMovies(1)
   const clubPick  = featured[0] || (await getTrendingMovies(1))[0] || null
   const daysLeft  = daysLeftThisWeek()
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let participantCount = 0
+  let userStatus: 'watching' | 'completed' | null = null
+
+  if (clubPick?.id) {
+    try {
+      const [{ count }, { data: myRow }] = await Promise.all([
+        supabase
+          .from('club_participation')
+          .select('*', { count: 'exact', head: true })
+          .eq('movie_id', clubPick.id),
+        user
+          ? supabase
+              .from('club_participation')
+              .select('status')
+              .eq('movie_id', clubPick.id)
+              .eq('user_id', user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ])
+      participantCount = (count as number) || 0
+      userStatus = (myRow?.status as 'watching' | 'completed' | null) ?? null
+    } catch {
+      // club_participation table may not exist yet — fail gracefully
+    }
+  }
 
   return (
     <>
@@ -104,6 +135,15 @@ export default async function ClubPage() {
                       ? clubPick.description.slice(0, 280).trimEnd() + '...'
                       : clubPick.description}
                   </p>
+                )}
+
+                {clubPick && (
+                  <ClubParticipationBar
+                    movie={clubPick}
+                    participantCount={participantCount}
+                    initialStatus={userStatus}
+                    userId={user?.id ?? null}
+                  />
                 )}
 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>

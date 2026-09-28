@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Bookmark } from 'lucide-react'
 import { QuickReactionSheet } from '@/components/QuickReactionSheet'
+import { AuthPromptSheet } from '@/components/AuthPromptSheet'
 import type { Movie } from '@/lib/queries'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -18,6 +19,17 @@ const CARD_PALETTES: Array<{ bg: string; shape: React.CSSProperties }> = [
   { bg: '#1A1D2B', shape: { position: 'absolute', left: '18%', top: '14%', width: '64%', height: '44%', border: '2px solid #8FA8C8', borderRadius: '8px' } },
 ]
 
+type SessionStats = {
+  seen: number
+  watchLater: number
+  loved: number
+  liked: number
+  okay: number
+  notForMe: number
+}
+
+const EMPTY_STATS: SessionStats = { seen: 0, watchLater: 0, loved: 0, liked: 0, okay: 0, notForMe: 0 }
+
 async function saveInteraction(movieId: string, type: 'watch_later' | 'not_interested' | 'unseen') {
   try {
     await fetch('/api/interactions', {
@@ -28,16 +40,25 @@ async function saveInteraction(movieId: string, type: 'watch_later' | 'not_inter
   } catch {}
 }
 
-export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount: number }) {
-  const [idx, setIdx]                     = useState(0)
-  const [exit, setExit]                   = useState<'left' | 'right' | null>(null)
-  const [showReaction, setShowReaction]   = useState(false)
+export function SwipeStack({ movies, totalCount, userId }: {
+  movies: Movie[]
+  totalCount: number
+  userId: string | null
+}) {
+  const [idx, setIdx]                       = useState(0)
+  const [exit, setExit]                     = useState<'left' | 'right' | null>(null)
+  const [showReaction, setShowReaction]     = useState(false)
   const [haventSeenMode, setHaventSeenMode] = useState(false)
-  const haventTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showAuthPrompt, setShowAuthPrompt] = useState<'watch_later' | 'reaction' | null>(null)
+  const [showSessionSummary, setShowSessionSummary] = useState(false)
+  const [sessionStats, setSessionStats]     = useState<SessionStats>(EMPTY_STATS)
 
-  const current  = movies[idx]
-  const next     = movies[idx + 1]
-  const isDone   = idx >= movies.length
+  const haventTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sessionCardsRef = useRef(0)
+
+  const current = movies[idx]
+  const next    = movies[idx + 1]
+  const isDone  = idx >= movies.length
 
   const advance = useCallback((dir: 'left' | 'right') => {
     if (exit !== null) return
@@ -48,8 +69,18 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
     setTimeout(() => {
       setIdx(i => i + 1)
       setExit(null)
+      sessionCardsRef.current += 1
+      if (sessionCardsRef.current >= 10) {
+        setShowSessionSummary(true)
+      }
     }, 260)
   }, [exit])
+
+  const handleKeepGoing = () => {
+    sessionCardsRef.current = 0
+    setSessionStats(EMPTY_STATS)
+    setShowSessionSummary(false)
+  }
 
   const handleSeenIt = () => {
     if (exit !== null || showReaction || haventSeenMode) return
@@ -60,25 +91,137 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
     if (exit !== null || showReaction || haventSeenMode) return
     setHaventSeenMode(true)
     haventTimerRef.current = setTimeout(() => {
-      saveInteraction(current.id, 'unseen')
+      if (current) saveInteraction(current.id, 'unseen')
       advance('left')
     }, 3000)
   }
 
   const handleWatchLater = () => {
-    saveInteraction(current.id, 'watch_later')
+    if (!userId) { setShowAuthPrompt('watch_later'); return }
+    if (current) saveInteraction(current.id, 'watch_later')
+    setSessionStats(prev => ({ ...prev, watchLater: prev.watchLater + 1 }))
     advance('left')
   }
 
   const handleNotInterested = () => {
-    saveInteraction(current.id, 'not_interested')
+    if (current) saveInteraction(current.id, 'not_interested')
     advance('left')
+  }
+
+  const handleReactionSaved = useCallback((reactionKey: string) => {
+    setSessionStats(prev => ({
+      ...prev,
+      seen: prev.seen + 1,
+      ...(reactionKey === 'loved'      ? { loved:     prev.loved + 1 }     :
+         reactionKey === 'liked'       ? { liked:     prev.liked + 1 }     :
+         reactionKey === 'okay'        ? { okay:      prev.okay + 1 }      :
+         reactionKey === 'not_for_me'  ? { notForMe:  prev.notForMe + 1 }  : {}),
+    }))
+    advance('right')
+  }, [advance])
+
+  const handleAuthSkip = () => {
+    setShowAuthPrompt(null)
+    // For watch_later skip: just advance without saving
+    if (showAuthPrompt === 'watch_later') advance('left')
+    // For reaction skip: the sheet already handles its own skip
   }
 
   useEffect(() => {
     return () => { if (haventTimerRef.current) clearTimeout(haventTimerRef.current) }
   }, [])
 
+  // ── Session summary (shown after every 10 cards) ───────────────────────────
+  if (showSessionSummary) {
+    const moviesLeft = movies.length - idx
+    const summaryLines = [
+      { label: 'Seen',        value: sessionStats.seen },
+      { label: 'Watch Later', value: sessionStats.watchLater },
+      { label: 'Loved it',    value: sessionStats.loved },
+      { label: 'Not for me',  value: sessionStats.notForMe + sessionStats.okay },
+    ]
+
+    return (
+      <div style={{
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '40px 24px', gap: '40px', background: '#0B0A09', textAlign: 'center',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+          <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+            Ten down
+          </p>
+          <h2 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px,7vw,72px)', lineHeight: '0.95', color: '#F6EFE2', margin: 0 }}>
+            {sessionStats.loved >= 3
+              ? 'Strong opinions.'
+              : sessionStats.seen === 0
+                ? 'Lots to catch up on.'
+                : 'Good progress.'}
+          </h2>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', maxWidth: '360px' }}>
+          {summaryLines.map(({ label, value }) => (
+            <div
+              key={label}
+              style={{
+                background: '#161411', borderRadius: '16px', padding: '20px 16px',
+                display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start',
+              }}
+            >
+              <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8C857A' }}>
+                {label}
+              </span>
+              <span style={{ ...SERIF, fontSize: '44px', lineHeight: 1, color: value > 0 ? '#F6EFE2' : '#3A3530' }}>
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {moviesLeft > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
+            <button
+              onClick={handleKeepGoing}
+              style={{
+                width: '100%', height: '60px', borderRadius: '18px',
+                background: '#C8963E', color: '#0B0A09',
+                fontSize: '17px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              }}
+            >
+              Keep going
+              <ArrowRight size={18} />
+            </button>
+            <p style={{ ...MONO, fontSize: '12px', color: '#8C857A', margin: 0 }}>
+              {moviesLeft} more film{moviesLeft !== 1 ? 's' : ''} in the stack
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
+            <p style={{ fontSize: '16px', color: '#C7BFB2', margin: 0, lineHeight: 1.6 }}>
+              You have been through all {movies.length} films in today&apos;s stack.
+            </p>
+            <Link
+              href="/browse"
+              style={{
+                width: '100%', height: '60px', borderRadius: '18px',
+                background: '#C8963E', color: '#0B0A09',
+                fontSize: '17px', fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                textDecoration: 'none',
+              }}
+            >
+              Explore the full database
+              <ArrowRight size={18} />
+            </Link>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── All done ───────────────────────────────────────────────────────────────
   if (isDone) {
     return (
       <div style={{
@@ -114,8 +257,8 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
     )
   }
 
-  const art      = CARD_PALETTES[idx % CARD_PALETTES.length]
-  const nextArt  = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length]
+  const art     = CARD_PALETTES[idx % CARD_PALETTES.length]
+  const nextArt = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length]
   const hasPoster = !!(current.poster_url && current.poster_url.startsWith('http'))
 
   const cardTransform = exit === 'left'
@@ -154,7 +297,6 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
       {/* Card stack */}
       <div style={{ position: 'relative', width: '100%', maxWidth: '420px', height: '580px' }}>
 
-        {/* Ghost behind */}
         {next && (
           <div style={{
             position: 'absolute', inset: 0, borderRadius: '26px', overflow: 'hidden',
@@ -166,7 +308,6 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
           </div>
         )}
 
-        {/* Current card */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '26px', overflow: 'hidden',
           boxShadow: '0 40px 80px rgba(0,0,0,.65)',
@@ -204,7 +345,7 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
         </div>
       </div>
 
-      {/* ── Buttons / Haven't Seen overlay ───────────────────────── */}
+      {/* Buttons */}
       {haventSeenMode ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '420px' }}>
           <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C857A', margin: 0, textAlign: 'center' }}>
@@ -277,12 +418,19 @@ export function SwipeStack({ movies, totalCount }: { movies: Movie[]; totalCount
         Skip to the full database →
       </Link>
 
-      {/* Quick Reaction Sheet — mounted on top when triggered */}
       {showReaction && (
         <QuickReactionSheet
           movie={current}
-          onSave={() => advance('right')}
+          isLoggedIn={!!userId}
+          onSave={handleReactionSaved}
           onSkip={() => advance('right')}
+        />
+      )}
+
+      {showAuthPrompt && (
+        <AuthPromptSheet
+          context={showAuthPrompt}
+          onSkip={handleAuthSkip}
         />
       )}
     </div>
