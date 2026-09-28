@@ -36,11 +36,10 @@ export function PersonalContext({ movieId }: Props) {
           .eq('user_id', user.id)
           .maybeSingle(),
         (supabase as any)
-          .from('movie_interactions')
+          .from('watchlists')
           .select('id')
           .eq('movie_id', movieId)
           .eq('user_id', user.id)
-          .eq('interaction_type', 'watch_later')
           .maybeSingle(),
       ])
 

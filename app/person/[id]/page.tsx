@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Film } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { MovieCard } from '@/components/MovieCard'
 import { createClient } from '@/lib/supabase/server'
 import { personSchema, breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -39,7 +39,6 @@ export default async function PersonPage({ params }: PageProps) {
   const { data: person } = await (supabase as any).from('people').select('*').eq('id', id).single()
   if (!person) notFound()
 
-  /* Films this person appeared in */
   const { data: movieLinks } = await supabase
     .from('movie_people')
     .select('role, character_name, movie:movies(id, title, release_year, genre, poster_url, average_rating, review_count)')
@@ -60,6 +59,9 @@ export default async function PersonPage({ params }: PageProps) {
     { name: person.full_name, url: `${SITE_URL}/person/${id}` },
   ])
 
+  const initial = person.full_name.charAt(0).toUpperCase()
+  const films = (movieLinks || []).filter((l: any) => l.movie)
+
   return (
     <>
       <script
@@ -69,34 +71,56 @@ export default async function PersonPage({ params }: PageProps) {
 
       <Navigation />
 
-      <main className="pt-16">
-        <section className="py-16 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container">
-            <Link href="/people" className="btn-ghost text-sm gap-2 inline-flex items-center mb-8">
-              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-              All people
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
+
+        {/* ── HEADER ────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '56px' }}>
+
+            <Link
+              href="/people"
+              style={{ ...MONO, fontSize: '12px', color: '#6A6258', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '32px' }}
+            >
+              ← All people
             </Link>
 
-            <div className="flex flex-col sm:flex-row items-start gap-8"
-                 itemScope itemType="https://schema.org/Person">
-              {person.profile_image && (
-                <Image
-                  src={person.profile_image}
-                  alt={person.full_name}
-                  width={128}
-                  height={128}
-                  className="flex-shrink-0 w-32 h-32 rounded-full object-cover border-2 border-cinema-border"
-                  itemProp="image"
-                  priority
-                />
-              )}
-              <div>
-                <h1 className="text-3xl font-bold text-film-cream" itemProp="name">{person.full_name}</h1>
+            <div
+              style={{ display: 'flex', gap: '28px', alignItems: 'flex-start' }}
+              itemScope
+              itemType="https://schema.org/Person"
+            >
+              {/* Avatar */}
+              <div style={{ width: '96px', height: '96px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(200,150,62,0.08)', border: '1px solid rgba(237,228,210,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {person.profile_image ? (
+                  <img
+                    src={person.profile_image}
+                    alt={person.full_name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    itemProp="image"
+                  />
+                ) : (
+                  <span style={{ ...SERIF, fontSize: '40px', color: '#C8963E' }}>{initial}</span>
+                )}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h1
+                  style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,56px)', lineHeight: '0.96', color: '#F6EFE2', margin: 0 }}
+                  itemProp="name"
+                >
+                  {person.full_name}
+                </h1>
                 {person.country && (
-                  <p className="text-film-muted mt-1 text-sm">{person.country}</p>
+                  <p style={{ ...MONO, fontSize: '13px', color: '#6A6258', margin: 0 }} itemProp="nationality">
+                    {person.country}
+                  </p>
                 )}
                 {person.bio && (
-                  <p className="mt-4 text-film-muted leading-relaxed max-w-2xl" itemProp="description">
+                  <p
+                    style={{ margin: '4px 0 0', fontSize: '16px', lineHeight: '1.65', color: '#8C857A', maxWidth: '560px' }}
+                    itemProp="description"
+                  >
                     {person.bio}
                   </p>
                 )}
@@ -105,29 +129,67 @@ export default async function PersonPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Films */}
-        {movieLinks && movieLinks.length > 0 && (
-          <section className="section-container py-12" aria-labelledby="films-heading">
-            <h2 id="films-heading" className="text-xl font-bold text-film-cream mb-6 flex items-center gap-2">
-              <Film className="w-5 h-5 text-film-gold" aria-hidden="true" />
-              Films
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {movieLinks.map((link: any) => link.movie && (
-                <MovieCard
-                  key={link.movie.id}
-                  id={link.movie.id}
-                  title={link.movie.title}
-                  release_year={link.movie.release_year}
-                  genre={link.movie.genre}
-                  poster_url={link.movie.poster_url}
-                  average_rating={link.movie.average_rating}
-                  review_count={link.movie.review_count}
-                />
-              ))}
+        {/* ── FILMS ─────────────────────────────────────────────────── */}
+        {films.length > 0 && (
+          <section style={{ paddingTop: '56px', paddingBottom: '80px' }} aria-labelledby="films-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p
+                id="films-heading"
+                style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}
+              >
+                Films
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '20px' }}>
+                {films.map((link: any) => {
+                  const movie = link.movie
+                  return (
+                    <Link
+                      key={movie.id}
+                      href={`/movie/${movie.id}`}
+                      style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                    >
+                      <div style={{ aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
+                        {movie.poster_url ? (
+                          <img
+                            src={movie.poster_url}
+                            alt={movie.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', opacity: 0.15 }}>
+                            🎬
+                          </div>
+                        )}
+                        {movie.average_rating > 0 && (
+                          <div style={{
+                            position: 'absolute', top: '7px', right: '7px',
+                            height: '22px', padding: '0 7px', borderRadius: '999px',
+                            background: 'rgba(11,10,9,0.8)',
+                            ...MONO, fontSize: '10px', fontWeight: 700, color: '#C8963E',
+                            display: 'flex', alignItems: 'center',
+                          }}>
+                            {movie.average_rating.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#D8CFC0', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {movie.title}
+                        </p>
+                        <p style={{ margin: '2px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                          {movie.release_year}
+                          {link.role ? ` · ${link.role}` : ''}
+                        </p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </section>
         )}
+
       </main>
 
       <Footer />

@@ -15,8 +15,8 @@ export default function AuthPage() {
   return (
     <>
       <Navigation />
-      <main className="pt-16 min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
+      <main style={{ background: '#0B0A09', minHeight: '100vh', paddingTop: '76px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '76px 20px 60px' }}>
+        <div style={{ width: '100%', maxWidth: '400px' }}>
           <Suspense fallback={null}>
             <AuthForm />
           </Suspense>

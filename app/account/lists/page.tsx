@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { List, Plus, Trash2, Globe, Lock, Film, ExternalLink, Loader2 } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/client'
@@ -14,6 +13,16 @@ interface MovieList {
   is_public: boolean
   created_at: string
   movie_count: number
+}
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
+
+const INPUT: React.CSSProperties = {
+  width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px',
+  border: '1px solid rgba(237,228,210,0.12)', background: '#15120E',
+  color: '#EDE4D2', fontSize: '15px', fontFamily: 'inherit', outline: 'none',
+  boxSizing: 'border-box',
 }
 
 export default function AccountListsPage() {
@@ -81,10 +90,7 @@ export default function AccountListsPage() {
   }
 
   const togglePublic = async (list: MovieList) => {
-    await supabase
-      .from('movie_lists')
-      .update({ is_public: !list.is_public })
-      .eq('id', list.id)
+    await supabase.from('movie_lists').update({ is_public: !list.is_public }).eq('id', list.id)
     setLists(prev => prev.map(l => l.id === list.id ? { ...l, is_public: !l.is_public } : l))
   }
 
@@ -92,169 +98,228 @@ export default function AccountListsPage() {
     <>
       <Navigation />
 
-      <main className="pt-16 min-h-screen">
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
 
-        <section className="py-12 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container max-w-3xl">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-bold text-film-cream flex items-center gap-2">
-                  <List className="w-6 h-6 text-film-gold" aria-hidden="true" />
-                  My lists
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', paddingBottom: '0', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '48px', paddingBottom: '48px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+                  Your account
+                </p>
+                <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(36px,5vw,64px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
+                  Your lists
+                  {lists.length > 0 && (
+                    <span style={{ ...MONO, fontSize: '18px', fontStyle: 'normal', color: '#6A6258', marginLeft: '14px' }}>
+                      {lists.length}
+                    </span>
+                  )}
                 </h1>
-                <p className="text-sm text-film-muted mt-1">
+                <p style={{ margin: 0, fontSize: '16px', color: '#8C857A' }}>
                   Curate and share collections of African films.
                 </p>
               </div>
-              <button
-                onClick={() => setCreating(true)}
-                className="btn-gold text-sm flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" aria-hidden="true" />
-                New list
-              </button>
+
+              {!creating && (
+                <button
+                  onClick={() => setCreating(true)}
+                  style={{
+                    height: '48px', padding: '0 24px', borderRadius: '14px',
+                    background: 'rgba(200,150,62,0.15)', border: '1px solid rgba(200,150,62,0.3)',
+                    color: '#C8963E', fontSize: '15px', fontWeight: 600,
+                    cursor: 'pointer', ...MONO,
+                  }}
+                >
+                  + New list
+                </button>
+              )}
             </div>
           </div>
         </section>
 
-        <div className="section-container max-w-3xl py-10 space-y-6">
+        {/* ── CONTENT ────────────────────────────────────────────────── */}
+        <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
+          <div style={{ maxWidth: '760px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {/* Create form */}
-          {creating && (
-            <div className="bg-cinema-dark border border-film-gold/30 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-film-cream mb-4">New list</h2>
-              <div className="space-y-3">
+            {/* Create form */}
+            {creating && (
+              <div style={{
+                padding: '28px', borderRadius: '20px',
+                border: '1px solid rgba(200,150,62,0.2)', background: '#0F0D0B',
+                display: 'flex', flexDirection: 'column', gap: '16px',
+              }}>
+                <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#F6EFE2' }}>New list</p>
+
                 <input
                   autoFocus
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && createList()}
-                  placeholder="List name"
+                  placeholder="What's this list called?"
                   maxLength={80}
-                  className="w-full bg-cinema-surface border border-cinema-border rounded-lg px-3 py-2.5 text-sm text-film-cream placeholder-film-subtle outline-none focus:border-film-gold/50 transition-colors"
+                  style={INPUT}
                 />
+
                 <textarea
                   value={newDesc}
                   onChange={e => setNewDesc(e.target.value)}
-                  placeholder="Description (optional)"
+                  placeholder="Describe it (optional)"
                   rows={2}
                   maxLength={300}
-                  className="w-full bg-cinema-surface border border-cinema-border rounded-lg px-3 py-2.5 text-sm text-film-cream placeholder-film-subtle outline-none focus:border-film-gold/50 transition-colors resize-none"
+                  style={{
+                    ...INPUT, height: 'auto', padding: '12px 14px',
+                    resize: 'none', lineHeight: '1.5',
+                  }}
                 />
-                <div className="flex items-center gap-3">
+
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     onClick={createList}
                     disabled={!newName.trim() || saving}
-                    className="btn-gold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    style={{
+                      height: '44px', padding: '0 20px', borderRadius: '12px',
+                      background: saving ? 'rgba(127,168,139,0.12)' : 'rgba(127,168,139,0.2)',
+                      border: '1px solid rgba(127,168,139,0.3)',
+                      color: '#7FA88B', fontSize: '14px', fontWeight: 600,
+                      cursor: saving ? 'not-allowed' : 'pointer', ...MONO,
+                      opacity: !newName.trim() ? 0.5 : 1,
+                    }}
                   >
-                    {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Create list
+                    {saving ? 'Creating...' : 'Create list'}
                   </button>
                   <button
                     onClick={() => { setCreating(false); setNewName(''); setNewDesc('') }}
-                    className="text-sm text-film-muted hover:text-film-cream transition-colors"
+                    style={{
+                      height: '44px', padding: '0 16px', borderRadius: '12px',
+                      border: '1px solid rgba(237,228,210,0.1)', background: 'transparent',
+                      color: '#6A6258', fontSize: '14px', cursor: 'pointer', ...MONO,
+                    }}
                   >
                     Cancel
                   </button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Lists */}
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 text-film-subtle animate-spin" />
-            </div>
-          ) : lists.length === 0 && !creating ? (
-            <div className="text-center py-20 border border-cinema-border rounded-xl">
-              <List className="w-8 h-8 text-film-subtle mx-auto mb-3" aria-hidden="true" />
-              <p className="text-film-muted text-sm mb-4">
-                No lists yet. Create one to start curating African cinema.
-              </p>
-              <button onClick={() => setCreating(true)} className="btn-gold text-sm">
-                Create my first list
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {lists.map(list => (
+            {/* Lists */}
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+                <div style={{ ...MONO, fontSize: '13px', color: '#6A6258' }}>Loading your lists...</div>
+              </div>
+            ) : lists.length === 0 && !creating ? (
+              <div style={{
+                padding: '64px 24px', borderRadius: '20px',
+                border: '1px solid rgba(237,228,210,0.06)',
+                textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center',
+              }}>
+                <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
+                  No lists yet. Create one to start curating African cinema.
+                </p>
+                <button
+                  onClick={() => setCreating(true)}
+                  style={{
+                    height: '44px', padding: '0 20px', borderRadius: '12px',
+                    background: 'rgba(200,150,62,0.15)', border: '1px solid rgba(200,150,62,0.3)',
+                    color: '#C8963E', fontSize: '14px', fontWeight: 600,
+                    cursor: 'pointer', ...MONO,
+                  }}
+                >
+                  Create my first list
+                </button>
+              </div>
+            ) : (
+              lists.map(list => (
                 <div
                   key={list.id}
-                  className="bg-cinema-dark border border-cinema-border rounded-xl p-4 flex items-start gap-4"
+                  style={{
+                    padding: '20px 24px', borderRadius: '16px',
+                    background: '#0F0D0B', border: '1px solid rgba(237,228,210,0.06)',
+                    display: 'flex', alignItems: 'center', gap: '20px',
+                  }}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-cinema-surface border border-cinema-border flex items-center justify-center flex-shrink-0">
-                    {list.is_public
-                      ? <List className="w-4 h-4 text-film-gold" aria-hidden="true" />
-                      : <Lock className="w-4 h-4 text-film-subtle" aria-hidden="true" />
-                    }
+                  {/* Icon */}
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0,
+                    background: list.is_public ? 'rgba(200,150,62,0.1)' : 'rgba(106,98,88,0.12)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '20px',
+                  }}>
+                    {list.is_public ? '🎞' : '🔒'}
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div>
-                        <Link
-                          href={`/lists/${list.id}`}
-                          className="font-semibold text-film-cream hover:text-film-gold transition-colors text-sm"
-                        >
-                          {list.name}
-                        </Link>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs text-film-subtle">
-                            {list.movie_count} {list.movie_count === 1 ? 'film' : 'films'}
-                          </span>
-                          <button
-                            onClick={() => togglePublic(list)}
-                            className="flex items-center gap-1 text-xs text-film-subtle hover:text-film-muted transition-colors"
-                          >
-                            {list.is_public
-                              ? <><Globe className="w-3 h-3" aria-hidden="true" /> Public</>
-                              : <><Lock className="w-3 h-3" aria-hidden="true" /> Private</>
-                            }
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {list.is_public && (
-                          <Link
-                            href={`/lists/${list.id}`}
-                            className="text-film-subtle hover:text-film-muted transition-colors"
-                            title="View public page"
-                            aria-label="View public page"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                          </Link>
-                        )}
-                        <button
-                          onClick={() => deleteList(list.id)}
-                          disabled={deleting === list.id}
-                          className="text-film-subtle hover:text-red-400 transition-colors disabled:opacity-40"
-                          aria-label="Delete list"
-                        >
-                          {deleting === list.id
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-                          }
-                        </button>
-                      </div>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Link
+                      href={`/lists/${list.id}`}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <p style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#F6EFE2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {list.name}
+                      </p>
+                    </Link>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ ...MONO, fontSize: '12px', color: '#6A6258' }}>
+                        {list.movie_count} {list.movie_count === 1 ? 'film' : 'films'}
+                      </span>
+                      <button
+                        onClick={() => togglePublic(list)}
+                        style={{
+                          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                          ...MONO, fontSize: '12px',
+                          color: list.is_public ? '#7FA88B' : '#6A6258',
+                        }}
+                      >
+                        {list.is_public ? 'Public' : 'Private'}
+                      </button>
                     </div>
-
                     {list.description && (
-                      <p className="text-xs text-film-subtle mt-1.5 leading-relaxed line-clamp-2">
+                      <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#6A6258', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {list.description}
                       </p>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
 
-          <div className="pt-2">
-            <Link href="/account" className="text-sm text-film-muted hover:text-film-cream transition-colors">
-              ← Back to account
-            </Link>
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <Link
+                      href={`/lists/${list.id}`}
+                      style={{
+                        height: '36px', padding: '0 16px', borderRadius: '10px',
+                        border: '1px solid rgba(237,228,210,0.1)', background: 'transparent',
+                        color: '#8C857A', fontSize: '13px', textDecoration: 'none',
+                        display: 'inline-flex', alignItems: 'center', ...MONO,
+                      }}
+                    >
+                      Open
+                    </Link>
+                    <button
+                      onClick={() => deleteList(list.id)}
+                      disabled={deleting === list.id}
+                      style={{
+                        height: '36px', width: '36px', borderRadius: '10px',
+                        border: '1px solid rgba(224,115,90,0.15)', background: 'transparent',
+                        color: '#8C4A3A', fontSize: '14px', cursor: deleting === list.id ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        opacity: deleting === list.id ? 0.5 : 1,
+                      }}
+                      aria-label="Delete list"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <div style={{ paddingTop: '8px' }}>
+              <Link
+                href="/account"
+                style={{ fontSize: '14px', color: '#6A6258', textDecoration: 'none', ...MONO }}
+              >
+                ← Back to account
+              </Link>
+            </div>
           </div>
         </div>
 

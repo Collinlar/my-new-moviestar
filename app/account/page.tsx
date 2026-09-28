@@ -29,7 +29,7 @@ export default async function AccountPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) notFound()
 
-  const [profileRes, reviewsRes, watchlistRes, reactionsRes, watchLaterRes] = await Promise.all([
+  const [profileRes, reviewsRes, watchlistRes, reactionsRes] = await Promise.all([
     supabase
       .from('profiles')
       .select('display_name, username, bio, avatar_url, role, created_at')
@@ -48,7 +48,7 @@ export default async function AccountPage() {
       .select('id, added_at, movie:movies(id, title, release_year, poster_url, genre, average_rating)')
       .eq('user_id', user.id)
       .order('added_at', { ascending: false })
-      .limit(24),
+      .limit(48),
 
     supabase
       .from('movie_reactions')
@@ -56,21 +56,12 @@ export default async function AccountPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(48),
-
-    supabase
-      .from('movie_interactions')
-      .select('id, created_at, movie:movies(id, title, release_year, poster_url, genre, average_rating)')
-      .eq('user_id', user.id)
-      .eq('interaction_type', 'watch_later')
-      .order('created_at', { ascending: false })
-      .limit(24),
   ])
 
-  const profile    = profileRes.data
-  const reviews    = (reviewsRes.data   as any[]) || []
-  const watchlist  = (watchlistRes.data as any[]) || []
-  const reactions  = (reactionsRes.data as any[]) || []
-  const watchLater = (watchLaterRes.data as any[]) || []
+  const profile   = profileRes.data
+  const reviews   = (reviewsRes.data   as any[]) || []
+  const watchlist = (watchlistRes.data as any[]) || []
+  const reactions = (reactionsRes.data as any[]) || []
 
   const displayName = profile?.display_name || profile?.username || user.email?.split('@')[0] || 'Member'
   const initial     = displayName.charAt(0).toUpperCase()
@@ -147,9 +138,8 @@ export default async function AccountPage() {
               <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
                 {[
                   { value: totalReactions, label: 'films reacted to' },
-                  { value: watchLater.length, label: 'on watch later' },
+                  { value: watchlist.length, label: 'on watch later' },
                   { value: approvedReviews, label: 'reviews published' },
-                  { value: watchlist.length, label: 'on watchlist' },
                 ].map(({ value, label }) => (
                   <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ ...SERIF, fontSize: '36px', lineHeight: 1, color: '#F6EFE2' }}>{value}</span>
@@ -295,23 +285,23 @@ export default async function AccountPage() {
                   Watch later
                 </p>
                 <h2 style={{ ...SERIF, fontSize: 'clamp(28px,3vw,40px)', fontWeight: 400, color: '#F6EFE2', margin: 0, lineHeight: 1 }}>
-                  Saved from swipe
-                  {watchLater.length > 0 && (
+                  Your list
+                  {watchlist.length > 0 && (
                     <span style={{ ...MONO, fontSize: '16px', fontStyle: 'normal', color: '#6A6258', marginLeft: '12px' }}>
-                      {watchLater.length}
+                      {watchlist.length}
                     </span>
                   )}
                 </h2>
               </div>
 
-              {watchLater.length === 0 ? (
+              {watchlist.length === 0 ? (
                 <div style={{
                   padding: '48px 24px', borderRadius: '20px',
                   border: '1px solid rgba(237,228,210,0.08)',
                   textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center',
                 }}>
                   <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
-                    Nothing saved yet. Tap &quot;Watch Later&quot; on any film while swiping.
+                    Nothing saved yet. Tap &ldquo;Watch Later&rdquo; while swiping or from any film page.
                   </p>
                   <Link
                     href="/swipe"
@@ -322,7 +312,7 @@ export default async function AccountPage() {
                       display: 'inline-flex', alignItems: 'center',
                     }}
                   >
-                    Go to swipe
+                    Start swiping
                   </Link>
                 </div>
               ) : (
@@ -331,7 +321,7 @@ export default async function AccountPage() {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
                   gap: '14px',
                 }}>
-                  {watchLater.map((item: any) => {
+                  {watchlist.map((item: any) => {
                     const m = item.movie
                     if (!m) return null
                     return (

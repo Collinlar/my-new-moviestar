@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Clapperboard, MapPin, Calendar } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL } from '@/lib/utils'
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
 export const metadata: Metadata = {
   title: 'African Film Festivals — AMAA, FESPACO, AFRIFF and More',
@@ -40,86 +42,81 @@ export default async function FestivalsPage() {
 
       <Navigation />
 
-      <main className="pt-16">
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
 
-        {/* ─── HEADER ─────────────────────────────────────────────── */}
-        <section className="py-16 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container max-w-3xl">
-            <nav aria-label="Breadcrumb" className="mb-6">
-              <ol className="flex items-center gap-2 text-xs text-film-muted">
-                <li><Link href="/" className="hover:text-film-cream transition-colors">Home</Link></li>
-                <li aria-hidden="true">/</li>
-                <li className="text-film-cream" aria-current="page">Festivals</li>
-              </ol>
-            </nav>
-
-            <div className="flex items-start gap-4">
-              <Clapperboard className="w-10 h-10 text-film-gold flex-shrink-0 mt-1" aria-hidden="true" />
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-film-cream">
-                  African Film Festivals
-                </h1>
-                <p className="mt-3 text-film-muted leading-relaxed text-lg">
-                  The festivals that celebrate, honour, and shape African cinema. From Ouagadougou to Lagos
-                  to Cairo — where the continent's films are seen and remembered.
-                </p>
-              </div>
+        {/* ── HEADER ────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '56px' }}>
+            <div style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+                Where African cinema is celebrated
+              </p>
+              <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(36px,5vw,64px)', lineHeight: '0.96', color: '#F6EFE2', margin: 0 }}>
+                African film festivals
+              </h1>
+              <p style={{ fontSize: '17px', lineHeight: '1.55', color: '#8C857A', margin: 0, maxWidth: '480px' }}>
+                From Ouagadougou to Lagos to Cairo — where the continent's films are seen and remembered.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* ─── FESTIVAL LIST ───────────────────────────────────────── */}
-        <div className="section-container max-w-4xl py-14">
-          {list.length === 0 ? (
-            <div className="text-center py-20">
-              <Clapperboard className="w-10 h-10 text-film-subtle mx-auto mb-4" aria-hidden="true" />
-              <p className="text-film-muted">Festival data is being added.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {list.map((fest: any) => (
+        {/* ── LIST ──────────────────────────────────────────────────── */}
+        <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '48px', paddingBottom: '80px' }}>
+          <div style={{ maxWidth: '760px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {list.length === 0 ? (
+              <div style={{ padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+                <span style={{ fontSize: '40px', opacity: 0.2 }} aria-hidden="true">🎬</span>
+                <p style={{ fontSize: '15px', color: '#6A6258', margin: 0 }}>Festival data is being added.</p>
+              </div>
+            ) : (
+              list.map((fest: any) => (
                 <Link
                   key={fest.id}
                   href={`/festival/${fest.slug}`}
-                  className="group block bg-cinema-dark border border-cinema-border rounded-xl p-6 hover:border-film-gold/30 transition-colors"
+                  style={{
+                    textDecoration: 'none', display: 'block',
+                    padding: '24px', borderRadius: '16px',
+                    background: '#0F0D0B', border: '1px solid rgba(237,228,210,0.06)',
+                  }}
                 >
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-3 flex-wrap">
-                        <span className="text-xs font-bold text-film-gold tracking-widest uppercase">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ ...MONO, fontSize: '11px', fontWeight: 700, color: '#C8963E', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                           {fest.short_name}
                         </span>
-                        <span className="text-xs text-film-subtle">{fest.frequency}</span>
+                        {fest.frequency && (
+                          <span style={{ ...MONO, fontSize: '11px', color: '#6A6258' }}>{fest.frequency}</span>
+                        )}
                       </div>
-                      <h2 className="text-lg font-bold text-film-cream mt-1 group-hover:text-film-gold transition-colors leading-tight">
+                      <h2 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(18px,2vw,24px)', color: '#F6EFE2', margin: 0, lineHeight: 1.1 }}>
                         {fest.name}
                       </h2>
-                      <div className="flex items-center gap-4 mt-2 flex-wrap">
-                        <span className="flex items-center gap-1.5 text-xs text-film-subtle">
-                          <MapPin className="w-3 h-3" aria-hidden="true" />
-                          {fest.city ? `${fest.city}, ` : ''}{fest.country}
-                        </span>
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {(fest.city || fest.country) && (
+                          <span style={{ ...MONO, fontSize: '12px', color: '#6A6258' }}>
+                            📍 {fest.city ? `${fest.city}, ` : ''}{fest.country}
+                          </span>
+                        )}
                         {fest.founded && (
-                          <span className="flex items-center gap-1.5 text-xs text-film-subtle">
-                            <Calendar className="w-3 h-3" aria-hidden="true" />
+                          <span style={{ ...MONO, fontSize: '12px', color: '#6A6258' }}>
                             Est. {fest.founded}
                           </span>
                         )}
                       </div>
                       {fest.description && (
-                        <p className="text-sm text-film-muted mt-3 leading-relaxed line-clamp-2">
+                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#8C857A', lineHeight: '1.55', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {fest.description}
                         </p>
                       )}
                     </div>
-                    <span className="text-film-subtle group-hover:text-film-gold transition-colors text-lg flex-shrink-0 mt-1">
-                      →
-                    </span>
+                    <span style={{ color: '#6A6258', fontSize: '18px', flexShrink: 0, marginTop: '2px' }}>→</span>
                   </div>
                 </Link>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
 
       </main>

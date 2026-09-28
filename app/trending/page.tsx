@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { TrendingUp, Star } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { MovieCard } from '@/components/MovieCard'
 import { getTrendingMovies } from '@/lib/queries'
 import { breadcrumbSchema } from '@/lib/schema'
-import { SITE_URL, formatRating } from '@/lib/utils'
+import { SITE_URL, formatRating, capitalise } from '@/lib/utils'
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
 export const metadata: Metadata = {
   title: 'Trending African Movies This Week',
@@ -25,6 +26,9 @@ export default async function TrendingPage() {
     { name: 'Trending', url: `${SITE_URL}/trending` },
   ])
 
+  const top3 = movies.slice(0, 3)
+  const rest  = movies.slice(3)
+
   return (
     <>
       <script
@@ -34,101 +38,164 @@ export default async function TrendingPage() {
 
       <Navigation />
 
-      <main className="pt-16">
-        <section className="py-14 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container">
-            <nav aria-label="Breadcrumb" className="mb-6">
-              <ol className="flex items-center gap-2 text-xs text-film-muted">
-                <li><Link href="/" className="hover:text-film-cream transition-colors">Home</Link></li>
-                <li aria-hidden="true">/</li>
-                <li className="text-film-cream" aria-current="page">Trending</li>
-              </ol>
-            </nav>
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
 
-            <h1 className="text-3xl font-bold text-film-cream flex items-center gap-3">
-              <TrendingUp className="w-7 h-7 text-film-gold" aria-hidden="true" />
-              Trending this week
-            </h1>
-            <p className="mt-2 text-film-muted max-w-lg">
-              African films ranked by recent reviews, watchlist additions, and community engagement.
-              Updated weekly.
-            </p>
+        {/* ── HEADER ────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '56px' }}>
+            <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+                Trending this week
+              </p>
+              <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(36px,5vw,64px)', lineHeight: '0.96', color: '#F6EFE2', margin: 0 }}>
+                The chart
+              </h1>
+              <p style={{ fontSize: '16px', lineHeight: '1.55', color: '#8C857A', margin: 0 }}>
+                Ranked by reviews, watchlist additions, and community engagement. Updated weekly.
+              </p>
+            </div>
           </div>
         </section>
 
-        <div className="section-container py-12">
+        <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '80px' }}>
           {movies.length > 0 ? (
             <>
-              {/* Top 3 ranked prominently */}
-              <div className="mb-10">
-                <p className="section-label mb-4">Top 3</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {movies.slice(0, 3).map((movie, rank) => (
-                    <Link
-                      key={movie.id}
-                      href={`/movie/${movie.id}`}
-                      className="cinema-card group relative overflow-hidden"
-                    >
-                      {/* Rank badge */}
-                      <div className="absolute top-3 left-3 z-10 w-8 h-8 rounded-full bg-film-gold text-cinema-black font-bold text-base flex items-center justify-center">
-                        {rank + 1}
-                      </div>
+              {/* ── TOP 3 ─────────────────────────────────────────────── */}
+              {top3.length > 0 && (
+                <div style={{ marginBottom: '56px' }}>
+                  <p style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
+                    Top 3
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                    {top3.map((movie, rank) => (
+                      <Link
+                        key={movie.id}
+                        href={`/movie/${movie.id}`}
+                        style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}
+                      >
+                        {/* Poster */}
+                        <div style={{ aspectRatio: '2/3', borderRadius: '14px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
+                          {movie.poster_url ? (
+                            <img
+                              src={movie.poster_url}
+                              alt={`${movie.title} poster`}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              loading={rank < 3 ? 'eager' : 'lazy'}
+                            />
+                          ) : (
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', opacity: 0.15 }}>
+                              🎬
+                            </div>
+                          )}
 
-                      <div className="poster-wrap">
-                        {movie.poster_url ? (
-                          <img
-                            src={movie.poster_url}
-                            alt={`${movie.title} poster`}
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading={rank < 3 ? 'eager' : 'lazy'}
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-cinema-surface">
-                            <span className="text-4xl opacity-20">🎬</span>
+                          {/* Rank */}
+                          <div style={{
+                            position: 'absolute', top: '10px', left: '10px',
+                            width: '32px', height: '32px', borderRadius: '50%',
+                            background: '#C8963E', color: '#0B0A09',
+                            ...SERIF, fontSize: '16px', fontWeight: 700,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {rank + 1}
                           </div>
-                        )}
-                        <div className="absolute inset-0 bg-poster-overlay" aria-hidden="true" />
-                        <div className="absolute bottom-3 inset-x-3">
-                          <h2 className="text-base font-bold text-white line-clamp-2">{movie.title}</h2>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Star className="w-3.5 h-3.5 text-film-amber fill-current" aria-hidden="true" />
-                            <span className="text-sm font-semibold text-film-amber">{formatRating(movie.average_rating)}</span>
-                            <span className="text-xs text-white/70">({movie.review_count})</span>
+
+                          {/* Rating */}
+                          {movie.average_rating > 0 && (
+                            <div style={{
+                              position: 'absolute', top: '10px', right: '10px',
+                              height: '24px', padding: '0 8px', borderRadius: '999px',
+                              background: 'rgba(11,10,9,0.8)',
+                              ...MONO, fontSize: '10px', fontWeight: 700, color: '#C8963E',
+                              display: 'flex', alignItems: 'center',
+                            }}>
+                              {formatRating(movie.average_rating)}
+                            </div>
+                          )}
+
+                          {/* Bottom gradient */}
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to top, rgba(11,10,9,0.85) 0%, transparent 100%)' }} aria-hidden="true" />
+                          <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px' }}>
+                            <p style={{ margin: 0, ...SERIF, fontSize: 'clamp(15px,1.8vw,20px)', color: '#F6EFE2', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {movie.title}
+                            </p>
+                            {movie.review_count > 0 && (
+                              <p style={{ margin: '4px 0 0', ...MONO, fontSize: '10px', color: 'rgba(237,228,210,0.5)' }}>
+                                {movie.review_count} {movie.review_count === 1 ? 'review' : 'reviews'}
+                              </p>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Remaining as grid */}
-              <p className="section-label mb-4">The rest of the chart</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {movies.slice(3).map((movie, i) => (
-                  <div key={movie.id} className="relative">
-                    <div className="absolute -top-1 -left-1 z-10 w-6 h-6 rounded-full bg-cinema-surface border border-cinema-border text-film-muted text-[10px] font-bold flex items-center justify-center">
-                      {i + 4}
-                    </div>
-                    <MovieCard
-                      id={movie.id}
-                      title={movie.title}
-                      release_year={movie.release_year}
-                      genre={movie.genre}
-                      language={movie.language}
-                      poster_url={movie.poster_url}
-                      average_rating={movie.average_rating}
-                      review_count={movie.review_count}
-                    />
+                      </Link>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* ── REST OF THE CHART ─────────────────────────────────── */}
+              {rest.length > 0 && (
+                <div>
+                  <p style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6A6258', margin: '0 0 20px' }}>
+                    The rest of the chart
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    {rest.map((movie, i) => (
+                      <Link
+                        key={movie.id}
+                        href={`/movie/${movie.id}`}
+                        style={{
+                          textDecoration: 'none',
+                          display: 'flex', alignItems: 'center', gap: '16px',
+                          padding: '14px 0',
+                          borderBottom: '1px solid rgba(237,228,210,0.06)',
+                        }}
+                      >
+                        {/* Rank */}
+                        <span style={{ ...MONO, fontSize: '13px', color: 'rgba(200,150,62,0.3)', fontWeight: 700, width: '28px', flexShrink: 0, textAlign: 'right' }}>
+                          {i + 4}
+                        </span>
+
+                        {/* Poster thumb */}
+                        <div style={{ width: '36px', height: '52px', borderRadius: '6px', overflow: 'hidden', background: '#15120E', flexShrink: 0 }}>
+                          {movie.poster_url ? (
+                            <img
+                              src={movie.poster_url}
+                              alt={movie.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', opacity: 0.2 }}>🎬</div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: '15px', fontWeight: 500, color: '#D8CFC0', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {movie.title}
+                          </p>
+                          <p style={{ margin: '2px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                            {movie.release_year}
+                            {movie.genre ? ` · ${capitalise(movie.genre)}` : ''}
+                          </p>
+                        </div>
+
+                        {/* Rating */}
+                        {movie.average_rating > 0 && (
+                          <span style={{ ...MONO, fontSize: '12px', color: '#C8963E', fontWeight: 700, flexShrink: 0 }}>
+                            ★ {formatRating(movie.average_rating)}
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
-            <div className="text-center py-20">
-              <TrendingUp className="w-10 h-10 text-film-subtle mx-auto mb-4" aria-hidden="true" />
-              <h2 className="text-xl font-semibold text-film-cream mb-2">Trending data loading</h2>
-              <p className="text-film-muted">Check back shortly for this week's chart.</p>
+            <div style={{ padding: '80px 24px', borderRadius: '20px', border: '1px solid rgba(237,228,210,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+              <span style={{ fontSize: '40px', opacity: 0.2 }} aria-hidden="true">📈</span>
+              <p style={{ ...SERIF, fontSize: '22px', color: '#F6EFE2', margin: 0 }}>Trending data loading</p>
+              <p style={{ fontSize: '15px', color: '#6A6258', margin: 0 }}>Check back shortly for this week's chart.</p>
             </div>
           )}
         </div>

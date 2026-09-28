@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Clapperboard, MapPin, Calendar, ExternalLink, Trophy, Star } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, formatRating } from '@/lib/utils'
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -44,7 +46,6 @@ export default async function FestivalPage({ params }: PageProps) {
 
   if (!fest) notFound()
 
-  // Find awards where the name contains the festival short name or full name
   const { data: awardsRaw } = await supabase
     .from('movie_awards')
     .select(`
@@ -57,7 +58,6 @@ export default async function FestivalPage({ params }: PageProps) {
 
   const awards = (awardsRaw as any[]) || []
 
-  // Group by year
   const byYear = awards.reduce((acc: Record<number, any[]>, award: any) => {
     const yr = award.year
     if (!acc[yr]) acc[yr] = []
@@ -67,9 +67,9 @@ export default async function FestivalPage({ params }: PageProps) {
 
   const years = Object.keys(byYear).map(Number).sort((a, b) => b - a)
 
-  const totalFilms   = new Set(awards.map((a: any) => a.movie?.id).filter(Boolean)).size
-  const totalWins    = awards.filter((a: any) => a.won).length
-  const latestYear   = years[0]
+  const totalFilms = new Set(awards.map((a: any) => a.movie?.id).filter(Boolean)).size
+  const totalWins  = awards.filter((a: any) => a.won).length
+  const latestYear = years[0]
 
   const crumbs = breadcrumbSchema([
     { name: 'Home',      url: SITE_URL },
@@ -86,137 +86,133 @@ export default async function FestivalPage({ params }: PageProps) {
 
       <Navigation />
 
-      <main className="pt-16 min-h-screen">
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
 
-        {/* ─── HEADER ─────────────────────────────────────────────── */}
-        <section className="py-14 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container max-w-4xl">
-            <nav aria-label="Breadcrumb" className="mb-6">
-              <ol className="flex items-center gap-2 text-xs text-film-muted">
-                <li><Link href="/" className="hover:text-film-cream transition-colors">Home</Link></li>
-                <li aria-hidden="true">/</li>
-                <li><Link href="/festivals" className="hover:text-film-cream transition-colors">Festivals</Link></li>
-                <li aria-hidden="true">/</li>
-                <li className="text-film-cream" aria-current="page">{fest.short_name}</li>
-              </ol>
-            </nav>
+        {/* ── HEADER ────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '56px' }}>
 
-            <div className="flex items-start gap-5">
-              <div className="w-14 h-14 rounded-xl bg-cinema-surface border border-cinema-border flex items-center justify-center flex-shrink-0">
-                <Clapperboard className="w-6 h-6 text-film-gold" aria-hidden="true" />
+            <Link
+              href="/festivals"
+              style={{ ...MONO, fontSize: '12px', color: '#6A6258', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '28px' }}
+            >
+              ← All festivals
+            </Link>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '680px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...MONO, fontSize: '11px', fontWeight: 700, color: '#C8963E', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  {fest.short_name}
+                </span>
+                {fest.frequency && (
+                  <span style={{ ...MONO, fontSize: '11px', color: '#6A6258' }}>{fest.frequency}</span>
+                )}
               </div>
 
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-film-gold tracking-widest uppercase mb-1">
-                  {fest.short_name} · {fest.frequency}
-                </p>
-                <h1 className="text-2xl sm:text-3xl font-bold text-film-cream leading-tight">
-                  {fest.name}
-                </h1>
+              <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,56px)', lineHeight: '0.96', color: '#F6EFE2', margin: 0 }}>
+                {fest.name}
+              </h1>
 
-                <div className="flex flex-wrap items-center gap-5 mt-3">
-                  <span className="flex items-center gap-1.5 text-xs text-film-subtle">
-                    <MapPin className="w-3.5 h-3.5" aria-hidden="true" />
-                    {fest.city ? `${fest.city}, ` : ''}{fest.country}
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {(fest.city || fest.country) && (
+                  <span style={{ ...MONO, fontSize: '12px', color: '#6A6258' }}>
+                    📍 {fest.city ? `${fest.city}, ` : ''}{fest.country}
                   </span>
-                  {fest.founded && (
-                    <span className="flex items-center gap-1.5 text-xs text-film-subtle">
-                      <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
-                      Est. {fest.founded}
-                    </span>
-                  )}
-                  {fest.website && (
-                    <a
-                      href={fest.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs text-film-subtle hover:text-film-gold transition-colors"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-                      Official site
-                    </a>
+                )}
+                {fest.founded && (
+                  <span style={{ ...MONO, fontSize: '12px', color: '#6A6258' }}>Est. {fest.founded}</span>
+                )}
+                {fest.website && (
+                  <a
+                    href={fest.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ ...MONO, fontSize: '12px', color: '#6A6258', textDecoration: 'none' }}
+                  >
+                    Official site ↗
+                  </a>
+                )}
+              </div>
+
+              {fest.description && (
+                <p style={{ margin: 0, fontSize: '16px', lineHeight: '1.65', color: '#8C857A', maxWidth: '560px' }}>
+                  {fest.description}
+                </p>
+              )}
+
+              {/* Stats */}
+              {awards.length > 0 && (
+                <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap', paddingTop: '8px' }}>
+                  <div>
+                    <span style={{ ...SERIF, fontSize: '28px', color: '#F6EFE2' }}>{totalFilms}</span>
+                    <span style={{ ...MONO, fontSize: '12px', color: '#6A6258', marginLeft: '6px' }}>films</span>
+                  </div>
+                  <div>
+                    <span style={{ ...SERIF, fontSize: '28px', color: '#F6EFE2' }}>{awards.length}</span>
+                    <span style={{ ...MONO, fontSize: '12px', color: '#6A6258', marginLeft: '6px' }}>entries</span>
+                  </div>
+                  <div>
+                    <span style={{ ...SERIF, fontSize: '28px', color: '#C8963E' }}>{totalWins}</span>
+                    <span style={{ ...MONO, fontSize: '12px', color: '#6A6258', marginLeft: '6px' }}>wins tracked</span>
+                  </div>
+                  {latestYear && (
+                    <div>
+                      <span style={{ ...SERIF, fontSize: '28px', color: '#F6EFE2' }}>{latestYear}</span>
+                      <span style={{ ...MONO, fontSize: '12px', color: '#6A6258', marginLeft: '6px' }}>latest</span>
+                    </div>
                   )}
                 </div>
-
-                {fest.description && (
-                  <p className="text-sm text-film-muted mt-4 max-w-2xl leading-relaxed">
-                    {fest.description}
-                  </p>
-                )}
-
-                {/* Stats row */}
-                {awards.length > 0 && (
-                  <div className="flex flex-wrap gap-8 mt-6">
-                    <div>
-                      <div className="text-2xl font-bold text-film-cream">{totalFilms}</div>
-                      <div className="text-xs text-film-muted">Films in database</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-film-cream">{awards.length}</div>
-                      <div className="text-xs text-film-muted">Award entries</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-film-gold">{totalWins}</div>
-                      <div className="text-xs text-film-muted">Wins tracked</div>
-                    </div>
-                    {latestYear && (
-                      <div>
-                        <div className="text-2xl font-bold text-film-cream">{latestYear}</div>
-                        <div className="text-xs text-film-muted">Latest entry</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </section>
 
-        {/* ─── AWARDS BY YEAR ─────────────────────────────────────── */}
-        <section className="section-container max-w-4xl py-12">
-          {awards.length === 0 ? (
-            <div className="text-center py-20 border border-cinema-border rounded-xl">
-              <Trophy className="w-8 h-8 text-film-subtle mx-auto mb-3" aria-hidden="true" />
-              <p className="text-film-muted text-sm mb-2">
-                No award records for {fest.short_name} yet.
-              </p>
-              <p className="text-xs text-film-subtle max-w-sm mx-auto">
-                Awards are added via the admin panel on each film's page. Search for films that
-                competed at {fest.short_name} and add their entries there.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-12">
-              {years.map(year => {
-                const yearAwards = byYear[year]
-                const winners = yearAwards.filter((a: any) => a.won)
-                const nominees = yearAwards.filter((a: any) => !a.won)
+        {/* ── AWARDS BY YEAR ────────────────────────────────────────── */}
+        <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '80px' }}>
+          <div style={{ maxWidth: '760px' }}>
+            {awards.length === 0 ? (
+              <div style={{ padding: '64px 24px', borderRadius: '20px', border: '1px solid rgba(237,228,210,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                <span style={{ fontSize: '32px', opacity: 0.2 }}>🏆</span>
+                <p style={{ fontSize: '15px', color: '#6A6258', margin: 0 }}>
+                  No award records for {fest.short_name} yet.
+                </p>
+                <p style={{ ...MONO, fontSize: '12px', color: '#4B4540', margin: 0, maxWidth: '320px', textAlign: 'center' }}>
+                  Search for films that competed at {fest.short_name} and add their entries via the admin panel.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+                {years.map(year => {
+                  const yearAwards = byYear[year]
+                  const winners  = yearAwards.filter((a: any) => a.won)
+                  const nominees = yearAwards.filter((a: any) => !a.won)
 
-                return (
-                  <div key={year}>
-                    <h2 className="text-lg font-bold text-film-cream mb-5 flex items-center gap-3">
-                      {year}
-                      <span className="text-xs font-normal text-film-subtle">
-                        {winners.length} {winners.length === 1 ? 'win' : 'wins'} · {yearAwards.length} entries
-                      </span>
-                    </h2>
+                  return (
+                    <div key={year}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '16px' }}>
+                        <h2 style={{ ...SERIF, fontWeight: 400, fontSize: '28px', color: '#F6EFE2', margin: 0 }}>
+                          {year}
+                        </h2>
+                        <span style={{ ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                          {winners.length} {winners.length === 1 ? 'win' : 'wins'} · {yearAwards.length} entries
+                        </span>
+                      </div>
 
-                    <div className="space-y-3">
-                      {/* Winners first */}
-                      {winners.map((award: any) => (
-                        <AwardEntry key={award.id} award={award} won />
-                      ))}
-                      {/* Then nominees */}
-                      {nominees.map((award: any) => (
-                        <AwardEntry key={award.id} award={award} won={false} />
-                      ))}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {winners.map((award: any) => (
+                          <AwardEntry key={award.id} award={award} won />
+                        ))}
+                        {nominees.map((award: any) => (
+                          <AwardEntry key={award.id} award={award} won={false} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
       </main>
 
@@ -230,50 +226,49 @@ function AwardEntry({ award, won }: { award: any; won: boolean }) {
   if (!movie) return null
 
   return (
-    <div className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
-      won
-        ? 'bg-film-gold/5 border-film-gold/20'
-        : 'bg-cinema-dark border-cinema-border'
-    }`}>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '14px',
+      padding: '14px 16px', borderRadius: '12px',
+      background: won ? 'rgba(200,150,62,0.06)' : '#0F0D0B',
+      border: won ? '1px solid rgba(200,150,62,0.2)' : '1px solid rgba(237,228,210,0.06)',
+    }}>
       {/* Poster */}
-      <Link href={`/movie/${movie.id}`} className="flex-shrink-0" tabIndex={-1} aria-hidden="true">
+      <Link href={`/movie/${movie.id}`} style={{ flexShrink: 0 }} tabIndex={-1} aria-hidden="true">
         {movie.poster_url ? (
           <img
             src={movie.poster_url}
             alt={movie.title}
-            className="w-10 h-14 rounded object-cover border border-cinema-border"
+            style={{ width: '36px', height: '52px', borderRadius: '6px', objectFit: 'cover', display: 'block' }}
             loading="lazy"
           />
         ) : (
-          <div className="w-10 h-14 rounded bg-cinema-surface border border-cinema-border" />
+          <div style={{ width: '36px', height: '52px', borderRadius: '6px', background: '#15120E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', opacity: 0.2 }}>🎬</div>
         )}
       </Link>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
+      <div style={{ flex: 1, minWidth: 0 }}>
         <Link
           href={`/movie/${movie.id}`}
-          className="text-sm font-semibold text-film-cream hover:text-film-gold transition-colors"
+          style={{ fontSize: '14px', fontWeight: 500, color: '#F6EFE2', textDecoration: 'none' }}
         >
           {movie.title}
         </Link>
-        <div className="flex flex-wrap items-center gap-3 mt-0.5">
-          <span className="text-xs text-film-subtle">{movie.release_year}</span>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '3px', flexWrap: 'wrap' }}>
+          <span style={{ ...MONO, fontSize: '11px', color: '#6A6258' }}>{movie.release_year}</span>
           {movie.average_rating > 0 && (
-            <span className="flex items-center gap-1 text-xs text-film-amber">
-              <Star className="w-2.5 h-2.5 fill-current" aria-hidden="true" />
-              {formatRating(movie.average_rating)}
+            <span style={{ ...MONO, fontSize: '11px', color: '#C8963E' }}>
+              ★ {formatRating(movie.average_rating)}
             </span>
           )}
         </div>
-        <p className="text-xs text-film-muted mt-1">{award.category}</p>
+        <p style={{ ...MONO, fontSize: '11px', color: '#6A6258', margin: '3px 0 0' }}>{award.category}</p>
       </div>
 
       {/* Win badge */}
       {won && (
-        <div className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-film-gold">
-          <Trophy className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
-          Won
+        <div style={{ flexShrink: 0, ...MONO, fontSize: '11px', fontWeight: 700, color: '#C8963E', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          🏆 Won
         </div>
       )}
     </div>

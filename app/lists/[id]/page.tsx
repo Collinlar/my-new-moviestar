@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Film, List, Lock } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { MovieCard } from '@/components/MovieCard'
 import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/utils'
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -65,111 +66,190 @@ export default async function ListPage({ params }: PageProps) {
 
     supabase
       .from('movie_list_items')
-      .select(`
-        added_at,
-        movie:movies(id, title, release_year, genre, language, poster_url, average_rating, review_count)
-      `)
+      .select('added_at, movie:movies(id, title, release_year, genre, language, poster_url, average_rating, review_count)')
       .eq('list_id', id)
       .order('added_at', { ascending: false }),
   ])
 
   const movies = (items || []).map((i: any) => i.movie).filter(Boolean)
-  const creator = profileData?.display_name || profileData?.username || 'MuvieStars member'
+  const creator  = profileData?.display_name || profileData?.username || 'MuvieStars member'
   const username = profileData?.username
+  const initial  = creator.charAt(0).toUpperCase()
+
+  const createdYear = new Date(list.created_at).getFullYear()
 
   return (
     <>
       <Navigation />
 
-      <main className="pt-16 min-h-screen">
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
 
-        {/* ─── HEADER ─────────────────────────────────────────────── */}
-        <section className="py-12 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container max-w-4xl">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-cinema-surface border border-cinema-border flex items-center justify-center flex-shrink-0">
-                {list.is_public
-                  ? <List className="w-5 h-5 text-film-gold" aria-hidden="true" />
-                  : <Lock className="w-5 h-5 text-film-subtle" aria-hidden="true" />
-                }
-              </div>
+        {/* ── HEADER ──────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '56px' }}>
 
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-film-cream leading-tight">{list.name}</h1>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '760px' }}>
 
-                {list.description && (
-                  <p className="text-sm text-film-muted mt-2 max-w-xl leading-relaxed">
-                    {list.description}
-                  </p>
+              {/* Creator + visibility */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {username ? (
+                  <Link
+                    href={`/u/${username}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+                  >
+                    {profileData?.avatar_url ? (
+                      <img
+                        src={profileData.avatar_url}
+                        alt={creator}
+                        style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        background: 'rgba(200,150,62,0.15)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        ...MONO, fontSize: '12px', fontWeight: 700, color: '#C8963E',
+                      }}>
+                        {initial}
+                      </div>
+                    )}
+                    <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>
+                      by {creator}
+                    </span>
+                  </Link>
+                ) : (
+                  <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>by {creator}</span>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4 mt-4">
-                  <span className="text-sm text-film-muted">
-                    <span className="text-film-cream font-semibold">{movies.length}</span>
-                    {' '}{movies.length === 1 ? 'film' : 'films'}
+                {!list.is_public && (
+                  <span style={{
+                    height: '22px', padding: '0 10px', borderRadius: '999px',
+                    background: 'rgba(106,98,88,0.15)', color: '#6A6258',
+                    ...MONO, fontSize: '11px', fontWeight: 600,
+                    display: 'inline-flex', alignItems: 'center',
+                  }}>
+                    Private
                   </span>
-
-                  {username ? (
-                    <Link
-                      href={`/u/${username}`}
-                      className="flex items-center gap-2 text-sm text-film-muted hover:text-film-cream transition-colors"
-                    >
-                      {profileData?.avatar_url ? (
-                        <img
-                          src={profileData.avatar_url}
-                          alt={creator}
-                          className="w-5 h-5 rounded-full object-cover border border-cinema-border"
-                        />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-cinema-surface border border-cinema-border flex items-center justify-center text-[10px] font-bold text-film-gold">
-                          {creator.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <span>by {creator}</span>
-                    </Link>
-                  ) : (
-                    <span className="text-sm text-film-muted">by {creator}</span>
-                  )}
-
-
-                  {!list.is_public && (
-                    <span className="flex items-center gap-1 text-xs text-film-subtle">
-                      <Lock className="w-3 h-3" aria-hidden="true" />
-                      Private
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
+
+              {/* Title */}
+              <h1 style={{
+                ...SERIF, fontWeight: 400, fontSize: 'clamp(40px,6vw,80px)',
+                lineHeight: '0.95', color: '#F6EFE2', margin: 0,
+              }}>
+                {list.name}
+              </h1>
+
+              {/* Description */}
+              {list.description && (
+                <p style={{ margin: 0, fontSize: '18px', lineHeight: '1.55', color: '#8C857A', maxWidth: '580px' }}>
+                  {list.description}
+                </p>
+              )}
+
+              {/* Meta row */}
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ ...MONO, fontSize: '13px', color: '#6A6258' }}>
+                  {movies.length} {movies.length === 1 ? 'film' : 'films'}
+                </span>
+                <span style={{ ...MONO, fontSize: '13px', color: '#6A6258' }}>
+                  {createdYear}
+                </span>
+              </div>
+
             </div>
           </div>
         </section>
 
-        {/* ─── MOVIES ─────────────────────────────────────────────── */}
-        <section className="section-container max-w-4xl py-10">
+        {/* ── FILMS ───────────────────────────────────────────────────── */}
+        <section className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '48px', paddingBottom: '80px' }}>
           {movies.length === 0 ? (
-            <div className="text-center py-20 border border-cinema-border rounded-xl">
-              <Film className="w-8 h-8 text-film-subtle mx-auto mb-3" aria-hidden="true" />
-              <p className="text-film-muted text-sm">No films in this list yet.</p>
+            <div style={{
+              padding: '64px 24px', borderRadius: '20px',
+              border: '1px solid rgba(237,228,210,0.06)',
+              textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center',
+            }}>
+              <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
+                No films in this list yet.
+              </p>
               {isOwner && (
-                <Link href="/browse" className="btn-gold text-sm mt-4 inline-flex">
+                <Link
+                  href="/browse"
+                  style={{
+                    height: '44px', padding: '0 20px', borderRadius: '12px',
+                    background: 'rgba(200,150,62,0.15)', border: '1px solid rgba(200,150,62,0.3)',
+                    color: '#C8963E', fontSize: '14px', textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center',
+                    fontFamily: '"Geist Mono", monospace', fontWeight: 600,
+                  }}
+                >
                   Browse films to add
                 </Link>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gap: '20px',
+            }}>
               {movies.map((movie: any) => (
-                <MovieCard
+                <Link
                   key={movie.id}
-                  id={movie.id}
-                  title={movie.title}
-                  release_year={movie.release_year}
-                  genre={movie.genre}
-                  language={movie.language}
-                  poster_url={movie.poster_url}
-                  average_rating={movie.average_rating}
-                  review_count={movie.review_count}
-                />
+                  href={`/movie/${movie.id}`}
+                  style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                >
+                  {/* Poster */}
+                  <div style={{
+                    aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden',
+                    background: '#15120E', position: 'relative',
+                  }}>
+                    {movie.poster_url ? (
+                      <img
+                        src={movie.poster_url}
+                        alt={movie.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '28px', opacity: 0.2,
+                      }}>
+                        🎬
+                      </div>
+                    )}
+
+                    {/* Rating badge */}
+                    {movie.average_rating > 0 && (
+                      <div style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        height: '24px', padding: '0 8px', borderRadius: '999px',
+                        background: 'rgba(11,10,9,0.75)',
+                        ...MONO, fontSize: '11px', fontWeight: 700, color: '#C8963E',
+                        display: 'flex', alignItems: 'center',
+                      }}>
+                        {movie.average_rating.toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div>
+                    <p style={{
+                      margin: 0, fontSize: '13px', fontWeight: 500, color: '#D8CFC0',
+                      lineHeight: 1.3,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                      {movie.title}
+                    </p>
+                    <p style={{ margin: '2px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                      {movie.release_year}{movie.genre ? ` · ${movie.genre}` : ''}
+                    </p>
+                  </div>
+                </Link>
               ))}
             </div>
           )}

@@ -1,11 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { Star, Calendar, Globe, ArrowLeft, Award, Film, Quote, Users, Play, ExternalLink } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { MovieCard } from '@/components/MovieCard'
 import {
   getMovieById, getMovieReviews, getMovieCast,
   getMovieAwards, getAllMovieIds, browseMovies, getMovieVerdict,
@@ -20,13 +17,15 @@ import { PersonalContext } from '@/components/PersonalContext'
 import { movieSchema, breadcrumbSchema } from '@/lib/schema'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
 
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
+
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
 export async function generateStaticParams() {
   if (!hasSupabaseConfig()) return []
-
   try {
     const ids = await getAllMovieIds()
     return ids.slice(0, 500).map((id) => ({ id }))
@@ -56,18 +55,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ].filter(Boolean),
     alternates: { canonical: `${SITE_URL}/movie/${id}` },
     openGraph: {
-      title,
-      description: fullDesc,
-      type: 'video.movie',
+      title, description: fullDesc, type: 'video.movie',
       url: `${SITE_URL}/movie/${id}`,
       images: movie.poster_url
         ? [{ url: movie.poster_url, width: 800, height: 1200, alt: `${movie.title} poster` }]
         : undefined,
     },
     twitter: {
-      card: 'summary_large_image',
-      title,
-      description: fullDesc,
+      card: 'summary_large_image', title, description: fullDesc,
       images: movie.poster_url ? [movie.poster_url] : undefined,
     },
   }
@@ -87,10 +82,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
   if (!movie) notFound()
 
-  const { movies: relatedMovies } = await browseMovies({
-    genre: movie.genre, limit: 6,
-  }).catch(() => ({ movies: [], total: 0 }))
-
+  const { movies: relatedMovies } = await browseMovies({ genre: movie.genre, limit: 6 }).catch(() => ({ movies: [], total: 0 }))
   const similar = relatedMovies.filter((m) => m.id !== id).slice(0, 4)
 
   const schema = movieSchema(movie, reviews)
@@ -100,8 +92,14 @@ export default async function MovieDetailPage({ params }: PageProps) {
     { name: movie.title, url: `${SITE_URL}/movie/${id}` },
   ])
 
-  const dir    = movie.director || movie.creator?.name
+  const dir       = movie.director || movie.creator?.name
   const wonAwards = awards.filter((a) => a.won)
+
+  const SECTION: React.CSSProperties = {
+    borderTop: '1px solid rgba(237,228,210,0.06)',
+    paddingTop: '72px',
+    paddingBottom: '72px',
+  }
 
   return (
     <>
@@ -112,193 +110,203 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
       <Navigation />
 
-      <main>
-        {/* ─── HERO ─────────────────────────────────────────────────── */}
-        <section className="relative pt-16 overflow-hidden" aria-label={`${movie.title} header`}>
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-cinema-black" aria-hidden="true">
-            {movie.poster_url && (
-              <Image
+      <main style={{ background: '#0B0A09', color: '#EDE4D2' }}>
+
+        {/* ─── HERO ──────────────────────────────────────────────────────── */}
+        <section
+          style={{ position: 'relative', paddingTop: '76px', overflow: 'hidden', background: '#0B0A09' }}
+          aria-label={`${movie.title} header`}
+        >
+          {/* Blurred backdrop */}
+          {movie.poster_url && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }} aria-hidden="true">
+              <img
                 src={movie.poster_url}
                 alt=""
-                fill
-                className="object-cover opacity-10 blur-lg scale-110"
-                priority
-                sizes="100vw"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(60px)', transform: 'scale(1.15)', opacity: 0.08 }}
               />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-cinema-black/50 via-cinema-black/80 to-cinema-black" />
-          </div>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(11,10,9,0.5) 0%, #0B0A09 85%)' }} />
+            </div>
+          )}
+          <div className="ms-grain" style={{ zIndex: 1 }} aria-hidden="true" />
 
-          <div className="relative section-container py-16">
-            {/* Back link */}
-            <nav aria-label="Back navigation" className="mb-8">
-              <Link
-                href="/browse"
-                className="btn-ghost text-sm gap-2 inline-flex items-center"
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                Back to browse
-              </Link>
-            </nav>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ position: 'relative', zIndex: 2, paddingTop: '48px', paddingBottom: '72px' }}>
 
             {/* Breadcrumb */}
-            <nav aria-label="Breadcrumb" className="mb-8">
-              <ol className="flex items-center gap-2 text-xs text-film-muted flex-wrap">
-                <li><Link href="/" className="hover:text-film-cream transition-colors">Home</Link></li>
-                <li aria-hidden="true"><span>/</span></li>
-                <li><Link href="/browse" className="hover:text-film-cream transition-colors">Browse</Link></li>
-                <li aria-hidden="true"><span>/</span></li>
-                <li className="text-film-cream" aria-current="page">{movie.title}</li>
+            <nav aria-label="Breadcrumb" style={{ marginBottom: '40px' }}>
+              <ol style={{ display: 'flex', gap: '8px', alignItems: 'center', ...MONO, fontSize: '12px', color: '#6A6258', listStyle: 'none', padding: 0, margin: 0, flexWrap: 'wrap' }}>
+                <li><Link href="/" style={{ color: '#6A6258', textDecoration: 'none' }}>Home</Link></li>
+                <li aria-hidden="true" style={{ opacity: 0.4 }}>/</li>
+                <li><Link href="/browse" style={{ color: '#6A6258', textDecoration: 'none' }}>Browse</Link></li>
+                <li aria-hidden="true" style={{ opacity: 0.4 }}>/</li>
+                <li style={{ color: '#8C857A' }} aria-current="page">{movie.title}</li>
               </ol>
             </nav>
 
-            <div className="flex flex-col lg:flex-row gap-10">
-              {/* Poster */}
-              <div className="flex-shrink-0 w-48 sm:w-56 mx-auto lg:mx-0">
-                <div className="poster-wrap rounded-xl overflow-hidden border border-cinema-border shadow-2xl shadow-cinema-black">
+            {/* Main grid: poster | info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '56px', alignItems: 'start' }} className="grid-cols-1 lg:grid-cols-[220px_1fr]">
+
+              {/* ── Poster column ── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ borderRadius: '16px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E', position: 'relative', boxShadow: '0 32px 64px rgba(0,0,0,0.6)' }}>
                   {movie.poster_url ? (
-                    <Image
+                    <img
                       src={movie.poster_url}
-                      alt={`${movie.title} movie poster`}
-                      fill
-                      sizes="(max-width: 1024px) 200px, 224px"
-                      className="object-cover"
-                      priority
+                      alt={`${movie.title} poster`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      loading="eager"
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-cinema-surface">
-                      <span className="text-5xl opacity-20">🎬</span>
-                    </div>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.15 }}>🎬</div>
                   )}
                 </div>
 
-                {/* Rating */}
+                {/* Rating below poster */}
                 {movie.average_rating > 0 && (
-                  <div className="mt-4 text-center">
-                    <div className="text-3xl font-bold text-film-amber">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+                    <div style={{ ...SERIF, fontSize: '48px', lineHeight: 1, color: '#C8963E' }}>
                       {formatRating(movie.average_rating)}
                     </div>
-                    <div className="flex justify-center gap-0.5 mt-1" aria-label={`${formatRating(movie.average_rating)} out of 5 stars`}>
+                    <div style={{ display: 'flex', gap: '3px' }} aria-label={`${formatRating(movie.average_rating)} out of 5 stars`}>
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
+                        <span
                           key={i}
-                          className={`w-4 h-4 ${i < Math.round(movie.average_rating) ? 'text-film-amber fill-current' : 'text-cinema-border'}`}
                           aria-hidden="true"
-                        />
+                          style={{ fontSize: '14px', color: i < Math.round(movie.average_rating) ? '#C8963E' : 'rgba(237,228,210,0.15)' }}
+                        >
+                          ★
+                        </span>
                       ))}
                     </div>
-                    <p className="text-xs text-film-muted mt-1">
+                    <p style={{ ...MONO, fontSize: '11px', color: '#6A6258', letterSpacing: '0.06em' }}>
                       {movie.review_count.toLocaleString()} {movie.review_count === 1 ? 'review' : 'reviews'}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Details */}
-              <div className="flex-1 min-w-0">
-                {/* Title */}
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-film-cream leading-tight">
-                  {movie.title}
-                </h1>
-                {movie.original_title && movie.original_title !== movie.title && (
-                  <p className="mt-1 text-film-muted italic">{movie.original_title}</p>
-                )}
-                {movie.tagline && (
-                  <p className="mt-3 text-film-muted italic text-lg">"{movie.tagline}"</p>
-                )}
+              {/* ── Info column ── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                {/* Metadata row */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm text-film-muted">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
-                    {movie.release_year}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Film className="w-3.5 h-3.5" aria-hidden="true" />
-                    {capitalise(movie.genre)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Globe className="w-3.5 h-3.5" aria-hidden="true" />
-                    {capitalise(movie.language)}
-                  </span>
-                  {movie.country && (
-                    <span>{movie.country}</span>
-                  )}
+                {/* Industry / canon badge */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {movie.industry && movie.industry !== 'Other' && (
                     <Link
                       href={`/browse?industry=${encodeURIComponent(movie.industry)}`}
-                      className="px-2 py-0.5 rounded-full bg-film-gold/10 border border-film-gold/30 text-xs text-film-amber hover:bg-film-gold/20 transition-colors"
+                      style={{
+                        height: '26px', padding: '0 12px', borderRadius: '999px',
+                        background: 'rgba(200,150,62,0.12)', border: '1px solid rgba(200,150,62,0.25)',
+                        ...MONO, fontSize: '11px', fontWeight: 600, color: '#C8963E',
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+                      }}
                     >
                       {movie.industry}
                     </Link>
                   )}
+                  {movie.is_canon && (
+                    <span style={{
+                      height: '26px', padding: '0 12px', borderRadius: '999px',
+                      background: 'rgba(200,150,62,0.08)', border: '1px solid rgba(200,150,62,0.2)',
+                      ...MONO, fontSize: '11px', color: '#C8963E',
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    }}>
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C8963E', display: 'inline-block' }} />
+                      African Canon
+                    </span>
+                  )}
+                  {wonAwards.length > 0 && wonAwards.slice(0, 2).map(award => (
+                    <span
+                      key={award.id}
+                      style={{
+                        height: '26px', padding: '0 12px', borderRadius: '999px',
+                        background: 'rgba(200,150,62,0.08)', border: '1px solid rgba(200,150,62,0.2)',
+                        ...MONO, fontSize: '11px', color: '#C8963E',
+                        display: 'inline-flex', alignItems: 'center',
+                      }}
+                    >
+                      🏆 {award.name} {award.year}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Title */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px,5vw,80px)', lineHeight: '0.95', color: '#F6EFE2', margin: 0, letterSpacing: '-0.01em' }}>
+                    {movie.title}
+                  </h1>
+                  {movie.original_title && movie.original_title !== movie.title && (
+                    <p style={{ margin: 0, fontSize: '17px', color: '#6A6258', fontStyle: 'italic' }}>
+                      {movie.original_title}
+                    </p>
+                  )}
+                  {movie.tagline && (
+                    <p style={{ margin: 0, fontSize: '18px', color: '#8C857A', fontStyle: 'italic' }}>
+                      &ldquo;{movie.tagline}&rdquo;
+                    </p>
+                  )}
+                </div>
+
+                {/* Meta row */}
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', ...MONO, fontSize: '13px', color: '#8C857A' }}>
+                  <span>{movie.release_year}</span>
+                  {movie.genre && <span>{capitalise(movie.genre)}</span>}
+                  {movie.language && <span>{capitalise(movie.language)}</span>}
+                  {movie.country && <span>{movie.country}</span>}
                   {movie.rating && (
-                    <span className="px-2 py-0.5 border border-cinema-border rounded text-xs">
+                    <span style={{ padding: '0 8px', border: '1px solid rgba(237,228,210,0.12)', borderRadius: '4px' }}>
                       {movie.rating}
                     </span>
                   )}
                 </div>
 
-                {/* Awards won */}
-                {wonAwards.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {wonAwards.slice(0, 3).map((award) => (
-                      <div
-                        key={award.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-film-amber/10 border border-film-amber/20 text-xs text-film-amber"
-                      >
-                        <Award className="w-3 h-3" aria-hidden="true" />
-                        {award.name} {award.year}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
                 {/* Synopsis */}
-                <div className="mt-6 space-y-1">
-                  <h2 className="sr-only">Synopsis</h2>
-                  <p className="text-film-cream leading-relaxed">
+                {(movie.synopsis || movie.description) && (
+                  <p style={{ margin: 0, fontSize: '17px', lineHeight: '1.65', color: '#C7BFB2', maxWidth: '640px' }}>
                     {movie.synopsis || movie.description}
                   </p>
-                </div>
+                )}
 
-                {/* Credits */}
-                <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                {/* Credits grid */}
+                <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px 24px' }}>
                   {dir && (
                     <div>
-                      <dt className="text-film-subtle text-xs uppercase tracking-wider">Director</dt>
-                      <dd className="text-film-cream mt-1 font-medium">{dir}</dd>
+                      <dt style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6A6258', marginBottom: '4px' }}>Director</dt>
+                      <dd style={{ fontSize: '15px', fontWeight: 500, color: '#EDE4D2', margin: 0 }}>{dir}</dd>
                     </div>
                   )}
                   {movie.producer && (
                     <div>
-                      <dt className="text-film-subtle text-xs uppercase tracking-wider">Producer</dt>
-                      <dd className="text-film-cream mt-1 font-medium">{movie.producer}</dd>
+                      <dt style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6A6258', marginBottom: '4px' }}>Producer</dt>
+                      <dd style={{ fontSize: '15px', fontWeight: 500, color: '#EDE4D2', margin: 0 }}>{movie.producer}</dd>
                     </div>
                   )}
                   {movie.production_company && (
                     <div>
-                      <dt className="text-film-subtle text-xs uppercase tracking-wider">Studio</dt>
-                      <dd className="text-film-cream mt-1 font-medium">{movie.production_company}</dd>
+                      <dt style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6A6258', marginBottom: '4px' }}>Studio</dt>
+                      <dd style={{ fontSize: '15px', fontWeight: 500, color: '#EDE4D2', margin: 0 }}>{movie.production_company}</dd>
                     </div>
                   )}
                   {movie.distribution_status && (
                     <div>
-                      <dt className="text-film-subtle text-xs uppercase tracking-wider">Availability</dt>
-                      <dd className="text-film-cream mt-1 font-medium">{capitalise(movie.distribution_status)}</dd>
+                      <dt style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6A6258', marginBottom: '4px' }}>Availability</dt>
+                      <dd style={{ fontSize: '15px', fontWeight: 500, color: '#EDE4D2', margin: 0 }}>{capitalise(movie.distribution_status)}</dd>
                     </div>
                   )}
-                </div>
+                </dl>
 
                 {/* Keywords */}
                 {movie.keywords && (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {movie.keywords.split(',').map(k => k.trim()).filter(Boolean).map(k => (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {movie.keywords.split(',').map((k: string) => k.trim()).filter(Boolean).map((k: string) => (
                       <Link
                         key={k}
                         href={`/search?q=${encodeURIComponent(k)}`}
-                        className="px-2.5 py-1 rounded-full border border-cinema-border text-xs text-film-muted hover:text-film-cream hover:border-film-gold/40 transition-colors"
+                        style={{
+                          height: '28px', padding: '0 12px', borderRadius: '999px',
+                          border: '1px solid rgba(237,228,210,0.1)', color: '#8C857A',
+                          ...MONO, fontSize: '12px', textDecoration: 'none',
+                          display: 'inline-flex', alignItems: 'center',
+                        }}
                       >
                         {k}
                       </Link>
@@ -306,12 +314,20 @@ export default async function MovieDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-                {/* Personal context — only shows if user has reacted */}
+                {/* Personal context */}
                 <PersonalContext movieId={id} />
 
                 {/* Actions */}
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <a href="#community-reviews" className="btn-gold">
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', paddingTop: '8px' }}>
+                  <a
+                    href="#community-reviews"
+                    style={{
+                      height: '52px', padding: '0 24px', borderRadius: '14px',
+                      background: '#C8963E', color: '#0B0A09',
+                      fontSize: '16px', fontWeight: 600, textDecoration: 'none',
+                      display: 'inline-flex', alignItems: 'center',
+                    }}
+                  >
                     Write a review
                   </a>
                   <WatchlistButton movieId={id} />
@@ -321,9 +337,14 @@ export default async function MovieDetailPage({ params }: PageProps) {
                       href={movie.youtube_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-ghost"
+                      style={{
+                        height: '52px', padding: '0 24px', borderRadius: '14px',
+                        border: '1px solid rgba(237,228,210,0.15)', color: '#EDE4D2',
+                        fontSize: '16px', fontWeight: 500, textDecoration: 'none',
+                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      }}
                     >
-                      Watch here
+                      Watch trailer
                     </a>
                   )}
                 </div>
@@ -332,32 +353,36 @@ export default async function MovieDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* ─── WHERE TO WATCH ──────────────────────────────────────────── */}
+        {/* ─── WHERE TO WATCH ─────────────────────────────────────────────── */}
         {movie.streaming_links && movie.streaming_links.length > 0 && (
-          <section className="py-10 bg-cinema-dark border-b border-cinema-border" aria-labelledby="watch-heading">
-            <div className="section-container">
-              <h2 id="watch-heading" className="text-base font-semibold text-film-cream mb-4 flex items-center gap-2">
-                <Play className="w-4 h-4 text-film-gold" aria-hidden="true" />
+          <section style={SECTION} aria-labelledby="watch-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
                 Where to watch
-              </h2>
-              <div className="flex flex-wrap gap-3">
-                {movie.streaming_links.map((link, i) => (
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {movie.streaming_links.map((link: { url: string; platform: string; free?: boolean }, i: number) => (
                   <a
                     key={i}
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-cinema-border bg-cinema-black hover:border-film-gold/50 hover:bg-cinema-surface transition-colors group"
+                    style={{
+                      height: '44px', padding: '0 20px', borderRadius: '12px',
+                      border: '1px solid rgba(237,228,210,0.12)', background: '#15120E',
+                      color: '#EDE4D2', fontSize: '14px', fontWeight: 500,
+                      textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
+                    }}
                   >
-                    <span className="text-sm font-semibold text-film-cream group-hover:text-film-gold transition-colors">
-                      {link.platform}
-                    </span>
+                    {link.platform}
                     {link.free && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-film-gold/15 text-film-amber border border-film-gold/20">
-                        FREE
-                      </span>
+                      <span style={{
+                        height: '20px', padding: '0 8px', borderRadius: '4px',
+                        background: 'rgba(127,168,139,0.15)', border: '1px solid rgba(127,168,139,0.25)',
+                        ...MONO, fontSize: '10px', fontWeight: 700, color: '#7FA88B',
+                        display: 'inline-flex', alignItems: 'center',
+                      }}>FREE</span>
                     )}
-                    <ExternalLink className="w-3 h-3 text-film-subtle group-hover:text-film-gold transition-colors" aria-hidden="true" />
                   </a>
                 ))}
               </div>
@@ -365,77 +390,79 @@ export default async function MovieDetailPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* ─── CANON ESSAY ─────────────────────────────────────────────── */}
+        {/* ─── CANON ESSAY ────────────────────────────────────────────────── */}
         {movie.is_canon && movie.canon_essay && (
-          <section className="py-16 border-y border-cinema-border" aria-labelledby="canon-essay-heading">
-            <div className="section-container max-w-3xl">
-              <div className="flex items-center gap-3 mb-6">
-                <Award className="w-5 h-5 text-film-gold flex-shrink-0" aria-hidden="true" />
-                <h2 id="canon-essay-heading" className="text-xs font-semibold text-film-gold uppercase tracking-widest">
-                  African Film Canon
-                </h2>
-              </div>
-              <blockquote className="space-y-4">
-                {movie.canon_essay.split('\n\n').filter(Boolean).map((para, i) => (
-                  <p key={i} className="text-film-cream leading-[1.8] text-base">
-                    {para}
-                  </p>
+          <section style={SECTION} aria-labelledby="canon-essay-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ maxWidth: '760px' }}>
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 24px' }}>
+                African Film Canon
+              </p>
+              <blockquote style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {movie.canon_essay.split('\n\n').filter(Boolean).map((para: string, i: number) => (
+                  <p key={i} style={{ margin: 0, fontSize: '18px', lineHeight: '1.75', color: '#C7BFB2' }}>{para}</p>
                 ))}
               </blockquote>
-              <p className="mt-6 text-xs text-film-subtle">
-                — {movie.canon_essay_author || 'MuvieStars Editorial'}
+              <p style={{ ...MONO, marginTop: '20px', fontSize: '12px', color: '#6A6258' }}>
+                {movie.canon_essay_author || 'MuvieStars Editorial'}
               </p>
             </div>
           </section>
         )}
 
-        {/* ─── CULTURAL CONTEXT ────────────────────────────────────────── */}
+        {/* ─── CULTURAL CONTEXT ───────────────────────────────────────────── */}
         {movie.cultural_context && (
-          <section className="py-16 bg-cinema-dark border-y border-cinema-border" aria-labelledby="context-heading">
-            <div className="section-container max-w-3xl">
-              <h2 id="context-heading" className="text-lg font-semibold text-film-cream mb-4 flex items-center gap-2">
-                <Quote className="w-5 h-5 text-film-gold" aria-hidden="true" />
+          <section style={{ ...SECTION, background: '#0F0D0B' }} aria-labelledby="context-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ maxWidth: '760px' }}>
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
                 Cultural context
-              </h2>
-              <p className="text-film-muted leading-relaxed">{movie.cultural_context}</p>
+              </p>
+              <p style={{ margin: 0, fontSize: '17px', lineHeight: '1.7', color: '#C7BFB2' }}>{movie.cultural_context}</p>
             </div>
           </section>
         )}
 
-        {/* ─── CAST & CREW ──────────────────────────────────────────────── */}
+        {/* ─── CAST & CREW ────────────────────────────────────────────────── */}
         {cast.length > 0 && (
-          <section className="py-16 bg-cinema-black" aria-labelledby="cast-heading">
-            <div className="section-container">
-              <h2 id="cast-heading" className="text-xl font-bold text-film-cream mb-6 flex items-center gap-2">
-                <Users className="w-5 h-5 text-film-gold" aria-hidden="true" />
+          <section style={SECTION} aria-labelledby="cast-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}>
                 Cast &amp; crew
-              </h2>
-              <div className="scroll-rail">
+              </p>
+              <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
                 {cast.map((member) => {
                   const name = member.person?.full_name ?? '—'
+                  const initial = name.charAt(0).toUpperCase()
                   return (
                     <div
                       key={member.id}
-                      className="flex-shrink-0 w-28 bg-cinema-dark rounded-lg border border-cinema-border p-3 text-center"
+                      style={{
+                        flexShrink: 0, width: '100px',
+                        display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', textAlign: 'center',
+                      }}
                     >
                       {member.person?.profile_image ? (
                         <img
                           src={member.person.profile_image}
                           alt={name}
-                          className="w-14 h-14 rounded-full object-cover border border-cinema-border mx-auto mb-2"
+                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(237,228,210,0.1)' }}
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-full bg-cinema-surface border border-cinema-border mx-auto mb-2 flex items-center justify-center text-xl text-film-muted">
-                          {name.charAt(0)}
+                        <div style={{
+                          width: '56px', height: '56px', borderRadius: '50%',
+                          background: '#15120E', border: '1px solid rgba(237,228,210,0.08)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          ...SERIF, fontSize: '22px', color: '#8C857A',
+                        }}>
+                          {initial}
                         </div>
                       )}
-                      <p className="text-xs font-semibold text-film-cream line-clamp-2">{name}</p>
-                      {member.character_name ? (
-                        <p className="text-[10px] text-film-muted mt-0.5 line-clamp-1">as {member.character_name}</p>
-                      ) : (
-                        <p className="text-[10px] text-film-subtle mt-0.5 capitalize">{member.role?.replace('_', ' ')}</p>
-                      )}
+                      <div>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 500, color: '#EDE4D2', lineHeight: 1.3 }}>{name}</p>
+                        <p style={{ margin: '3px 0 0', ...MONO, fontSize: '10px', color: '#6A6258' }}>
+                          {member.character_name || member.role?.replace('_', ' ')}
+                        </p>
+                      </div>
                     </div>
                   )
                 })}
@@ -444,35 +471,34 @@ export default async function MovieDetailPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* ─── AWARDS ───────────────────────────────────────────────────── */}
+        {/* ─── AWARDS ─────────────────────────────────────────────────────── */}
         {awards.length > 0 && (
-          <section className="py-16 bg-cinema-dark border-t border-cinema-border" aria-labelledby="awards-heading">
-            <div className="section-container">
-              <h2 id="awards-heading" className="text-xl font-bold text-film-cream mb-6 flex items-center gap-2">
-                <Award className="w-5 h-5 text-film-gold" aria-hidden="true" />
-                Awards and nominations
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <section style={{ ...SECTION, background: '#0F0D0B' }} aria-labelledby="awards-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}>
+                Awards &amp; nominations
+              </p>
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px',
+              }}>
                 {awards.map((award) => (
                   <div
                     key={award.id}
-                    className={`flex items-start gap-3 p-4 rounded-lg border ${
-                      award.won
-                        ? 'bg-film-amber/5 border-film-amber/20'
-                        : 'bg-cinema-black border-cinema-border'
-                    }`}
+                    style={{
+                      display: 'flex', gap: '14px', alignItems: 'flex-start',
+                      padding: '16px 18px', borderRadius: '12px',
+                      background: award.won ? 'rgba(200,150,62,0.06)' : '#15120E',
+                      border: award.won ? '1px solid rgba(200,150,62,0.2)' : '1px solid rgba(237,228,210,0.06)',
+                    }}
                   >
-                    <Award
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 ${award.won ? 'text-film-amber' : 'text-film-subtle'}`}
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <p className={`text-sm font-medium ${award.won ? 'text-film-amber' : 'text-film-cream'}`}>
+                    <span style={{ fontSize: '16px', marginTop: '1px' }}>{award.won ? '🏆' : '🎖'}</span>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500, color: award.won ? '#C8963E' : '#D8CFC0' }}>
                         {award.name}
+                        {award.won && <span style={{ ...MONO, fontSize: '11px', marginLeft: '8px', color: '#C8963E' }}>Won</span>}
                       </p>
-                      <p className="text-xs text-film-muted mt-0.5">
-                        {award.category} • {award.year}
-                        {award.won && <span className="ml-2 text-film-amber font-semibold">Won</span>}
+                      <p style={{ margin: '3px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                        {award.category} · {award.year}
                       </p>
                     </div>
                   </div>
@@ -482,75 +508,82 @@ export default async function MovieDetailPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* ─── COMMUNITY VERDICT ────────────────────────────────────────── */}
+        {/* ─── COMMUNITY VERDICT ──────────────────────────────────────────── */}
         {verdict && <CommunityVerdict verdict={verdict} movieTitle={movie.title} />}
 
-        {/* ─── REVIEWS ──────────────────────────────────────────────────── */}
-        <section id="community-reviews" className="py-16 bg-cinema-black" aria-labelledby="reviews-heading">
-          <div className="section-container">
-            <h2 id="reviews-heading" className="text-xl font-bold text-film-cream mb-6">
-              Community reviews
+        {/* ─── REVIEWS ────────────────────────────────────────────────────── */}
+        <section id="community-reviews" style={SECTION} aria-labelledby="reviews-heading">
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '36px' }}>
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+                Community reviews
+              </p>
               {movie.review_count > 0 && (
-                <span className="ml-2 text-base font-normal text-film-muted">
-                  ({movie.review_count.toLocaleString()})
+                <span style={{ ...MONO, fontSize: '13px', color: '#6A6258' }}>
+                  {movie.review_count.toLocaleString()}
                 </span>
               )}
-            </h2>
+            </div>
 
             <ReviewForm movieId={id} />
 
             {reviews.length > 0 ? (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '28px' }}>
                 {reviews.map((review) => (
                   <article
                     key={review.id}
-                    className="bg-cinema-dark border border-cinema-border rounded-xl p-5"
+                    style={{
+                      padding: '24px', borderRadius: '16px',
+                      background: '#0F0D0B', border: '1px solid rgba(237,228,210,0.06)',
+                    }}
                     itemScope
                     itemType="https://schema.org/Review"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: review.content ? '16px' : 0 }}>
+                      {/* Reviewer */}
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <div
-                          className="w-9 h-9 rounded-full bg-cinema-surface border border-cinema-border flex items-center justify-center text-sm text-film-muted font-semibold"
+                          style={{
+                            width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                            background: 'rgba(200,150,62,0.1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            ...SERIF, fontSize: '16px', color: '#C8963E',
+                          }}
                           aria-hidden="true"
                         >
                           {(review.profile?.display_name || review.profile?.username || 'A').charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <p
-                            className="text-sm font-semibold"
-                            itemProp="author"
-                            itemScope
-                            itemType="https://schema.org/Person"
-                          >
-                            {review.profile?.username ? (
-                              <Link
-                                href={`/u/${review.profile.username}`}
-                                className="text-film-cream hover:text-film-gold transition-colors"
-                                itemProp="name"
-                              >
-                                {review.profile.display_name || review.profile.username}
-                              </Link>
-                            ) : (
-                              <span itemProp="name" className="text-film-cream">
-                                {review.profile?.display_name || 'MuvieStars Member'}
-                              </span>
-                            )}
-                          </p>
+                        <div
+                          itemProp="author"
+                          itemScope
+                          itemType="https://schema.org/Person"
+                        >
+                          {review.profile?.username ? (
+                            <Link
+                              href={`/u/${review.profile.username}`}
+                              style={{ textDecoration: 'none', fontSize: '14px', fontWeight: 600, color: '#EDE4D2' }}
+                              itemProp="name"
+                            >
+                              {review.profile.display_name || review.profile.username}
+                            </Link>
+                          ) : (
+                            <span itemProp="name" style={{ fontSize: '14px', fontWeight: 600, color: '#EDE4D2' }}>
+                              {review.profile?.display_name || 'MuvieStars Member'}
+                            </span>
+                          )}
                           <time
-                            className="text-xs text-film-muted"
+                            style={{ display: 'block', ...MONO, fontSize: '11px', color: '#6A6258', marginTop: '2px' }}
                             dateTime={review.created_at}
                             itemProp="datePublished"
                           >
-                            {new Date(review.created_at).toLocaleDateString('en-GB', {
-                              day: 'numeric', month: 'short', year: 'numeric',
-                            })}
+                            {new Date(review.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </time>
                         </div>
                       </div>
 
+                      {/* Stars */}
                       <div
-                        className="flex items-center gap-0.5 flex-shrink-0"
+                        style={{ display: 'flex', gap: '3px', alignItems: 'center' }}
                         itemProp="reviewRating"
                         itemScope
                         itemType="https://schema.org/Rating"
@@ -558,68 +591,94 @@ export default async function MovieDetailPage({ params }: PageProps) {
                         <meta itemProp="ratingValue" content={String(review.rating)} />
                         <meta itemProp="bestRating" content="5" />
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
+                          <span
                             key={i}
-                            className={`w-3.5 h-3.5 ${i < review.rating ? 'text-film-amber fill-current' : 'text-cinema-border'}`}
                             aria-hidden="true"
-                          />
+                            style={{ fontSize: '14px', color: i < review.rating ? '#C8963E' : 'rgba(237,228,210,0.12)' }}
+                          >
+                            ★
+                          </span>
                         ))}
                       </div>
                     </div>
 
                     {review.content && (
                       <p
-                        className="mt-4 text-sm text-film-muted leading-relaxed"
+                        style={{ margin: 0, fontSize: '15px', lineHeight: '1.65', color: '#C7BFB2' }}
                         itemProp="reviewBody"
                       >
                         {review.content}
                       </p>
                     )}
 
-                    <div className="mt-3">
-                      <HelpfulButton
-                        reviewId={review.id}
-                        initialCount={review.helpful_count || 0}
-                      />
+                    <div style={{ marginTop: '16px' }}>
+                      <HelpfulButton reviewId={review.id} initialCount={review.helpful_count || 0} />
                     </div>
                   </article>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 border border-cinema-border rounded-xl">
-                <Quote className="w-8 h-8 text-film-subtle mx-auto mb-3" aria-hidden="true" />
-                <p className="text-film-muted text-sm">No reviews yet. Be the first.</p>
+              <div style={{
+                padding: '56px 24px', borderRadius: '20px', marginTop: '28px',
+                border: '1px solid rgba(237,228,210,0.06)', textAlign: 'center',
+              }}>
+                <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>No reviews yet. Be the first.</p>
               </div>
             )}
           </div>
         </section>
 
-        {/* ─── SIMILAR FILMS ────────────────────────────────────────────── */}
+        {/* ─── SIMILAR FILMS ──────────────────────────────────────────────── */}
         {similar.length > 0 && (
-          <section className="py-16 bg-cinema-dark border-t border-cinema-border" aria-labelledby="similar-heading">
-            <div className="section-container">
-              <h2 id="similar-heading" className="text-xl font-bold text-film-cream mb-6">
+          <section style={{ ...SECTION, background: '#0F0D0B' }} aria-labelledby="similar-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}>
                 More {capitalise(movie.genre)} films
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '20px' }}>
                 {similar.map((m) => (
-                  <MovieCard
+                  <Link
                     key={m.id}
-                    id={m.id}
-                    title={m.title}
-                    release_year={m.release_year}
-                    genre={m.genre}
-                    language={m.language}
-                    poster_url={m.poster_url}
-                    average_rating={m.average_rating}
-                    review_count={m.review_count}
-                    director={m.director || m.creator?.name}
-                  />
+                    href={`/movie/${m.id}`}
+                    style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                  >
+                    <div style={{ aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
+                      {m.poster_url ? (
+                        <img
+                          src={m.poster_url}
+                          alt={m.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', opacity: 0.15 }}>🎬</div>
+                      )}
+                      {m.average_rating > 0 && (
+                        <div style={{
+                          position: 'absolute', top: '8px', right: '8px',
+                          height: '22px', padding: '0 7px', borderRadius: '999px',
+                          background: 'rgba(11,10,9,0.75)', ...MONO, fontSize: '11px', fontWeight: 700, color: '#C8963E',
+                          display: 'flex', alignItems: 'center',
+                        }}>
+                          {formatRating(m.average_rating)}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#D8CFC0', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {m.title}
+                      </p>
+                      <p style={{ margin: '2px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                        {m.release_year}
+                      </p>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
           </section>
         )}
+
       </main>
 
       <Footer />

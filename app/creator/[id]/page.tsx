@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { Film, ArrowLeft } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { MovieCard } from '@/components/MovieCard'
 import { getCreatorById, getCreatorMovies, getAllCreatorIds } from '@/lib/queries'
 import { hasSupabaseConfig } from '@/lib/supabase/env'
 import { personSchema, breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
+
+const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
+const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -17,7 +17,6 @@ interface PageProps {
 
 export async function generateStaticParams() {
   if (!hasSupabaseConfig()) return []
-
   try {
     const ids = await getAllCreatorIds()
     return ids.map((id) => ({ id }))
@@ -62,6 +61,8 @@ export default async function CreatorPage({ params }: PageProps) {
     { name: creator.name, url: `${SITE_URL}/creator/${id}` },
   ])
 
+  const initial = creator.name.charAt(0).toUpperCase()
+
   return (
     <>
       <script
@@ -71,49 +72,54 @@ export default async function CreatorPage({ params }: PageProps) {
 
       <Navigation />
 
-      <main className="pt-16">
-        <section className="py-16 bg-cinema-dark border-b border-cinema-border">
-          <div className="section-container">
-            <nav aria-label="Breadcrumb" className="mb-6">
-              <ol className="flex items-center gap-2 text-xs text-film-muted">
-                <li><Link href="/" className="hover:text-film-cream transition-colors">Home</Link></li>
-                <li aria-hidden="true">/</li>
-                <li><Link href="/creators" className="hover:text-film-cream transition-colors">Filmmakers</Link></li>
-                <li aria-hidden="true">/</li>
-                <li className="text-film-cream" aria-current="page">{creator.name}</li>
-              </ol>
-            </nav>
+      <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
 
-            <Link href="/creators" className="btn-ghost text-sm gap-2 inline-flex items-center mb-8">
-              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-              All filmmakers
+        {/* ── HEADER ────────────────────────────────────────────────── */}
+        <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '56px', paddingBottom: '56px' }}>
+
+            <Link
+              href="/creators"
+              style={{ ...MONO, fontSize: '12px', color: '#6A6258', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '32px' }}
+            >
+              ← All filmmakers
             </Link>
 
-            <div className="flex flex-col sm:flex-row items-start gap-8"
-                 itemScope itemType="https://schema.org/Person">
-              {creator.image_url && (
-                <div className="flex-shrink-0">
-                  <Image
+            <div
+              style={{ display: 'flex', gap: '28px', alignItems: 'flex-start' }}
+              itemScope
+              itemType="https://schema.org/Person"
+            >
+              {/* Avatar */}
+              <div style={{ width: '96px', height: '96px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(200,150,62,0.08)', border: '1px solid rgba(237,228,210,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {creator.image_url ? (
+                  <img
                     src={creator.image_url}
                     alt={`${creator.name} — African filmmaker`}
-                    width={128}
-                    height={128}
-                    className="w-32 h-32 rounded-full object-cover border-2 border-cinema-border"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     itemProp="image"
-                    priority
                   />
-                </div>
-              )}
+                ) : (
+                  <span style={{ ...SERIF, fontSize: '40px', color: '#C8963E' }}>{initial}</span>
+                )}
+              </div>
 
-              <div>
-                <h1 className="text-3xl font-bold text-film-cream" itemProp="name">
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h1
+                  style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,56px)', lineHeight: '0.96', color: '#F6EFE2', margin: 0 }}
+                  itemProp="name"
+                >
                   {creator.name}
                 </h1>
-                <p className="text-film-muted mt-1 text-sm">
+                <p style={{ ...MONO, fontSize: '13px', color: '#6A6258', margin: 0 }}>
                   {movies.length} {movies.length === 1 ? 'film' : 'films'} in the archive
                 </p>
                 {creator.bio && (
-                  <p className="mt-4 text-film-muted leading-relaxed max-w-2xl" itemProp="description">
+                  <p
+                    style={{ margin: '4px 0 0', fontSize: '16px', lineHeight: '1.65', color: '#8C857A', maxWidth: '560px' }}
+                    itemProp="description"
+                  >
                     {creator.bio}
                   </p>
                 )}
@@ -122,35 +128,71 @@ export default async function CreatorPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Filmography */}
-        <section className="section-container py-12" aria-labelledby="filmography-heading">
-          <h2 id="filmography-heading" className="text-xl font-bold text-film-cream mb-6 flex items-center gap-2">
-            <Film className="w-5 h-5 text-film-gold" aria-hidden="true" />
-            Filmography
-          </h2>
+        {/* ── FILMOGRAPHY ───────────────────────────────────────────── */}
+        <section style={{ paddingTop: '56px', paddingBottom: '80px' }} aria-labelledby="filmography-heading">
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+            <p
+              id="filmography-heading"
+              style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}
+            >
+              Filmography
+            </p>
 
-          {movies.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {movies.map((movie) => (
-                <MovieCard
-                  key={movie.id}
-                  id={movie.id}
-                  title={movie.title}
-                  release_year={movie.release_year}
-                  genre={movie.genre}
-                  language={movie.language}
-                  poster_url={movie.poster_url}
-                  average_rating={movie.average_rating}
-                  review_count={movie.review_count}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-film-muted">No films found for this filmmaker.</p>
-            </div>
-          )}
+            {movies.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '20px' }}>
+                {movies.map((movie) => (
+                  <Link
+                    key={movie.id}
+                    href={`/movie/${movie.id}`}
+                    style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                  >
+                    <div style={{ aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
+                      {movie.poster_url ? (
+                        <img
+                          src={movie.poster_url}
+                          alt={movie.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', opacity: 0.15 }}>
+                          🎬
+                        </div>
+                      )}
+
+                      {movie.average_rating > 0 && (
+                        <div style={{
+                          position: 'absolute', top: '7px', right: '7px',
+                          height: '22px', padding: '0 7px', borderRadius: '999px',
+                          background: 'rgba(11,10,9,0.8)',
+                          ...MONO, fontSize: '10px', fontWeight: 700, color: '#C8963E',
+                          display: 'flex', alignItems: 'center',
+                        }}>
+                          {movie.average_rating.toFixed(1)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, color: '#D8CFC0', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {movie.title}
+                      </p>
+                      <p style={{ margin: '2px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                        {movie.release_year}
+                        {movie.genre ? ` · ${movie.genre}` : ''}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '56px 24px', borderRadius: '20px', border: '1px solid rgba(237,228,210,0.06)', textAlign: 'center' }}>
+                <p style={{ fontSize: '16px', color: '#6A6258', margin: 0 }}>No films found for this filmmaker.</p>
+              </div>
+            )}
+          </div>
         </section>
+
       </main>
 
       <Footer />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Play } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -22,14 +23,46 @@ interface Props {
   userName: string | null
 }
 
+interface Stats {
+  reactions: number
+  watchlist: number
+}
+
 export function SignedInHero({ userName }: Props) {
-  const [greeting, setGreeting] = useState('Good evening')
+  const [greeting, setGreeting]   = useState('Good evening')
+  const [stats, setStats]         = useState<Stats | null>(null)
 
   useEffect(() => {
     const h = new Date().getHours()
     if (h < 12)      setGreeting('Good morning')
     else if (h < 17) setGreeting('Good afternoon')
     else             setGreeting('Good evening')
+  }, [])
+
+  useEffect(() => {
+    const supabase = createClient() as any
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const [{ count: reactions }, { count: watchlist }] = await Promise.all([
+        supabase
+          .from('movie_reactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'published'),
+        supabase
+          .from('watchlists')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+      ])
+
+      setStats({
+        reactions: reactions ?? 0,
+        watchlist: watchlist ?? 0,
+      })
+    }
+    load()
   }, [])
 
   const name = userName || 'there'
@@ -41,9 +74,9 @@ export function SignedInHero({ userName }: Props) {
     >
       <div className="ms-grain" aria-hidden="true" />
       <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20 w-full">
-        <div style={{ paddingTop: '48px', paddingBottom: '56px', display: 'flex', flexDirection: 'column', gap: '36px' }}>
+        <div style={{ paddingTop: '48px', paddingBottom: '56px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
-          {/* Greeting */}
+          {/* Greeting + stats */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
               {greeting}
@@ -59,6 +92,37 @@ export function SignedInHero({ userName }: Props) {
                 What are you in the mood for?
               </span>
             </h1>
+
+            {/* Activity stats — appear once loaded */}
+            {stats !== null && (
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                <Link
+                  href="/account"
+                  style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '2px' }}
+                >
+                  <span style={{ ...SERIF, fontSize: '28px', lineHeight: 1, color: '#F6EFE2' }}>
+                    {stats.reactions.toLocaleString()}
+                  </span>
+                  <span style={{ ...MONO, fontSize: '11px', color: '#6A6258', letterSpacing: '0.06em' }}>
+                    films reacted to
+                  </span>
+                </Link>
+
+                <div style={{ width: '1px', background: 'rgba(237,228,210,0.1)', alignSelf: 'stretch' }} />
+
+                <Link
+                  href="/account"
+                  style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '2px' }}
+                >
+                  <span style={{ ...SERIF, fontSize: '28px', lineHeight: 1, color: '#F6EFE2' }}>
+                    {stats.watchlist.toLocaleString()}
+                  </span>
+                  <span style={{ ...MONO, fontSize: '11px', color: '#6A6258', letterSpacing: '0.06em' }}>
+                    on watch later
+                  </span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mood chips */}
