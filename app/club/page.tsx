@@ -3,8 +3,9 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { getFeaturedMovies, getTrendingMovies } from '@/lib/queries'
+import { getFeaturedMovies, getTrendingMovies, getMovieVerdict, getPreviousClubCycles, getMovieById } from '@/lib/queries'
 import { ClubParticipationBar } from '@/components/ClubParticipationBar'
+import { CommunityVerdict } from '@/components/CommunityVerdict'
 import { createClient } from '@/lib/supabase/server'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -57,6 +58,19 @@ export default async function ClubPage() {
       // club_participation table may not exist yet — fail gracefully
     }
   }
+
+  // Verdict for the current club pick
+  const clubVerdict = clubPick?.id ? await getMovieVerdict(clubPick.id) : null
+
+  // Previous club cycles with their movies
+  const prevCycles = await getPreviousClubCycles(6)
+  const prevMovies: Record<string, NonNullable<Awaited<ReturnType<typeof getMovieById>>>> = {}
+  await Promise.all(
+    prevCycles.map(async (cycle) => {
+      const m = await getMovieById(cycle.movie_id)
+      if (m) prevMovies[cycle.movie_id] = m
+    })
+  )
 
   return (
     <>
@@ -199,6 +213,11 @@ export default async function ClubPage() {
           </div>
         </section>
 
+        {/* ── CLUB VERDICT ─────────────────────────────────────────────── */}
+        {clubVerdict && clubPick && (
+          <CommunityVerdict verdict={clubVerdict} movieTitle={clubPick.title} />
+        )}
+
         {/* ── HOW IT WORKS ─────────────────────────────────────────────── */}
         <section
           className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
@@ -238,6 +257,75 @@ export default async function ClubPage() {
             ))}
           </div>
         </section>
+
+        {/* ── PREVIOUS PICKS ───────────────────────────────────────────── */}
+        {prevCycles.length > 0 && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '80px', paddingBottom: '100px' }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+                  Previous picks
+                </p>
+                <p style={{ margin: 0, fontSize: '18px', color: '#A39B8F' }}>
+                  Films the club has already watched together.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                  gap: '20px',
+                }}
+              >
+                {prevCycles.map((cycle) => {
+                  const m = prevMovies[cycle.movie_id]
+                  if (!m) return null
+                  const ended = new Date(cycle.ends_at)
+                  const label = ended.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  return (
+                    <Link
+                      key={cycle.id}
+                      href={`/movie/${m.id}`}
+                      style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                    >
+                      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E' }}>
+                        {m.poster_url ? (
+                          <img
+                            src={m.poster_url}
+                            alt={`${m.title} poster`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', opacity: 0.2 }}>
+                            🎬
+                          </div>
+                        )}
+                        <div style={{
+                          position: 'absolute', bottom: 0, left: 0, right: 0,
+                          padding: '8px 10px',
+                          background: 'linear-gradient(to top, rgba(11,10,9,0.9) 0%, transparent 100%)',
+                        }}>
+                          <span style={{ ...MONO, fontSize: '10px', color: '#A39B8F', letterSpacing: '0.06em' }}>
+                            Week {cycle.cycle_number} · {label}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '15px', fontWeight: 500, color: '#F6EFE2', lineHeight: 1.3 }}>{m.title}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: '13px', color: '#8C857A' }}>{m.release_year}</p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
       </main>
 

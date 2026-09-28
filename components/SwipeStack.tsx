@@ -6,6 +6,7 @@ import { ArrowRight, Bookmark } from 'lucide-react'
 import { QuickReactionSheet } from '@/components/QuickReactionSheet'
 import { AuthPromptSheet } from '@/components/AuthPromptSheet'
 import type { Movie } from '@/lib/queries'
+import type { MoodConfig } from '@/lib/mood'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -40,10 +41,11 @@ async function saveInteraction(movieId: string, type: 'watch_later' | 'not_inter
   } catch {}
 }
 
-export function SwipeStack({ movies, totalCount, userId }: {
+export function SwipeStack({ movies, totalCount, userId, mood }: {
   movies: Movie[]
   totalCount: number
   userId: string | null
+  mood?: MoodConfig
 }) {
   const [idx, setIdx]                       = useState(0)
   const [exit, setExit]                     = useState<'left' | 'right' | null>(null)
@@ -200,13 +202,32 @@ export function SwipeStack({ movies, totalCount, userId }: {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
             <p style={{ fontSize: '16px', color: '#C7BFB2', margin: 0, lineHeight: 1.6 }}>
-              You have been through all {movies.length} films in today&apos;s stack.
+              {mood
+                ? `That's all the ${mood.label.toLowerCase()} films in the stack.`
+                : `You have been through all ${movies.length} films in today's stack.`}
             </p>
+            {mood && (
+              <Link
+                href="/swipe"
+                style={{
+                  width: '100%', height: '60px', borderRadius: '18px',
+                  background: '#C8963E', color: '#0B0A09',
+                  fontSize: '17px', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                  textDecoration: 'none',
+                }}
+              >
+                Swipe all films
+                <ArrowRight size={18} />
+              </Link>
+            )}
             <Link
               href="/browse"
               style={{
                 width: '100%', height: '60px', borderRadius: '18px',
-                background: '#C8963E', color: '#0B0A09',
+                background: mood ? 'transparent' : '#C8963E',
+                border: mood ? '1px solid rgba(237,228,210,0.18)' : 'none',
+                color: mood ? '#EDE4D2' : '#0B0A09',
                 fontSize: '17px', fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                 textDecoration: 'none',
@@ -237,22 +258,43 @@ export function SwipeStack({ movies, totalCount, userId }: {
             Not bad, film lover.
           </h2>
           <p style={{ fontSize: '18px', color: '#C7BFB2', maxWidth: '440px', lineHeight: '1.6', margin: 0 }}>
-            You&apos;ve been through {movies.length} films. The full database has {totalCount.toLocaleString()} more waiting.
+            {mood
+              ? `That's all ${movies.length} ${mood.label.toLowerCase()} films in the stack.`
+              : `You've been through ${movies.length} films. The full database has ${totalCount.toLocaleString()} more waiting.`}
           </p>
         </div>
-        <Link
-          href="/browse"
-          style={{
-            height: '60px', padding: '0 32px', borderRadius: '18px',
-            background: '#C8963E', color: '#0B0A09',
-            fontSize: '17px', fontWeight: 600,
-            display: 'inline-flex', alignItems: 'center', gap: '10px',
-            textDecoration: 'none',
-          }}
-        >
-          Explore the full database
-          <ArrowRight size={18} />
-        </Link>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+          {mood && (
+            <Link
+              href="/swipe"
+              style={{
+                height: '60px', padding: '0 32px', borderRadius: '18px',
+                background: '#C8963E', color: '#0B0A09',
+                fontSize: '17px', fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: '10px',
+                textDecoration: 'none',
+              }}
+            >
+              Swipe all films
+              <ArrowRight size={18} />
+            </Link>
+          )}
+          <Link
+            href="/browse"
+            style={{
+              height: '60px', padding: '0 32px', borderRadius: '18px',
+              background: mood ? 'transparent' : '#C8963E',
+              border: mood ? '1px solid rgba(237,228,210,0.18)' : 'none',
+              color: mood ? '#EDE4D2' : '#0B0A09',
+              fontSize: '17px', fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: '10px',
+              textDecoration: 'none',
+            }}
+          >
+            Explore the full database
+            <ArrowRight size={18} />
+          </Link>
+        </div>
       </div>
     )
   }
@@ -277,17 +319,43 @@ export function SwipeStack({ movies, totalCount, userId }: {
 
       {/* Progress */}
       <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8C857A', margin: 0 }}>
-            African cinema, card by card
-          </p>
-          <p style={{ ...MONO, fontSize: '11px', color: '#8C857A', margin: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+          {mood ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <span style={{
+                height: '26px', padding: '0 12px', borderRadius: '999px',
+                background: mood.chipBg, color: mood.chipText,
+                ...MONO, fontSize: '11px', fontWeight: 500,
+                display: 'inline-flex', alignItems: 'center',
+                border: '1px solid rgba(237,228,210,0.08)',
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                {mood.label}
+              </span>
+              <Link
+                href="/swipe"
+                style={{ ...MONO, fontSize: '11px', color: '#6A6258', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              >
+                All films
+              </Link>
+            </div>
+          ) : (
+            <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8C857A', margin: 0 }}>
+              African cinema, card by card
+            </p>
+          )}
+          <p style={{ ...MONO, fontSize: '11px', color: '#8C857A', margin: 0, flexShrink: 0 }}>
             {idx + 1} of {movies.length}
           </p>
         </div>
+        {mood && (
+          <p style={{ ...MONO, fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6A6258', margin: 0 }}>
+            {mood.tagline}
+          </p>
+        )}
         <div style={{ height: '2px', background: 'rgba(237,228,210,0.1)', borderRadius: '1px' }}>
           <div style={{
-            height: '100%', background: '#C8963E', borderRadius: '1px',
+            height: '100%', background: mood ? mood.chipText : '#C8963E', borderRadius: '1px',
             width: `${(idx / movies.length) * 100}%`,
             transition: 'width 0.3s ease',
           }} />

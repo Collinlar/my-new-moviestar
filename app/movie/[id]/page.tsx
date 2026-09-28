@@ -8,13 +8,15 @@ import { Footer } from '@/components/Footer'
 import { MovieCard } from '@/components/MovieCard'
 import {
   getMovieById, getMovieReviews, getMovieCast,
-  getMovieAwards, getAllMovieIds, browseMovies,
+  getMovieAwards, getAllMovieIds, browseMovies, getMovieVerdict,
 } from '@/lib/queries'
 import { hasSupabaseConfig } from '@/lib/supabase/env'
 import { ReviewForm } from '@/components/ReviewForm'
 import { WatchlistButton } from '@/components/WatchlistButton'
 import { HelpfulButton } from '@/components/HelpfulButton'
 import { SaveToListButton } from '@/components/SaveToListButton'
+import { CommunityVerdict } from '@/components/CommunityVerdict'
+import { PersonalContext } from '@/components/PersonalContext'
 import { movieSchema, breadcrumbSchema } from '@/lib/schema'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
 
@@ -75,11 +77,12 @@ export const revalidate = 3600
 
 export default async function MovieDetailPage({ params }: PageProps) {
   const { id } = await params
-  const [movie, reviews, cast, awards] = await Promise.all([
+  const [movie, reviews, cast, awards, verdict] = await Promise.all([
     getMovieById(id),
     getMovieReviews(id, 8),
     getMovieCast(id),
     getMovieAwards(id),
+    getMovieVerdict(id),
   ])
 
   if (!movie) notFound()
@@ -303,6 +306,9 @@ export default async function MovieDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
+                {/* Personal context — only shows if user has reacted */}
+                <PersonalContext movieId={id} />
+
                 {/* Actions */}
                 <div className="mt-8 flex flex-wrap gap-3">
                   <a href="#community-reviews" className="btn-gold">
@@ -475,6 +481,9 @@ export default async function MovieDetailPage({ params }: PageProps) {
             </div>
           </section>
         )}
+
+        {/* ─── COMMUNITY VERDICT ────────────────────────────────────────── */}
+        {verdict && <CommunityVerdict verdict={verdict} movieTitle={movie.title} />}
 
         {/* ─── REVIEWS ──────────────────────────────────────────────────── */}
         <section id="community-reviews" className="py-16 bg-cinema-black" aria-labelledby="reviews-heading">

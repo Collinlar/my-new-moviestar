@@ -278,3 +278,99 @@ export async function getAllCreatorIds(): Promise<string[]> {
   const { data } = await supabase.from('creators').select('id')
   return (data || []).map((c: { id: string }) => c.id)
 }
+
+export interface MovieVerdict {
+  total:               number
+  enjoyed_pct:         number
+  reaction_breakdown:  { loved: number; liked: number; okay: number; not_for_me: number }
+  top_tags:            { slug: string; label: string; count: number; pct: number }[]
+  confidence:          'forming' | 'building' | 'confident'
+}
+
+export async function getMovieVerdict(movieId: string): Promise<MovieVerdict | null> {
+  try {
+    const supabase = await createClient() as any
+
+    const { data: reactions } = await supabase
+      .from('movie_reactions')
+      .select(`
+        id,
+        reaction,
+        movie_reaction_tags (
+          reaction_tags ( slug, label )
+        )
+      `)
+      .eq('movie_id', movieId)
+      .eq('status', 'published')
+
+    if (!reactions || reactions.length === 0) return null
+
+    const total = reactions.length
+    const breakdown = { loved: 0, liked: 0, okay: 0, not_for_me: 0 }
+    const tagCounts: Record<string, { label: string; count: number }> = {}
+
+    for (const r of reactions) {
+      if (r.reaction in breakdown) {
+        breakdown[r.reaction as keyof typeof breakdown]++
+      }
+      for (const rt of r.movie_reaction_tags || []) {
+        const tag = rt.reaction_tags as { slug: string; label: string } | null
+        if (tag?.slug) {
+          if (!tagCounts[tag.slug]) tagCounts[tag.slug] = { label: tag.label, count: 0 }
+          tagCounts[tag.slug].count++
+        }
+      }
+    }
+
+    const enjoyed_pct = Math.round(((breakdown.loved + breakdown.liked) / total) * 100)
+    const top_tags = Object.entries(tagCounts)
+      .map(([slug, { label, count }]) => ({
+        slug, label, count,
+        pct: Math.round((count / total) * 100),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6)
+
+    const confidence: MovieVerdict['confidence'] =
+      total < 5 ? 'forming' : total < 20 ? 'building' : 'confident'
+
+    return { total, enjoyed_pct, reaction_breakdown: breakdown, top_tags, confidence }
+  } catch {
+    return null
+  }
+}
+
+export async function getCurrentClubCycle(): Promise<{ movie_id: string; title_override?: string } | null> {
+  try {
+    const supabase = await createClient() as any
+    const { data } = await supabase
+      .from('club_cycles')
+      .select('movie_id, title_override')
+      .eq('status', 'active')
+      .lte('starts_at', new Date().toISOString())
+      .gte('ends_at',   new Date().toISOString())
+      .order('starts_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    return data ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function getPreviousClubCycles(limit = 6): Promise<Array<{
+  id: string; cycle_number: number; movie_id: string; starts_at: string; ends_at: string
+}>> {
+  try {
+    const supabase = await createClient() as any
+    const { data } = await supabase
+      .from('club_cycles')
+      .select('id, cycle_number, movie_id, starts_at, ends_at')
+      .eq('status', 'completed')
+      .order('ends_at', { ascending: false })
+      .limit(limit)
+    return data || []
+  } catch {
+    return []
+  }
+}
