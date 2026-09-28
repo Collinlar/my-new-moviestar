@@ -3,6 +3,9 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { SignedInHero } from '@/components/SignedInHero'
+import { OnboardingFlow } from '@/components/OnboardingFlow'
+import { createClient } from '@/lib/supabase/server'
 import {
   getFeaturedMovies, getTrendingMovies, getCanonMovies,
   getTopCreators, getDbStats, getOldButGoldMovies,
@@ -18,7 +21,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://muviestars.com' },
 }
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -125,7 +128,10 @@ function daysLeftThisWeek(): number {
 /* ── page ─────────────────────────────────────────────────────────── */
 
 export default async function HomePage() {
-  const [featured, trending, canon, creators, stats, obg] = await Promise.all([
+  const supabase = await createClient() as any
+
+  const [{ data: { user } }, featured, trending, canon, creators, stats, obg] = await Promise.all([
+    supabase.auth.getUser(),
     getFeaturedMovies(6),
     getTrendingMovies(8),
     getCanonMovies(5),
@@ -133,6 +139,11 @@ export default async function HomePage() {
     getDbStats(),
     getOldButGoldMovies(6),
   ])
+
+  const isSignedIn      = !!user
+  const showOnboarding  = isSignedIn && !user?.user_metadata?.onboarding_completed
+  const fullName        = user?.user_metadata?.full_name as string | undefined
+  const firstName       = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
 
   const daysLeft  = daysLeftThisWeek()
   const clubPick  = featured[0] || trending[0] || null
@@ -230,11 +241,16 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@graph': schemaGraph }) }}
       />
 
+      {showOnboarding && <OnboardingFlow show={true} userName={firstName} />}
+
       <Navigation />
 
       <main style={{ background: '#0B0A09', color: '#EDE4D2' }}>
 
         {/* ── HERO ─────────────────────────────────────────────────────── */}
+        {isSignedIn ? (
+          <SignedInHero userName={firstName} />
+        ) : (
         <section
           className="relative pt-[76px] overflow-hidden"
           style={{ minHeight: '760px', background: '#0B0A09' }}
@@ -352,6 +368,7 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── STATS ────────────────────────────────────────────────────── */}
         <div
@@ -777,18 +794,29 @@ export default async function HomePage() {
                 id="cta-heading"
                 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(44px,6vw,88px)', lineHeight: '0.92', letterSpacing: '-0.02em', margin: 0 }}
               >
-                Find something worth watching.
+                {isSignedIn ? 'There is always more to discover.' : 'Find something worth watching.'}
               </h2>
               <p style={{ margin: 0, fontSize: '19px', lineHeight: '1.5', color: 'rgba(43,33,18,.85)' }}>
-                Tell us what you thought. Help shape how African cinema is discovered. Free, always.
+                {isSignedIn
+                  ? 'Every swipe adds to your collection and sharpens the picture of what African cinema actually is.'
+                  : 'Tell us what you thought. Help shape how African cinema is discovered. Free, always.'}
               </p>
             </div>
-            <Link
-              href="/auth"
-              style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
-            >
-              Create your free account
-            </Link>
+            {isSignedIn ? (
+              <Link
+                href="/swipe"
+                style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
+              >
+                Keep swiping
+              </Link>
+            ) : (
+              <Link
+                href="/auth"
+                style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
+              >
+                Create your free account
+              </Link>
+            )}
           </div>
         </section>
 

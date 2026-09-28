@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/Providers'
+import { MobileBottomNav } from '@/components/MobileBottomNav'
 import '@/app/globals.css'
 
 const SITE_URL = 'https://muviestars.com'
@@ -105,6 +106,9 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>{children}</Providers>
+        <MobileBottomNav />
+        {/* Spacer so content is not hidden behind the mobile bottom nav */}
+        <div className="h-16 md:hidden" aria-hidden="true" />
         <Toaster
           position="bottom-right"
           toastOptions={{
