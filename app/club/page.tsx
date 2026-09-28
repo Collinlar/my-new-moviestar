@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { getFeaturedMovies, getTrendingMovies, getMovieVerdict, getPreviousClubCycles, getMovieById } from '@/lib/queries'
+import { getCurrentClubCycle, getMovieVerdict, getPreviousClubCycles, getMovieById } from '@/lib/queries'
 import { ClubParticipationBar } from '@/components/ClubParticipationBar'
 import { CommunityVerdict } from '@/components/CommunityVerdict'
 import { createClient } from '@/lib/supabase/server'
@@ -27,8 +27,8 @@ function daysLeftThisWeek(): number {
 
 export default async function ClubPage() {
   const supabase  = await createClient() as any
-  const featured  = await getFeaturedMovies(1)
-  const clubPick  = featured[0] || (await getTrendingMovies(1))[0] || null
+  const cycle     = await getCurrentClubCycle()
+  const clubPick  = cycle ? await getMovieById(cycle.movie_id) : null
   const daysLeft  = daysLeftThisWeek()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -92,13 +92,13 @@ export default async function ClubPage() {
 
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20 w-full" style={{ position: 'relative' }}>
             <div
+              className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6"
               style={{
-                display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))',
-                columnGap: '24px', alignItems: 'center',
+                alignItems: 'center',
                 paddingTop: '48px', paddingBottom: '64px',
               }}
             >
-              <div style={{ gridColumn: 'span 7', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="lg:col-span-7" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <span style={{
@@ -220,10 +220,10 @@ export default async function ClubPage() {
 
         {/* ── HOW IT WORKS ─────────────────────────────────────────────── */}
         <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '100px', paddingBottom: '120px', display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', columnGap: '24px' }}
+          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20 grid grid-cols-1 lg:grid-cols-12 lg:gap-6"
+          style={{ paddingTop: '100px', paddingBottom: '120px' }}
         >
-          <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="lg:col-span-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
               How it works
             </p>
@@ -238,7 +238,7 @@ export default async function ClubPage() {
             </p>
           </div>
 
-          <div style={{ gridColumn: '8 / span 5', display: 'flex', flexDirection: 'column', gap: '0' }}>
+          <div className="lg:[grid-column:8/span_5]" style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
             {[
               { n: '01', title: 'A new film every Monday', body: 'Selected from across the full archive — Nollywood, Ghallywood, Francophone Africa, East Africa, and beyond.' },
               { n: '02', title: 'Watch on your own time', body: 'No scheduled watch party. Just catch the film before the week is up and come back to react.' },

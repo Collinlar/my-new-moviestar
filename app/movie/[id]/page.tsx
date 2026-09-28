@@ -144,10 +144,10 @@ export default async function MovieDetailPage({ params }: PageProps) {
             </nav>
 
             {/* Main grid: poster | info */}
-            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '56px', alignItems: 'start' }} className="grid-cols-1 lg:grid-cols-[220px_1fr]">
+            <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10 lg:gap-14" style={{ alignItems: 'start' }}>
 
               {/* ── Poster column ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="max-w-[220px] mx-auto w-full lg:max-w-none lg:mx-0" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ borderRadius: '16px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E', position: 'relative', boxShadow: '0 32px 64px rgba(0,0,0,0.6)' }}>
                   {movie.poster_url ? (
                     <img

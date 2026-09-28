@@ -7,9 +7,7 @@ import { SignedInHero } from '@/components/SignedInHero'
 import { OnboardingFlow } from '@/components/OnboardingFlow'
 import { createClient } from '@/lib/supabase/server'
 import {
-  getFeaturedMovies, getTrendingMovies, getCanonMovies,
-  getTopCreators, getDbStats, getOldButGoldMovies,
-  type Movie,
+  getCanonMovies, getDbStats, getCurrentClubCycle, getMovieById,
 } from '@/lib/queries'
 import { formatCount } from '@/lib/utils'
 import { websiteSchema, organizationSchema, faqSchema } from '@/lib/schema'
@@ -26,8 +24,6 @@ export const dynamic = 'force-dynamic'
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
-/* ── static fallbacks ─────────────────────────────────────────────── */
-
 const STATIC_CANON = [
   { title: 'Touki Bouki',                   meta: '1973 · Senegal',       dir: 'Djibril Diop Mambéty' },
   { title: 'Yeelen',                         meta: '1987 · Mali',          dir: 'Souleymane Cissé'      },
@@ -36,108 +32,20 @@ const STATIC_CANON = [
   { title: 'Living in Bondage',              meta: '1992 · Nigeria',       dir: 'Chris Obi Rapu'        },
 ]
 
-const STATIC_OBG = [
-  { title: 'Love Brewed in the African Pot', meta: '1980 · Ghana'   },
-  { title: 'Heritage Africa',                meta: '1988 · Ghana'   },
-  { title: 'Living in Bondage',              meta: '1992 · Nigeria' },
-  { title: 'Touki Bouki',                    meta: '1973 · Senegal' },
-  { title: 'Yeelen',                         meta: '1987 · Mali'    },
-  { title: 'Osuofia in London',              meta: '2003 · Nigeria' },
-]
-
-const STATIC_TRENDING = [
-  { title: 'Laughing Hearts',    meta: '2026 · Nigeria · Romance',     badge: 'New'     },
-  { title: 'Silence',            meta: '2024 · Ghana · Drama',         badge: 'Club'    },
-  { title: 'Cocoa Season Part 3',meta: '2023 · Ghana · Comedy',        badge: 'Ghana'   },
-  { title: 'Nkabi',              meta: '2024 · South Africa · Action', badge: 'Gem'     },
-  { title: 'Lagos Liars',        meta: '2025 · Nigeria · Comedy',      badge: 'Rising'  },
-]
-
-const STATIC_PEOPLE = [
-  { ini: 'JA', name: 'Jackie Appiah',         role: 'Actor',            bg: '#1C2433', ink: '#8FA8C8', href: '/creators' },
-  { ini: 'KA', name: 'Kwaw Ansah',             role: 'Director',         bg: '#2C1A0E', ink: '#E8A530', href: '/creators' },
-  { ini: 'DM', name: 'Djibril Diop Mambéty',  role: 'Director',         bg: '#0F2230', ink: '#D9674E', href: '/creators' },
-  { ini: 'NM', name: 'Nana Ama McBrown',       role: 'Actor',            bg: '#271A33', ink: '#D9A6B3', href: '/creators' },
-  { ini: 'MS', name: 'Maurice Sam',            role: 'Actor',            bg: '#3A1520', ink: '#E0735A', href: '/creators' },
-  { ini: 'YN', name: 'Yvonne Nelson',          role: 'Actor · Producer', bg: '#13241A', ink: '#7FA88B', href: '/creators' },
-]
-
-/* ── shape palettes ───────────────────────────────────────────────── */
-
-const OBG_BG      = ['#2C1A0E', '#1E1A12', '#0E0E0C', '#0F2230', '#2B2008', '#1A1D2B']
-const OBG_SHAPES: React.CSSProperties[] = [
-  { position: 'absolute', left: '-30%', top: '10%', width: '90%', aspectRatio: '1', borderRadius: '50%', background: '#B5532F' },
-  { position: 'absolute', left: 0, right: 0, top: '25%', height: '30%', background: 'repeating-linear-gradient(0deg,#C8963E 0 4px,transparent 4px 13px)' },
-  { position: 'absolute', left: '30%', top: '22%', width: '40%', aspectRatio: '1', borderRadius: '50%', background: '#D8D2C4', boxShadow: '0 0 50px rgba(216,210,196,.4)' },
-  { position: 'absolute', left: '15%', top: '30%', width: '70%', height: '18%', borderRadius: '200px 200px 0 0', background: '#D9674E' },
-  { position: 'absolute', left: '10%', top: '10%', width: '80%', aspectRatio: '1', borderRadius: '50%', background: 'radial-gradient(circle,#F0D48A 0 30%,#C8963E 31% 60%,transparent 61%)' },
-  { position: 'absolute', left: '18%', top: '14%', width: '64%', height: '44%', border: '2px solid #8FA8C8', borderRadius: '8px' },
-]
-
-const TRENDING_BG     = ['#3B2317', '#12242B', '#2E2410', '#17171A', '#2A1330']
-const TRENDING_SHAPES: React.CSSProperties[] = [
-  { position: 'absolute', left: '6px',  top: '10px', width: '30px', height: '30px', borderRadius: '50%', background: '#F0B25C' },
-  { position: 'absolute', left: '12px', top: '12px', width: '32px', height: '50px', borderRadius: '16px 16px 0 0', background: '#C8963E' },
-  { position: 'absolute', left: '8px',  top: '8px',  width: '24px', height: '24px', borderRadius: '50%', background: '#E8A530' },
-  { position: 'absolute', left: '-10px', top: '30px', width: '90px', height: '16px', background: '#B8432F', transform: 'rotate(-24deg)' },
-  { position: 'absolute', left: '10px', top: '14px', width: '34px', height: '34px', borderRadius: '8px', background: '#E8A530', transform: 'rotate(12deg)' },
-]
-
-const CREATOR_PALETTES = [
-  { bg: '#1C2433', ink: '#8FA8C8' },
-  { bg: '#2C1A0E', ink: '#E8A530' },
-  { bg: '#0F2230', ink: '#D9674E' },
-  { bg: '#271A33', ink: '#D9A6B3' },
-  { bg: '#3A1520', ink: '#E0735A' },
-  { bg: '#13241A', ink: '#7FA88B' },
-]
-
-const REGIONS: Array<{ name: string; sub: string; shape: React.CSSProperties }> = [
-  { name: 'Ghana',              sub: 'Ghallywood & Kumawood',          shape: { position: 'absolute', right: '-30px', top: '-30px', width: '140px', height: '140px', borderRadius: '50%', background: '#C8963E', opacity: .18 } },
-  { name: 'Nigeria',            sub: 'Nollywood',                      shape: { position: 'absolute', right: '-20px', top: '-40px', width: '120px', height: '200px', borderRadius: '60px', background: '#6F8F4E', opacity: .22 } },
-  { name: 'South Africa',       sub: 'Zulu, Xhosa, Afrikaans & more', shape: { position: 'absolute', right: '-40px', top: '30px', width: '260px', height: '30px', background: '#B8432F', opacity: .25, transform: 'rotate(-20deg)' } },
-  { name: 'Francophone Africa', sub: 'Senegal, Burkina Faso, Mali…',  shape: { position: 'absolute', right: '30px', top: '-60px', width: '160px', height: '120px', borderRadius: '0 0 80px 80px', background: '#8FA8C8', opacity: .2 } },
-  { name: 'East Africa',        sub: 'Kenya, Tanzania, Uganda…',       shape: { position: 'absolute', right: '-50px', bottom: '-50px', width: '160px', height: '160px', borderRadius: '50%', border: '2px solid #E8C27A', opacity: .35 } },
-  { name: 'North Africa',       sub: 'Egypt, Morocco, Tunisia…',       shape: { position: 'absolute', right: '20px', top: '-10px', width: '90px', height: '150px', borderRadius: '45px 45px 0 0', background: '#D9674E', opacity: .2 } },
-]
-
-/* ── helpers ──────────────────────────────────────────────────────── */
-
-function getInitials(name: string | null | undefined): string {
-  if (!name) return '??'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-}
-
-function getTrendingBadge(m: Movie, idx: number): string {
-  if (m.release_year >= 2025) return 'New'
-  if (m.is_canon)             return 'Gem'
-  if (m.featured)             return 'Club'
-  if (m.country === 'Ghana')  return 'Ghana'
-  if (m.country === 'Nigeria')return 'Nigeria'
-  return idx === 0 ? 'Trending' : 'Rising'
-}
-
 function daysLeftThisWeek(): number {
   const day = new Date().getDay()
   const daysSinceMonday = (day - 1 + 7) % 7
   return 7 - daysSinceMonday
 }
 
-/* ── page ─────────────────────────────────────────────────────────── */
-
 export default async function HomePage() {
   const supabase = await createClient() as any
 
-  const [{ data: { user } }, featured, trending, canon, creators, stats, obg] = await Promise.all([
+  const [{ data: { user } }, canon, stats, cycle] = await Promise.all([
     supabase.auth.getUser(),
-    getFeaturedMovies(6),
-    getTrendingMovies(8),
     getCanonMovies(5),
-    getTopCreators(6),
     getDbStats(),
-    getOldButGoldMovies(6),
+    getCurrentClubCycle(),
   ])
 
   const isSignedIn      = !!user
@@ -145,10 +53,9 @@ export default async function HomePage() {
   const fullName        = user?.user_metadata?.full_name as string | undefined
   const firstName       = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
 
-  const daysLeft  = daysLeftThisWeek()
-  const clubPick  = featured[0] || trending[0] || null
+  const daysLeft = daysLeftThisWeek()
+  const clubPick = cycle ? await getMovieById(cycle.movie_id) : null
 
-  /* canon rows — use DB if we have 5+, else use static */
   const canonRows = canon.length >= 5
     ? canon.slice(0, 5).map((m, i) => ({
         n:    String(i + 1).padStart(2, '0'),
@@ -158,56 +65,6 @@ export default async function HomePage() {
         href:  `/movie/${m.id}`,
       }))
     : STATIC_CANON.map((s, i) => ({ n: String(i + 1).padStart(2, '0'), ...s, href: '/browse' }))
-
-  /* OBG — use real DB films (pre-2001) if we have 3+, else static */
-  const obgDisplay = obg.length >= 3
-    ? obg.slice(0, 6).map((m, i) => ({
-        title:  m.title,
-        meta:   `${m.release_year}${m.country ? ` · ${m.country}` : ''}`,
-        href:   `/movie/${m.id}`,
-        poster: m.poster_url && m.poster_url.startsWith('http') ? m.poster_url : null,
-        bg:     OBG_BG[i % OBG_BG.length],
-        shape:  OBG_SHAPES[i % OBG_SHAPES.length],
-      }))
-    : STATIC_OBG.map((s, i) => ({
-        ...s,
-        href:   '/browse',
-        poster: null,
-        bg:     OBG_BG[i % OBG_BG.length],
-        shape:  OBG_SHAPES[i % OBG_SHAPES.length],
-      }))
-
-  /* Trending — use real DB films if we have 3+, else static */
-  const trendingDisplay = trending.length >= 3
-    ? trending.slice(0, 5).map((m, i) => ({
-        title:  m.title,
-        meta:   `${m.release_year}${m.country ? ` · ${m.country}` : ''}${m.genre ? ` · ${m.genre}` : ''}`,
-        href:   `/movie/${m.id}`,
-        badge:  getTrendingBadge(m, i),
-        poster: m.poster_url && m.poster_url.startsWith('http') ? m.poster_url : null,
-        bg:     TRENDING_BG[i % TRENDING_BG.length],
-        shape:  TRENDING_SHAPES[i % TRENDING_SHAPES.length],
-      }))
-    : STATIC_TRENDING.map((s, i) => ({
-        ...s,
-        href:   '/browse',
-        poster: null,
-        bg:     TRENDING_BG[i % TRENDING_BG.length],
-        shape:  TRENDING_SHAPES[i % TRENDING_SHAPES.length],
-      }))
-
-  /* People — use real creators if we have 3+, else static */
-  const creatorsDisplay = creators.length >= 3
-    ? creators.slice(0, 6).map((c, i) => ({
-        ini:   getInitials(c.name),
-        name:  c.name,
-        role:  'Director',
-        bg:    CREATOR_PALETTES[i % CREATOR_PALETTES.length].bg,
-        ink:   CREATOR_PALETTES[i % CREATOR_PALETTES.length].ink,
-        href:  `/creator/${c.id}`,
-        image: c.image_url && c.image_url.startsWith('http') ? c.image_url : null,
-      }))
-    : STATIC_PEOPLE
 
   const HOME_FAQ = [
     {
@@ -260,12 +117,12 @@ export default async function HomePage() {
 
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20 w-full">
             <div
-              className="grid items-center gap-6"
-              style={{ gridTemplateColumns: 'repeat(12,minmax(0,1fr))', columnGap: '24px', minHeight: '684px' }}
+              className="grid items-center gap-6 lg:grid-cols-12"
+              style={{ minHeight: '684px' }}
             >
               {/* Left: 7 cols */}
               <div
-                style={{ gridColumn: 'span 7', display: 'flex', flexDirection: 'column', gap: '32px' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}
                 className="col-span-12 lg:col-span-7 flex flex-col gap-8"
               >
                 <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E' }}>
@@ -376,10 +233,7 @@ export default async function HomePage() {
           style={{ borderTop: '1px solid rgba(237,228,210,.1)', borderBottom: '1px solid rgba(237,228,210,.1)' }}
           aria-label="Database statistics"
         >
-          <div
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))' }}
-            className="grid-cols-2 sm:grid-cols-4"
-          >
+          <div className="grid grid-cols-2 sm:grid-cols-4">
             {[
               { n: formatCount(stats.movieCount),   label: 'films documented'       },
               { n: String(stats.creatorCount || 0), label: 'people & filmographies' },
@@ -388,10 +242,10 @@ export default async function HomePage() {
             ].map(({ n, label }, i) => (
               <div
                 key={label}
+                className={i > 0 ? 'border-l border-white/10' : ''}
                 style={{
-                  padding: i === 0 ? '36px 32px 36px 0' : i === 3 ? '36px 0 36px 32px' : '36px 32px',
+                  padding: '24px 20px',
                   display: 'flex', flexDirection: 'column', gap: '14px',
-                  borderLeft: i > 0 ? '1px solid rgba(237,228,210,.1)' : undefined,
                 }}
               >
                 <div style={{ ...SERIF, fontSize: 'clamp(36px,5vw,64px)', lineHeight: 1, color: '#F6EFE2' }}>
@@ -413,10 +267,10 @@ export default async function HomePage() {
           aria-labelledby="club-heading"
         >
           <div
+            className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-[480px]"
             style={{
-              height: '480px', borderRadius: '32px', background: '#12242B',
+              borderRadius: '32px', background: '#12242B',
               position: 'relative', overflow: 'hidden',
-              display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', columnGap: '24px',
             }}
           >
             {/* Decorative arch */}
@@ -426,7 +280,7 @@ export default async function HomePage() {
 
             {/* Content */}
             <div
-              style={{ gridColumn: '1 / span 6', padding: '56px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
+              style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
               className="col-span-12 lg:col-span-6 p-8 lg:p-14"
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -458,69 +312,13 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── OLD BUT GOLD ─────────────────────────────────────────────── */}
+        {/* ── AFRICAN FILM CANON ───────────────────────────────────────── */}
         <section
           className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px', display: 'flex', flexDirection: 'column', gap: '32px' }}
-          aria-labelledby="obg-heading"
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
-                From the archive · Old But Gold
-              </p>
-              <h2
-                id="obg-heading"
-                style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(36px,5vw,64px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}
-              >
-                How many have you actually seen?
-              </h2>
-            </div>
-            <Link
-              href="/swipe"
-              style={{ height: '48px', padding: '0 20px', borderRadius: '14px', border: '1px solid rgba(237,228,210,.18)', color: '#EDE4D2', fontSize: '15px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap' }}
-            >
-              Take the 25-film challenge
-            </Link>
-          </div>
-
-          <div
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(6,minmax(0,1fr))', gap: '20px' }}
-            className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
-          >
-            {obgDisplay.map(({ title, meta, href, poster, bg, shape }) => (
-              <Link
-                key={title}
-                href={href}
-                style={{ display: 'flex', flexDirection: 'column', gap: '12px', textDecoration: 'none', color: '#EDE4D2' }}
-              >
-                <div style={{ aspectRatio: '2/3', borderRadius: '14px', position: 'relative', overflow: 'hidden', background: bg }}>
-                  {poster
-                    ? <img src={poster} alt={title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={shape} />
-                  }
-                  <div className="ms-grain" />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 500, lineHeight: '1.25' }}>{title}</div>
-                  <div style={{ fontSize: '13px', color: '#A39B8F' }}>{meta}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── CANON + TRENDING ─────────────────────────────────────────── */}
-        <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px', display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', columnGap: '24px' }}
+          style={{ paddingTop: '120px' }}
           aria-labelledby="canon-heading"
         >
-          {/* Canon: 7 cols */}
-          <div
-            style={{ gridColumn: 'span 7', display: 'flex', flexDirection: 'column', gap: '28px' }}
-            className="col-span-12 lg:col-span-7"
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
@@ -538,209 +336,22 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '720px' }}>
               {canonRows.map(({ n, title, meta, dir, href }) => (
                 <Link
                   key={n}
                   href={href}
-                  style={{
-                    display: 'grid', gridTemplateColumns: '56px 1fr auto',
-                    alignItems: 'center', gap: '20px', padding: '18px 0',
-                    borderTop: '1px solid rgba(237,228,210,.1)', textDecoration: 'none', color: '#EDE4D2',
-                  }}
-                  className="hover:bg-cinema-surface/30 rounded transition-colors -mx-2 px-2"
+                  className="grid grid-cols-[44px_1fr] lg:grid-cols-[44px_1fr_auto] items-center gap-[14px] py-4 hover:bg-cinema-surface/30 rounded transition-colors"
+                  style={{ borderTop: '1px solid rgba(237,228,210,.1)', textDecoration: 'none', color: '#EDE4D2' }}
                 >
                   <span style={{ ...SERIF, fontSize: '36px', color: '#6E675E' }}>{n}</span>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ ...SERIF, fontSize: '30px', lineHeight: '1.05', color: '#F6EFE2' }}>{title}</span>
                     <span style={{ fontSize: '14px', color: '#A39B8F' }}>{meta}</span>
                   </span>
-                  <span style={{ fontSize: '14px', color: '#A39B8F', textAlign: 'right' }}>{dir}</span>
+                  <span className="hidden lg:block" style={{ fontSize: '14px', color: '#A39B8F', textAlign: 'right' }}>{dir}</span>
                 </Link>
               ))}
-            </div>
-          </div>
-
-          {/* Trending: 4 cols */}
-          <div
-            style={{ gridColumn: '9 / span 4', display: 'flex', flexDirection: 'column', gap: '28px' }}
-            className="hidden lg:flex col-start-9 lg:col-span-4"
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
-                Trending this week
-              </p>
-              <h2 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
-                Everyone&apos;s talking.
-              </h2>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {trendingDisplay.map(({ title, meta, badge, href, poster, bg, shape }) => (
-                <Link
-                  key={title}
-                  href={href}
-                  style={{ display: 'flex', gap: '16px', alignItems: 'center', textDecoration: 'none', color: '#EDE4D2' }}
-                >
-                  <div style={{ width: '56px', height: '80px', borderRadius: '8px', position: 'relative', overflow: 'hidden', background: bg, flexShrink: 0 }}>
-                    {poster
-                      ? <img src={poster} alt={title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <div style={shape} />
-                    }
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexGrow: 1 }}>
-                    <div style={{ fontSize: '16px', fontWeight: 500 }}>{title}</div>
-                    <div style={{ fontSize: '13px', color: '#A39B8F' }}>{meta}</div>
-                  </div>
-                  <div style={{ ...MONO, fontSize: '12px', color: '#7FA88B', flexShrink: 0 }}>{badge}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── PEOPLE ───────────────────────────────────────────────────── */}
-        <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px', display: 'flex', flexDirection: 'column', gap: '32px' }}
-          aria-labelledby="people-heading"
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <h2
-              id="people-heading"
-              style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}
-            >
-              The people behind African cinema
-            </h2>
-            <Link href="/creators" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none' }}>
-              All people →
-            </Link>
-          </div>
-
-          <div
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(6,minmax(0,1fr))', gap: '20px' }}
-            className="grid-cols-3 sm:grid-cols-6"
-          >
-            {creatorsDisplay.map((person) => (
-              <Link
-                key={person.name}
-                href={'href' in person ? person.href : '/creators'}
-                style={{ display: 'flex', flexDirection: 'column', gap: '14px', textDecoration: 'none', color: '#EDE4D2' }}
-              >
-                <div style={{ aspectRatio: '1/1', borderRadius: '50%', background: person.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-                  {'image' in person && person.image
-                    ? <img src={(person as { image: string }).image} alt={person.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <span style={{ ...SERIF, fontSize: '56px', color: person.ink }}>{person.ini}</span>
-                  }
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', textAlign: 'center' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 500 }}>{person.name}</div>
-                  <div style={{ fontSize: '13px', color: '#A39B8F' }}>{person.role}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── BROWSE THE CONTINENT ─────────────────────────────────────── */}
-        <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px', display: 'flex', flexDirection: 'column', gap: '32px' }}
-          aria-labelledby="browse-heading"
-        >
-          <h2
-            id="browse-heading"
-            style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}
-          >
-            Browse the continent
-          </h2>
-
-          <div
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '16px' }}
-            className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {REGIONS.map(({ name, sub, shape }) => (
-              <Link
-                key={name}
-                href={`/browse?region=${encodeURIComponent(name)}`}
-                style={{
-                  height: '132px', borderRadius: '20px', background: '#131110', padding: '24px',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-                  textDecoration: 'none', color: '#EDE4D2', position: 'relative', overflow: 'hidden',
-                }}
-              >
-                <div style={shape} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                  <div style={{ ...SERIF, fontSize: '34px', lineHeight: 1, color: '#F6EFE2' }}>{name}</div>
-                  <div style={{ fontSize: '14px', color: '#A39B8F' }}>{sub}</div>
-                </div>
-                <ArrowRight size={22} color="#A39B8F" style={{ position: 'relative' }} />
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── COMMUNITY VERDICT ────────────────────────────────────────── */}
-        <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px', display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', columnGap: '24px', alignItems: 'center' }}
-          aria-labelledby="verdict-heading"
-        >
-          <div
-            style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '20px' }}
-            className="col-span-12 lg:col-span-5 mb-10 lg:mb-0"
-          >
-            <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
-              Community Verdict
-            </p>
-            <h2
-              id="verdict-heading"
-              style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(36px,5vw,64px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}
-            >
-              More useful than a star rating.
-            </h2>
-            <p style={{ margin: 0, fontSize: '18px', lineHeight: '1.55', color: '#C7BFB2' }}>
-              Every swipe and reaction adds up to a verdict that tells you what a film is actually like — what viewers loved, what divided them, and who it&apos;s best for.
-            </p>
-          </div>
-
-          <div
-            style={{ gridColumn: '7 / span 6', borderRadius: '28px', background: '#15120E', padding: '36px', display: 'flex', flexDirection: 'column', gap: '28px' }}
-            className="col-span-12 lg:col-start-7 lg:col-span-6"
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ fontSize: '14px', color: '#A39B8F' }}>What MuvieStars viewers say about</div>
-                <div style={{ ...SERIF, fontSize: '36px', lineHeight: 1, color: '#F6EFE2' }}>The Prince&apos;s Bride</div>
-              </div>
-              <div style={{ ...MONO, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7FA88B' }}>High confidence</div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '24px' }}>
-              {[['86%', 'enjoyed it', '#C8963E'], ['71%', 'would recommend', '#F6EFE2'], ['48%', 'would rewatch', '#F6EFE2']].map(([pct, lbl, clr]) => (
-                <div key={lbl} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ ...SERIF, fontSize: 'clamp(40px,5vw,64px)', lineHeight: '0.95', color: clr }}>{pct}</div>
-                  <div style={{ fontSize: '14px', color: '#A39B8F' }}>{lbl}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '20px', paddingTop: '24px', borderTop: '1px solid rgba(237,228,210,.1)' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ fontSize: '13px', color: '#A39B8F' }}>Viewers especially loved</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {['Chemistry', 'Acting'].map(tag => (
-                    <span key={tag} style={{ height: '32px', padding: '0 12px', borderRadius: '999px', background: 'rgba(200,150,62,.16)', color: '#F2D6A2', fontSize: '14px', display: 'inline-flex', alignItems: 'center' }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ fontSize: '13px', color: '#A39B8F' }}>Mixed reactions around</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {['Pacing', 'Ending'].map(tag => (
-                    <span key={tag} style={{ height: '32px', padding: '0 12px', borderRadius: '999px', border: '1px solid rgba(237,228,210,.16)', color: '#D8CFC0', fontSize: '14px', display: 'inline-flex', alignItems: 'center' }}>{tag}</span>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -783,8 +394,9 @@ export default async function HomePage() {
           aria-labelledby="cta-heading"
         >
           <div
+            className="p-8 sm:p-12 lg:p-[72px]"
             style={{
-              borderRadius: '36px', background: '#C8963E', color: '#0B0A09', padding: '72px',
+              borderRadius: '36px', background: '#C8963E', color: '#0B0A09',
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '40px',
               flexWrap: 'wrap',
             }}

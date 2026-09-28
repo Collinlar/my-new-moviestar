@@ -6,12 +6,19 @@ export const dynamic = 'force-dynamic'
 export default async function AdminAwardsPage() {
   const { supabase } = await requireAdmin()
 
-  const { data } = await supabase
-    .from('movies')
-    .select('id, title, release_year')
-    .order('title', { ascending: true })
+  const [moviesResult, festivalsResult] = await Promise.all([
+    supabase
+      .from('movies')
+      .select('id, title, release_year')
+      .order('title', { ascending: true }),
+    supabase
+      .from('festivals')
+      .select('id, name, short_name')
+      .order('name', { ascending: true }),
+  ])
 
-  const movies = (data as any[]) || []
+  const movies   = (moviesResult.data as any[]) || []
+  const festivals = (festivalsResult.data as any[]) || []
 
   return (
     <div className="p-8">
@@ -22,7 +29,7 @@ export default async function AdminAwardsPage() {
           Track festival selections, nominations and wins per film.
         </p>
       </div>
-      <AwardsManager movies={movies} />
+      <AwardsManager movies={movies} festivals={festivals} />
     </div>
   )
 }

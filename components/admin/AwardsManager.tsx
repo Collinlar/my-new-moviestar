@@ -7,13 +7,15 @@ import { toast } from 'sonner'
 
 interface Award { id: string; name: string; category: string; year: number; won: boolean }
 interface MovieOption { id: string; title: string; release_year: number }
+interface FestivalOption { id: string; name: string; short_name: string }
 
-const AWARD_NAMES = [
+const FALLBACK_AWARD_NAMES = [
   'Africa Movie Academy Awards (AMAA)',
   'African Magic Viewers Choice Awards (AMVCA)',
   'Ghana Movie Awards',
   'Golden Horn Awards',
   'Nollywood & African Film Critics Awards (NAFCA)',
+  'FESPACO',
   'Cannes Film Festival',
   'Toronto International Film Festival (TIFF)',
   'Tribeca Film Festival',
@@ -24,9 +26,9 @@ const AWARD_NAMES = [
 
 const blank = { name: '', category: '', year: new Date().getFullYear(), won: false }
 
-interface Props { movies: MovieOption[] }
+interface Props { movies: MovieOption[]; festivals?: FestivalOption[] }
 
-export function AwardsManager({ movies }: Props) {
+export function AwardsManager({ movies, festivals }: Props) {
   const [movieId, setMovieId]   = useState('')
   const [awards, setAwards]     = useState<Award[]>([])
   const [loading, setLoading]   = useState(false)
@@ -79,6 +81,10 @@ export function AwardsManager({ movies }: Props) {
     setDeleting(null)
   }
 
+  const awardOptions = festivals && festivals.length > 0
+    ? [...festivals.map(f => `${f.name} (${f.short_name})`), 'Other']
+    : FALLBACK_AWARD_NAMES
+
   const ic = 'cinema-input text-sm py-2'
 
   const AwardForm = () => (
@@ -88,7 +94,7 @@ export function AwardsManager({ movies }: Props) {
           <label className="block text-xs text-film-muted mb-1">Festival / Award name *</label>
           <select className={ic} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}>
             <option value="">Select award</option>
-            {AWARD_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+            {awardOptions.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
         <div>
