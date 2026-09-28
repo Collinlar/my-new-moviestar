@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     const body = await req.json()
-    const { movie_id, reaction, tags, one_liner } = body
+    const { movie_id, reaction, rating, tags, one_liner } = body
 
     if (!user) {
       return NextResponse.json({ ok: true, saved: false, reason: 'not_authenticated' })
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
           user_id: user.id,
           movie_id,
           reaction,
+          rating: rating ?? null,
           one_liner: one_liner || null,
           status: 'published',
           updated_at: new Date().toISOString(),
@@ -52,7 +53,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, saved: true })
+    // Create or return the share card for this reaction
+    let shareToken: string | null = null
+
+    if (reactionRow?.id) {
+      const { data: existingCard } = await supabase
+        .from('review_share_cards')
+        .select('share_token')
+        .eq('reaction_id', reactionRow.id)
+        .maybeSingle()
+
+      if (existingCard?.share_token) {
+        shareToken = existingCard.share_token
+      } else {
+        // Generate a short opaque token from a UUID
+        const token = crypto.randomUUID().replace(/-/g, '').slice(0, 10)
+        const { data: newCard } = await supabase
+          .from('review_share_cards')
+          .insert({
+            reaction_id: reactionRow.id,
+            user_id: user.id,
+            movie_id,
+            share_token: token,
+          })
+          .select('share_token')
+          .single()
+        shareToken = newCard?.share_token ?? null
+      }
+    }
+
+    return NextResponse.json({ ok: true, saved: true, shareToken })
   } catch {
     return NextResponse.json({ ok: true, saved: false })
   }

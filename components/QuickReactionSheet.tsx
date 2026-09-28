@@ -27,7 +27,7 @@ const TAGS = [
   { slug: 'ending',    label: 'Ending'    },
 ]
 
-type Step = 'reaction' | 'tags' | 'oneliner' | 'auth'
+type Step = 'reaction' | 'rating' | 'tags' | 'oneliner' | 'auth' | 'share'
 
 interface Props {
   movie: Movie
@@ -37,11 +37,15 @@ interface Props {
 }
 
 export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props) {
-  const [step, setStep]         = useState<Step>('reaction')
-  const [reaction, setReaction] = useState<string | null>(null)
-  const [tags, setTags]         = useState<string[]>([])
-  const [oneLiner, setOneLiner] = useState('')
-  const [saving, setSaving]     = useState(false)
+  const [step, setStep]           = useState<Step>('reaction')
+  const [reaction, setReaction]   = useState<string | null>(null)
+  const [rating, setRating]       = useState<number | null>(null)
+  const [hoverStar, setHoverStar] = useState(0)
+  const [tags, setTags]           = useState<string[]>([])
+  const [oneLiner, setOneLiner]   = useState('')
+  const [saving, setSaving]       = useState(false)
+  const [shareToken, setShareToken] = useState<string | null>(null)
+  const [copied, setCopied]       = useState(false)
 
   const toggleTag = (slug: string) => {
     setTags(prev =>
@@ -51,26 +55,36 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
     )
   }
 
-  const persist = async () => {
+  const persist = async (): Promise<string | null> => {
     try {
-      await fetch('/api/reactions', {
+      const res = await fetch('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           movie_id: movie.id,
           reaction,
+          rating,
           tags,
           one_liner: oneLiner.trim() || null,
         }),
       })
-    } catch {}
+      const data = await res.json()
+      return data.shareToken ?? null
+    } catch {
+      return null
+    }
   }
 
   const saveAndNext = async () => {
     setSaving(true)
-    await persist()
+    const token = await persist()
     setSaving(false)
-    onSave(reaction || '')
+    if (token) {
+      setShareToken(token)
+      setStep('share')
+    } else {
+      onSave(reaction || '')
+    }
   }
 
   const handleSaveClick = () => {
@@ -80,6 +94,43 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
     }
     saveAndNext()
   }
+
+  const shareUrl = shareToken ? `${typeof window !== 'undefined' ? window.location.origin : 'https://muviestars.com'}/take/${shareToken}` : ''
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback: select text
+    }
+  }
+
+  const nativeShare = async () => {
+    if (!navigator.share) { copyLink(); return }
+    try {
+      await navigator.share({
+        title: `${movie.title} — My Take`,
+        text: oneLiner || `I just rated ${movie.title} on MuvieStars.`,
+        url: shareUrl,
+      })
+    } catch {
+      // dismissed
+    }
+  }
+
+  const trackShare = (destination: string) => {
+    if (!shareToken) return
+    fetch('/api/share/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ share_token: shareToken, destination }),
+    }).catch(() => {})
+  }
+
+  const reactionItem = REACTIONS.find(r => r.key === reaction)
+  const starDisplay = (n: number) => n <= (hoverStar || rating || 0) ? '★' : '☆'
 
   return (
     <>
@@ -126,7 +177,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
               {REACTIONS.map(({ key, emoji, label }) => (
                 <button
                   key={key}
-                  onClick={() => { setReaction(key); setStep('tags') }}
+                  onClick={() => { setReaction(key); setStep('rating') }}
                   style={{
                     height: '84px', borderRadius: '20px',
                     background: '#23201A',
@@ -151,7 +202,49 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
           </div>
         )}
 
-        {/* ── Step B — tags ───────────────────────────────── */}
+        {/* ── Step B — star rating ─────────────────────────── */}
+        {step === 'rating' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+              <h3 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,6vw,38px)', lineHeight: 1, color: '#F6EFE2', margin: 0, textAlign: 'center' }}>
+                How many stars?
+              </h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#8C857A' }}>
+                Your personal rating
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n}
+                  onMouseEnter={() => setHoverStar(n)}
+                  onMouseLeave={() => setHoverStar(0)}
+                  onClick={() => { setRating(n); setStep('tags') }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: '52px', lineHeight: 1,
+                    color: n <= (hoverStar || rating || 0) ? '#C8963E' : 'rgba(237,228,210,0.2)',
+                    transition: 'color 0.1s',
+                    padding: '4px 2px',
+                    minWidth: '44px', minHeight: '60px',
+                  }}
+                >
+                  {starDisplay(n)}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setStep('tags')}
+              style={{ background: 'none', border: 'none', color: '#8C857A', fontSize: '14px', cursor: 'pointer', padding: '4px 0' }}
+            >
+              Skip rating
+            </button>
+          </div>
+        )}
+
+        {/* ── Step C — tags ───────────────────────────────── */}
         {step === 'tags' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
@@ -202,7 +295,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
           </div>
         )}
 
-        {/* ── Step C — one-liner ──────────────────────────── */}
+        {/* ── Step D — one-liner ──────────────────────────── */}
         {step === 'oneliner' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,6vw,38px)', lineHeight: 1, color: '#F6EFE2', margin: 0, textAlign: 'center' }}>
@@ -249,7 +342,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
 
             <Link
               href={`/movie/${movie.id}#review`}
-              onClick={persist}
+              onClick={() => persist()}
               style={{ textAlign: 'center', fontSize: '14px', color: '#C8963E', textDecoration: 'none' }}
             >
               Want to say more? Write a full review →
@@ -257,7 +350,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
           </div>
         )}
 
-        {/* ── Step D — auth gate ──────────────────────────── */}
+        {/* ── Step E — auth gate ──────────────────────────── */}
         {step === 'auth' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -301,6 +394,124 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
                 Skip for now
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ── Step F — share prompt ───────────────────────── */}
+        {step === 'share' && shareToken && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+              <h3 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,5vw,36px)', lineHeight: 1, color: '#F6EFE2', margin: 0, textAlign: 'center' }}>
+                Your take is saved.
+              </h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#8C857A', textAlign: 'center' }}>
+                Share it with people who love African cinema.
+              </p>
+            </div>
+
+            {/* Mini preview card */}
+            <div style={{
+              background: '#23201A',
+              border: '1px solid rgba(237,228,210,0.1)',
+              borderRadius: '16px',
+              padding: '16px',
+              display: 'flex', flexDirection: 'column', gap: '8px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {reactionItem && (
+                  <span style={{ fontSize: '22px', lineHeight: 1 }}>{reactionItem.emoji}</span>
+                )}
+                <span style={{ fontSize: '15px', fontWeight: 600, color: '#F6EFE2' }}>
+                  {movie.title}
+                </span>
+              </div>
+              {rating && (
+                <div style={{ display: 'flex', gap: '2px' }}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} style={{ fontSize: '18px', color: n <= rating ? '#C8963E' : 'rgba(237,228,210,0.15)' }}>
+                      ★
+                    </span>
+                  ))}
+                </div>
+              )}
+              {oneLiner && (
+                <p style={{ margin: 0, fontSize: '14px', color: '#A39B8F', lineHeight: 1.5 }}>
+                  {oneLiner.length > 80 ? `${oneLiner.slice(0, 80).trimEnd()}...` : oneLiner}
+                </p>
+              )}
+            </div>
+
+            {/* Share buttons */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`I watched ${movie.title} on MuvieStars. Here's my take: ${shareUrl}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackShare('whatsapp')}
+                style={{
+                  height: '52px', borderRadius: '16px',
+                  background: '#25D366', color: '#0B0A09',
+                  fontSize: '15px', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  textDecoration: 'none',
+                }}
+              >
+                WhatsApp
+              </a>
+              <button
+                onClick={() => { copyLink(); trackShare('copy_link') }}
+                style={{
+                  height: '52px', borderRadius: '16px',
+                  background: copied ? '#1D9E75' : '#23201A',
+                  border: '1px solid rgba(237,228,210,0.12)',
+                  color: copied ? '#0B0A09' : '#C7BFB2',
+                  fontSize: '15px', fontWeight: 500,
+                  cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
+                }}
+              >
+                {copied ? 'Copied!' : 'Copy link'}
+              </button>
+              <a
+                href={`/api/og/take?token=${shareToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackShare('save_image')}
+                style={{
+                  height: '52px', borderRadius: '16px',
+                  background: '#23201A',
+                  border: '1px solid rgba(237,228,210,0.12)',
+                  color: '#C7BFB2', fontSize: '15px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  textDecoration: 'none',
+                }}
+              >
+                Save image
+              </a>
+              <button
+                onClick={() => { nativeShare(); trackShare('native_share') }}
+                style={{
+                  height: '52px', borderRadius: '16px',
+                  background: '#23201A',
+                  border: '1px solid rgba(237,228,210,0.12)',
+                  color: '#C7BFB2', fontSize: '15px',
+                  cursor: 'pointer',
+                }}
+              >
+                Share
+              </button>
+            </div>
+
+            {/* Keep swiping */}
+            <button
+              onClick={() => onSave(reaction || '')}
+              style={{
+                background: 'none', border: 'none',
+                color: '#8C857A', fontSize: '14px',
+                cursor: 'pointer', padding: '4px 0',
+              }}
+            >
+              Keep swiping
+            </button>
           </div>
         )}
       </div>
