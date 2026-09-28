@@ -273,9 +273,13 @@ export default async function HomePage() {
               position: 'relative', overflow: 'hidden',
             }}
           >
-            {/* Decorative arch */}
-            <div style={{ position: 'absolute', right: '140px', top: '60px', width: '340px', height: '460px', borderRadius: '170px 170px 0 0', background: '#C8963E' }} />
-            <div style={{ position: 'absolute', right: '250px', top: '120px', width: '120px', height: '120px', borderRadius: '50%', background: '#12242B' }} />
+            {/* Arch fallback — only when no poster */}
+            {!clubPick?.poster_url && (
+              <>
+                <div style={{ position: 'absolute', right: '140px', top: '60px', width: '340px', height: '460px', borderRadius: '170px 170px 0 0', background: '#C8963E' }} />
+                <div style={{ position: 'absolute', right: '250px', top: '120px', width: '120px', height: '120px', borderRadius: '50%', background: '#12242B' }} />
+              </>
+            )}
             <div className="ms-grain" />
 
             {/* Content */}
@@ -309,6 +313,27 @@ export default async function HomePage() {
                 </span>
               </div>
             </div>
+
+            {/* Poster — desktop right column */}
+            {clubPick?.poster_url && (
+              <div
+                className="hidden lg:block lg:col-span-6"
+                style={{ position: 'relative', minHeight: '480px' }}
+              >
+                <img
+                  src={clubPick.poster_url}
+                  alt={`${clubPick.title} poster`}
+                  style={{
+                    position: 'absolute', inset: 0,
+                    width: '100%', height: '100%',
+                    objectFit: 'cover', objectPosition: 'center top',
+                    opacity: 0.75,
+                  }}
+                />
+                {/* Blend left edge into card background */}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #12242B 0%, transparent 40%)' }} />
+              </div>
+            )}
           </div>
         </section>
 
