@@ -17,19 +17,26 @@ export default {
       colors: {
         /* Cinema design system */
         cinema: {
-          black:   '#090909',
+          black:   '#0B0A09',
           dark:    '#111111',
-          surface: '#181818',
+          surface: '#151310',
           border:  '#252525',
           'border-subtle': '#1E1E1E',
         },
         film: {
-          gold:   '#C8963E',
-          amber:  '#E8A530',
-          red:    '#D43F3F',
-          cream:  '#EDE4D2',
-          muted:  '#8C8C8C',
-          subtle: '#5A5A5A',
+          gold:         '#C8963E',
+          amber:        '#E8A530',
+          'amber-light': '#E8C27A',
+          red:          '#D43F3F',
+          cream:        '#EDE4D2',
+          'cream-light': '#D8D2C4',
+          muted:        '#8C8C8C',
+          subtle:       '#5A5A5A',
+          burgundy:     '#3A1520',
+          navy:         '#0F2230',
+          teal:         '#12242B',
+          bark:         '#2C1A0E',
+          terra:        '#B5532F',
         },
         /* shadcn compatibility layer */
         border:      'hsl(var(--border))',
@@ -73,8 +80,8 @@ export default {
       },
       fontFamily: {
         sans: [
-          '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"',
-          'Roboto', 'Helvetica', 'Arial', 'sans-serif',
+          '"Geist"', '-apple-system', 'BlinkMacSystemFont',
+          '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif',
         ],
         serif: ['"Georgia"', '"Times New Roman"', 'serif'],
       },
@@ -104,8 +111,8 @@ export default {
       },
       backgroundImage: {
         'gold-gradient': 'linear-gradient(135deg, #C8963E 0%, #E8A530 100%)',
-        'cinema-gradient': 'linear-gradient(180deg, transparent 0%, #090909 100%)',
-        'poster-overlay': 'linear-gradient(to top, rgba(9,9,9,0.95) 0%, rgba(9,9,9,0.5) 50%, rgba(9,9,9,0.1) 100%)',
+        'cinema-gradient': 'linear-gradient(180deg, transparent 0%, #0B0A09 100%)',
+        'poster-overlay': 'linear-gradient(to top, rgba(11,10,9,0.97) 0%, rgba(11,10,9,0.55) 50%, rgba(11,10,9,0.15) 100%)',
       },
     },
   },

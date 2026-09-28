@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,10 +51,12 @@
 
   body {
     @apply bg-cinema-black text-film-cream;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica Neue, Arial, sans-serif;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
@@ -158,10 +162,69 @@
            bg-cinema-surface border border-cinema-border text-film-muted
            hover:border-film-gold/40 hover:text-film-cream transition-colors;
   }
+
+  /* Film grain overlay — v2.0 */
+  .ms-grain {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events: none;
+  }
+
+  /* Poster card transition — v2.0 */
+  .ph-card {
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s;
+  }
+  .ph-card:hover {
+    transform: translateY(-4px);
+  }
+
+  /* Live indicator */
+  .live-dot {
+    @apply inline-block w-1.5 h-1.5 rounded-full bg-green-400;
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+
+  /* Film badges — v2.0 */
+  .badge-new {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold
+           uppercase tracking-wider bg-film-teal text-film-cream;
+  }
+  .badge-club {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold
+           uppercase tracking-wider bg-film-gold text-cinema-black;
+  }
+  .badge-gem {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold
+           uppercase tracking-wider bg-film-burgundy text-film-cream;
+  }
+  .badge-country {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold
+           uppercase tracking-wider bg-cinema-dark border border-cinema-border text-film-muted;
+  }
+  .badge-rising {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold
+           uppercase tracking-wider bg-film-bark text-film-amber-light;
+  }
+
+  /* Canon numbered row */
+  .canon-row {
+    @apply flex items-center gap-4 py-4 border-b border-cinema-border last:border-0
+           hover:bg-cinema-surface/50 transition-colors rounded-lg px-3 -mx-3;
+  }
+  .canon-number {
+    @apply text-3xl font-bold text-film-gold/30 tabular-nums w-10 flex-shrink-0 text-right;
+  }
 }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
+
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
 
   /* Responsive container shorthand */
   .section-container {

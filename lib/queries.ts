@@ -149,13 +149,14 @@ export async function getMovieAwards(movieId: string) {
   return data || []
 }
 
-export async function getDbStats(): Promise<{ movieCount: number; reviewCount: number; countryCount: number }> {
+export async function getDbStats(): Promise<{ movieCount: number; reviewCount: number; countryCount: number; creatorCount: number }> {
   try {
     const supabase = await createClient() as any
-    const [moviesRes, reviewsRes, countriesRes] = await Promise.all([
+    const [moviesRes, reviewsRes, countriesRes, creatorsRes] = await Promise.all([
       supabase.from('movies').select('*', { count: 'exact', head: true }),
       supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
       supabase.from('movies').select('country').neq('country', null),
+      supabase.from('creators').select('*', { count: 'exact', head: true }),
     ])
     const uniqueCountries = new Set(
       (countriesRes.data || [])
@@ -163,12 +164,13 @@ export async function getDbStats(): Promise<{ movieCount: number; reviewCount: n
         .filter((c): c is string => !!c && c.trim() !== '')
     )
     return {
-      movieCount:   moviesRes.count  || 0,
-      reviewCount:  reviewsRes.count || 0,
+      movieCount:   moviesRes.count   || 0,
+      reviewCount:  reviewsRes.count  || 0,
       countryCount: uniqueCountries.size,
+      creatorCount: creatorsRes.count || 0,
     }
   } catch {
-    return { movieCount: 0, reviewCount: 0, countryCount: 0 }
+    return { movieCount: 0, reviewCount: 0, countryCount: 0, creatorCount: 0 }
   }
 }
 
@@ -217,6 +219,17 @@ export async function searchMovies(q: string, limit = 20): Promise<Movie[]> {
     .from('movies')
     .select('*, creator:creators(id, name, image_url)')
     .or(`title.ilike.%${q}%,description.ilike.%${q}%,director.ilike.%${q}%,keywords.ilike.%${q}%`)
+    .limit(limit)
+  return (data as Movie[]) || []
+}
+
+export async function getOldButGoldMovies(limit = 6): Promise<Movie[]> {
+  const supabase = await createClient() as any
+  const { data } = await supabase
+    .from('movies')
+    .select('*, creator:creators(id, name, image_url)')
+    .lte('release_year', 2000)
+    .order('review_count', { ascending: false })
     .limit(limit)
   return (data as Movie[]) || []
 }

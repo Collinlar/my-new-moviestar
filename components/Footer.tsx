@@ -36,8 +36,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-film-muted leading-relaxed max-w-xs">
-              Africa's cinema, documented. The most complete archive of African films,
-              filmmakers, and reviews.
+              A living African cinema discovery network built on the continent&apos;s movie database.
             </p>
           </div>
 

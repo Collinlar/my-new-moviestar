@@ -11,12 +11,10 @@ import type { User } from '@supabase/supabase-js'
 const ADMIN_EMAIL = 'kofcollkcl100@gmail.com'
 
 const navLinks = [
-  { href: '/browse',    label: 'Browse'     },
-  { href: '/trending',  label: 'Trending'   },
-  { href: '/canon',     label: 'Canon'      },
-  { href: '/festivals', label: 'Festivals'  },
-  { href: '/creators',  label: 'Filmmakers' },
-  { href: '/people',    label: 'People'     },
+  { href: '/',        label: 'Home',     exact: true  },
+  { href: '/swipe',   label: 'Swipe',    exact: false },
+  { href: '/browse',  label: 'Discover', exact: false },
+  { href: '/club',    label: 'Club',     exact: false },
 ]
 
 export function Navigation() {
@@ -88,21 +86,24 @@ export function Navigation() {
 
             {/* Desktop links */}
             <ul className="hidden md:flex items-center gap-1" role="list">
-              {navLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={cn(
-                      'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                      pathname?.startsWith(link.href)
-                        ? 'text-film-gold'
-                        : 'text-film-muted hover:text-film-cream'
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = link.exact ? pathname === link.href : pathname?.startsWith(link.href)
+                return (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                        isActive
+                          ? 'text-film-gold'
+                          : 'text-film-muted hover:text-film-cream'
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
 
             {/* Right actions */}
@@ -132,12 +133,14 @@ export function Navigation() {
                   </button>
                 </div>
               ) : (
-                <Link
-                  href="/auth"
-                  className="hidden sm:inline-flex btn-outline text-sm py-1.5"
-                >
-                  Sign in
-                </Link>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Link href="/auth" className="btn-ghost text-sm py-1.5">
+                    Sign in
+                  </Link>
+                  <Link href="/auth" className="btn-gold text-sm py-1.5 px-4">
+                    Join free
+                  </Link>
+                </div>
               )}
 
               {/* Mobile menu toggle */}
@@ -172,7 +175,7 @@ export function Navigation() {
           >
             <ul className="flex flex-col gap-1" role="list">
               {navLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link
                     href={link.href}
                     onClick={() => setOpen(false)}
