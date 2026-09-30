@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Navigation } from '@/components/Navigation'
-import { browseMovies, getDbStats } from '@/lib/queries'
+import { getDbStats } from '@/lib/queries'
+import { getSwipeDeck } from '@/lib/deck'
 import { SwipeStack } from '@/components/SwipeStack'
 import { MOOD_MAP } from '@/lib/mood'
 import { createClient } from '@/lib/supabase/server'
@@ -22,22 +23,19 @@ export default async function SwipePage({ searchParams }: PageProps) {
   const moodConfig = moodSlug ? MOOD_MAP[moodSlug] ?? null : null
 
   const supabase = await createClient() as any
-
-  const query = moodConfig
-    ? { ...moodConfig.query, limit: 30 }
-    : { sortBy: 'review_count', sortOrder: 'desc' as const, limit: 30 }
-
-  const [{ movies }, stats, { data: { user } }] = await Promise.all([
-    browseMovies(query),
-    getDbStats(),
+  const [{ data: { user } }, stats] = await Promise.all([
     supabase.auth.getUser(),
+    getDbStats(),
   ])
+
+  const movies = await getSwipeDeck({ userId: user?.id ?? null, mood: moodConfig, limit: 30 })
 
   return (
     <>
       <Navigation />
       <main>
         <SwipeStack
+          key={`${moodConfig?.slug ?? 'all'}:${movies[0]?.id ?? 'empty'}`}
           movies={movies}
           totalCount={stats.movieCount}
           userId={user?.id ?? null}

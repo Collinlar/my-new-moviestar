@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { SearchBar } from '@/components/SearchBar'
-import { searchMovies } from '@/lib/queries'
+import { searchMovies, searchPeople } from '@/lib/queries'
 import { SITE_URL, capitalise } from '@/lib/utils'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -30,7 +30,9 @@ const POPULAR_SEARCHES = ['Nollywood', 'Ghanaian drama', 'African comedy', 'Wolo
 
 export default async function SearchPage({ searchParams }: PageProps) {
   const { q } = await searchParams
-  const results = q ? await searchMovies(q, 24) : []
+  const [results, people] = q
+    ? await Promise.all([searchMovies(q, 24), searchPeople(q, 8).catch(() => [])])
+    : [[], []]
 
   return (
     <>
@@ -47,7 +49,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
               </h1>
               {q && (
                 <p style={{ ...MONO, fontSize: '13px', color: '#6A6258', margin: 0 }}>
-                  {results.length} {results.length === 1 ? 'film' : 'films'} found
+                  {results.length} {results.length === 1 ? 'film' : 'films'}
+                  {people.length > 0 && `  ·  ${people.length} ${people.length === 1 ? 'person' : 'people'}`}
                 </p>
               )}
               <SearchBar defaultValue={q} />
@@ -84,7 +87,40 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 </div>
               </div>
             </div>
-          ) : results.length > 0 ? (
+          ) : results.length > 0 || people.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+            {people.length > 0 && (
+              <section aria-labelledby="people-results">
+                <h2 id="people-results" style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 16px', fontWeight: 400 }}>
+                  People
+                </h2>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+                  {people.map((person) => (
+                    <li key={person.id}>
+                      <Link
+                        href={`/person/${person.slug}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '14px', minHeight: '64px', padding: '10px 14px', borderRadius: '14px', background: '#0F0D0B', border: '1px solid rgba(237,228,210,0.08)', textDecoration: 'none' }}
+                      >
+                        <span style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(200,150,62,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {person.profile_image ? (
+                            <img src={person.profile_image} alt="" width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                          ) : (
+                            <span style={{ ...SERIF, fontSize: '20px', color: '#C8963E' }}>{person.full_name.charAt(0)}</span>
+                          )}
+                        </span>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: '15px', fontWeight: 500, color: '#F6EFE2', lineHeight: 1.3 }}>{person.full_name}</span>
+                          <span style={{ display: 'block', ...MONO, fontSize: '11px', color: '#8C857A' }}>
+                            {person.country ?? 'African cinema'}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {results.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '20px' }}>
               {results.map((movie) => (
                 <Link
@@ -128,6 +164,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
                   </div>
                 </Link>
               ))}
+            </div>
+            )}
             </div>
           ) : (
             <div style={{ padding: '80px 24px', borderRadius: '20px', border: '1px solid rgba(237,228,210,0.06)', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>

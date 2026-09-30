@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createStaticClient } from '@/lib/supabase/static'
+import { cleanSearchTerm, isUuid, type Socials } from '@/lib/people'
 
 export interface StreamingLink {
   platform: string
@@ -61,14 +62,31 @@ export interface Creator {
 
 export interface Person {
   id: string
+  slug: string
   full_name: string
-  bio?: string
-  profile_image?: string
-  country?: string
-  birth_year?: number
+  bio?: string | null
+  profile_image?: string | null
+  country?: string | null
+  date_of_birth?: string | null
+  date_of_death?: string | null
+  aliases?: string[]
+  socials?: Socials
   verified?: boolean
-  imdb_id?: string
-  website?: string
+  imdb_id?: string | null
+  website?: string | null
+  is_featured?: boolean
+  updated_at?: string
+}
+
+// Explicit list so the public site never selects claimed_by (a user id).
+export const PERSON_COLUMNS =
+  'id, slug, full_name, bio, profile_image, country, date_of_birth, date_of_death, aliases, socials, verified, imdb_id, website, is_featured, updated_at'
+
+export interface PersonCredit {
+  role: string
+  character_name: string | null
+  billing_order: number | null
+  movie: Pick<Movie, 'id' | 'title' | 'release_year' | 'genre' | 'poster_url' | 'average_rating' | 'review_count'>
 }
 
 export async function getFeaturedMovies(limit = 6): Promise<Movie[]> {
@@ -133,10 +151,63 @@ export async function getMovieCast(movieId: string) {
   const supabase = await createClient() as any
   const { data } = await supabase
     .from('movie_people')
-    .select('id, role, character_name, department, billing_order, person:people(id, full_name, profile_image)')
+    .select('id, role, character_name, department, billing_order, person:people(id, slug, full_name, profile_image)')
     .eq('movie_id', movieId)
     .order('billing_order', { ascending: true })
   return data || []
+}
+
+/** Accepts a slug or, for old links, a UUID. */
+export async function getPersonByRef(ref: string): Promise<Person | null> {
+  const supabase = await createClient() as any
+  const { data } = await supabase
+    .from('people')
+    .select(PERSON_COLUMNS)
+    .eq(isUuid(ref) ? 'id' : 'slug', ref)
+    .maybeSingle()
+  return (data as Person | null) ?? null
+}
+
+export async function getPersonCredits(personId: string): Promise<PersonCredit[]> {
+  const supabase = await createClient() as any
+  const { data } = await supabase
+    .from('movie_people')
+    .select('role, character_name, billing_order, movie:movies(id, title, release_year, genre, poster_url, average_rating, review_count)')
+    .eq('person_id', personId)
+  return ((data as PersonCredit[]) || []).filter(c => c.movie)
+}
+
+export async function searchPeople(q: string, limit = 12): Promise<Person[]> {
+  const term = cleanSearchTerm(q)
+  if (!term) return []
+  const supabase = await createClient() as any
+  const { data } = await supabase
+    .from('people')
+    .select(PERSON_COLUMNS)
+    .ilike('search_text', `%${term}%`)
+    .order('is_featured', { ascending: false })
+    .order('full_name', { ascending: true })
+    .limit(limit)
+  return (data as Person[]) || []
+}
+
+/** Profiles worth indexing: they have a bio or at least one credit. */
+export async function getIndexablePeople(): Promise<Array<{ slug: string; updated_at: string }>> {
+  const supabase = createStaticClient() as any
+  const out: Array<{ slug: string; updated_at: string }> = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('people')
+      .select('slug, bio, updated_at, credits:movie_people(count)')
+      .order('slug')
+      .range(from, from + 999)
+    if (error || !data || data.length === 0) break
+    for (const p of data as any[]) {
+      if (p.bio || (p.credits?.[0]?.count ?? 0) > 0) out.push({ slug: p.slug, updated_at: p.updated_at })
+    }
+    if (data.length < 1000) break
+  }
+  return out
 }
 
 export async function getMovieAwards(movieId: string) {

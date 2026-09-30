@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     return new Response('Missing token', { status: 400 })
   }
 
-  const supabase = createStaticClient()
+  const supabase = createStaticClient() as any
 
   // Fetch share card + reaction + movie
   const { data: card } = await supabase

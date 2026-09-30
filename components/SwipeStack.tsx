@@ -31,7 +31,7 @@ type SessionStats = {
 
 const EMPTY_STATS: SessionStats = { seen: 0, watchLater: 0, loved: 0, liked: 0, okay: 0, notForMe: 0 }
 
-async function saveInteraction(movieId: string, type: 'watch_later' | 'not_interested' | 'unseen') {
+async function saveInteraction(movieId: string, type: 'watch_later' | 'not_interested' | 'unseen' | 'seen') {
   try {
     await fetch('/api/interactions', {
       method: 'POST',
@@ -86,6 +86,8 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
 
   const handleSeenIt = () => {
     if (exit !== null || showReaction || haventSeenMode) return
+    // Remembered even if the reaction is skipped, so the film does not come straight back.
+    if (userId && current) saveInteraction(current.id, 'seen')
     setShowReaction(true)
   }
 
@@ -203,8 +205,8 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '360px', alignItems: 'center' }}>
             <p style={{ fontSize: '16px', color: '#C7BFB2', margin: 0, lineHeight: 1.6 }}>
               {mood
-                ? `That's all the ${mood.label.toLowerCase()} films in the stack.`
-                : `You have been through all ${movies.length} films in today's stack.`}
+                ? `That's all the "${mood.label}" films for now.`
+                : `You have been through all ${movies.length} films in this stack.`}
             </p>
             {mood && (
               <Link
@@ -255,12 +257,16 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
             Through the stack
           </p>
           <h2 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(40px,7vw,80px)', lineHeight: '0.95', color: '#F6EFE2', margin: 0 }}>
-            Not bad, film lover.
+            {movies.length === 0 ? 'You have cleared this one.' : 'Not bad, film lover.'}
           </h2>
           <p style={{ fontSize: '18px', color: '#C7BFB2', maxWidth: '440px', lineHeight: '1.6', margin: 0 }}>
-            {mood
-              ? `That's all ${movies.length} ${mood.label.toLowerCase()} films in the stack.`
-              : `You've been through ${movies.length} films. The full database has ${totalCount.toLocaleString()} more waiting.`}
+            {movies.length === 0
+              ? mood
+                ? `You have reacted to or saved every "${mood.label}" film we have. Try another mood or browse the full database.`
+                : 'You have reacted to or saved everything we have. New films land regularly.'
+              : mood
+                ? `That's all ${movies.length} "${mood.label}" films for now.`
+                : `You've been through ${movies.length} films. The full database has ${totalCount.toLocaleString()} more waiting.`}
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>

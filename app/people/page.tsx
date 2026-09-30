@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL } from '@/lib/utils'
+import { cleanSearchTerm } from '@/lib/people'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -20,17 +21,39 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/people` },
 }
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
-export default async function PeoplePage() {
+const PAGE_SIZE = 60
+
+interface PageProps {
+  searchParams: Promise<{ q?: string; page?: string }>
+}
+
+export default async function PeoplePage({ searchParams }: PageProps) {
+  const { q, page: pageParam } = await searchParams
+  const term = cleanSearchTerm(q ?? '')
+  const page = Math.max(1, Number.parseInt(pageParam ?? '1', 10) || 1)
+  const from = (page - 1) * PAGE_SIZE
+
   const supabase = await createClient()
-  const { data: people } = await (supabase as any)
+  let query = (supabase as any)
     .from('people')
-    .select('id, full_name, profile_image, country, verified')
+    .select('id, slug, full_name, profile_image, country, verified', { count: 'exact' })
+    .order('is_featured', { ascending: false })
     .order('full_name', { ascending: true })
-    .limit(60)
+    .range(from, from + PAGE_SIZE - 1)
+  if (term) query = query.ilike('search_text', `%${term}%`)
 
+  const { data: people, count } = await query
   const personList = (people as any[]) || []
+  const totalPages = Math.max(1, Math.ceil(((count as number) || 0) / PAGE_SIZE))
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams()
+    if (term) params.set('q', term)
+    if (p > 1) params.set('page', String(p))
+    const qs = params.toString()
+    return qs ? `/people?${qs}` : '/people'
+  }
 
   const crumbs = breadcrumbSchema([
     { name: 'Home',   url: SITE_URL },
@@ -61,6 +84,24 @@ export default async function PeoplePage() {
               <p style={{ fontSize: '17px', lineHeight: '1.55', color: '#8C857A', margin: 0 }}>
                 Actors, actresses, and crew bringing African stories to the screen.
               </p>
+              <form action="/people" method="get" role="search" style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <label htmlFor="people-q" className="sr-only">Search people</label>
+                <input
+                  id="people-q"
+                  name="q"
+                  type="search"
+                  defaultValue={term}
+                  placeholder="Who are you looking for?"
+                  autoComplete="off"
+                  style={{ flex: 1, minWidth: 0, height: '48px', padding: '0 16px', borderRadius: '14px', background: '#0B0A09', border: '1px solid rgba(237,228,210,0.16)', color: '#F6EFE2', fontSize: '16px' }}
+                />
+                <button
+                  type="submit"
+                  style={{ height: '48px', padding: '0 20px', borderRadius: '14px', background: '#C8963E', color: '#0B0A09', fontSize: '15px', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                >
+                  Find them
+                </button>
+              </form>
             </div>
           </div>
         </section>
@@ -72,7 +113,7 @@ export default async function PeoplePage() {
               {personList.map((person: any) => (
                 <Link
                   key={person.id}
-                  href={`/person/${person.id}`}
+                  href={`/person/${person.slug}`}
                   style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '24px 16px', borderRadius: '16px', background: '#0F0D0B', border: '1px solid rgba(237,228,210,0.06)' }}
                   itemScope
                   itemType="https://schema.org/Person"
@@ -113,8 +154,33 @@ export default async function PeoplePage() {
             </div>
           ) : (
             <div style={{ padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-              <p style={{ fontSize: '15px', color: '#6A6258', margin: 0 }}>Actor profiles are being added to the archive.</p>
+              <p style={{ fontSize: '16px', color: '#8C857A', margin: 0, lineHeight: 1.6 }}>
+                {term
+                  ? `Nobody called "${term}" is on MuvieStars yet.`
+                  : 'Profiles are being added to the archive.'}
+              </p>
+              {term && (
+                <Link href="/people" style={{ color: '#C8963E', fontSize: '15px', textDecoration: 'none', minHeight: '44px', lineHeight: '44px' }}>
+                  See everyone
+                </Link>
+              )}
             </div>
+          )}
+
+          {totalPages > 1 && (
+            <nav aria-label="People pages" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '48px', gap: '16px' }}>
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} rel="prev" style={{ minHeight: '44px', lineHeight: '44px', color: '#EDE4D2', textDecoration: 'none', fontSize: '15px' }}>
+                  ← Previous
+                </Link>
+              ) : <span />}
+              <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>Page {page} of {totalPages}</span>
+              {page < totalPages ? (
+                <Link href={pageHref(page + 1)} rel="next" style={{ minHeight: '44px', lineHeight: '44px', color: '#EDE4D2', textDecoration: 'none', fontSize: '15px' }}>
+                  Next →
+                </Link>
+              ) : <span />}
+            </nav>
           )}
         </div>
 

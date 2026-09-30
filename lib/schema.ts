@@ -42,7 +42,19 @@ export function organizationSchema() {
   }
 }
 
-export function movieSchema(movie: Movie, reviews: Review[] = []) {
+export interface SchemaCredit {
+  role: string
+  person: { slug: string; full_name: string } | null
+}
+
+const personRef = (p: { slug: string; full_name: string }) => ({
+  '@type': 'Person',
+  '@id': `${SITE_URL}/person/${p.slug}#person`,
+  name: p.full_name,
+  url: `${SITE_URL}/person/${p.slug}`,
+})
+
+export function movieSchema(movie: Movie, reviews: Review[] = [], credits: SchemaCredit[] = []) {
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Movie',
@@ -65,12 +77,24 @@ export function movieSchema(movie: Movie, reviews: Review[] = []) {
     schema.productionCompany = { '@type': 'Organization', name: movie.production_company }
   }
 
-  if (movie.director || movie.creator?.name) {
+  const byRole = (role: string) =>
+    credits.filter(c => c.role === role && c.person).map(c => personRef(c.person!))
+  const directors = byRole('director')
+  const actors = byRole('actor')
+
+  if (directors.length > 0) {
+    schema.director = directors.length === 1 ? directors[0] : directors
+  } else if (movie.director || movie.creator?.name) {
     schema.director = {
       '@type': 'Person',
       name: movie.director || movie.creator?.name,
     }
   }
+  if (actors.length > 0) schema.actor = actors
+  const writers = byRole('writer')
+  if (writers.length > 0) schema.author = writers
+  const producers = byRole('producer')
+  if (producers.length > 0) schema.producer = producers
 
   if (movie.review_count && movie.review_count > 0 && movie.average_rating) {
     schema.aggregateRating = {
@@ -116,6 +140,45 @@ export function breadcrumbSchema(items: { name: string; url: string }[]) {
       item: item.url,
     })),
   }
+}
+
+/** Full profile markup for /person/[slug]. sameAs ties the profile to the person's other web presences. */
+export function personProfileSchema(p: {
+  slug: string
+  name: string
+  bio?: string | null
+  image_url?: string | null
+  country?: string | null
+  date_of_birth?: string | null
+  date_of_death?: string | null
+  job_titles: string[]
+  aliases?: string[]
+  same_as: string[]
+  films: Array<{ id: string; title: string }>
+}) {
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    '@id': `${SITE_URL}/person/${p.slug}#person`,
+    name: p.name,
+    url: `${SITE_URL}/person/${p.slug}`,
+  }
+  if (p.bio) schema.description = p.bio
+  if (p.image_url) schema.image = p.image_url
+  if (p.country) schema.nationality = { '@type': 'Country', name: p.country }
+  if (p.date_of_birth) schema.birthDate = p.date_of_birth
+  if (p.date_of_death) schema.deathDate = p.date_of_death
+  if (p.job_titles.length) schema.jobTitle = p.job_titles
+  if (p.aliases?.length) schema.alternateName = p.aliases
+  if (p.same_as.length) schema.sameAs = p.same_as
+  if (p.films.length) {
+    schema.workExample = p.films.slice(0, 20).map(f => ({
+      '@type': 'Movie',
+      name: f.title,
+      url: `${SITE_URL}/movie/${f.id}`,
+    }))
+  }
+  return schema
 }
 
 export function personSchema(person: {

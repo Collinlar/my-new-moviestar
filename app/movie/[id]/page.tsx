@@ -15,6 +15,7 @@ import { SaveToListButton } from '@/components/SaveToListButton'
 import { CommunityVerdict } from '@/components/CommunityVerdict'
 import { PersonalContext } from '@/components/PersonalContext'
 import { movieSchema, breadcrumbSchema } from '@/lib/schema'
+import { ROLE_GROUPS } from '@/lib/people'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -85,7 +86,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
   const { movies: relatedMovies } = await browseMovies({ genre: movie.genre, limit: 6 }).catch(() => ({ movies: [], total: 0 }))
   const similar = relatedMovies.filter((m) => m.id !== id).slice(0, 4)
 
-  const schema = movieSchema(movie, reviews)
+  const schema = movieSchema(movie, reviews, cast)
   const crumbs = breadcrumbSchema([
     { name: 'Home',   url: SITE_URL },
     { name: 'Browse', url: `${SITE_URL}/browse` },
@@ -94,6 +95,16 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
   const dir       = movie.director || movie.creator?.name
   const wonAwards = awards.filter((a) => a.won)
+
+  // Directors link to their profiles when they have one. Older films fall back to the text field.
+  const directorCredits = cast.filter((c: any) => c.role === 'director' && c.person?.slug)
+  // Acting first, then directing and the rest of the crew, each in billing order.
+  const roleOrder = ROLE_GROUPS.flatMap((g) => g.roles)
+  const creditsInOrder = [...cast].sort(
+    (a: any, b: any) =>
+      roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role) ||
+      (a.billing_order ?? 0) - (b.billing_order ?? 0),
+  )
 
   const SECTION: React.CSSProperties = {
     borderTop: '1px solid rgba(237,228,210,0.06)',
@@ -268,10 +279,23 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
                 {/* Credits grid */}
                 <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px 24px' }}>
-                  {dir && (
+                  {(directorCredits.length > 0 || dir) && (
                     <div>
-                      <dt style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6A6258', marginBottom: '4px' }}>Director</dt>
-                      <dd style={{ fontSize: '15px', fontWeight: 500, color: '#EDE4D2', margin: 0 }}>{dir}</dd>
+                      <dt style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6A6258', marginBottom: '4px' }}>
+                        {directorCredits.length > 1 ? 'Directors' : 'Director'}
+                      </dt>
+                      <dd style={{ fontSize: '15px', fontWeight: 500, color: '#EDE4D2', margin: 0 }}>
+                        {directorCredits.length > 0
+                          ? directorCredits.map((c: any, i: number) => (
+                              <span key={c.id}>
+                                {i > 0 && ', '}
+                                <Link href={`/person/${c.person.slug}`} style={{ color: '#EDE4D2', textDecorationColor: 'rgba(200,150,62,0.6)', textUnderlineOffset: '3px' }}>
+                                  {c.person.full_name}
+                                </Link>
+                              </span>
+                            ))
+                          : dir}
+                      </dd>
                     </div>
                   )}
                   {movie.producer && (
@@ -429,17 +453,16 @@ export default async function MovieDetailPage({ params }: PageProps) {
                 Cast &amp; crew
               </p>
               <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
-                {cast.map((member) => {
+                {creditsInOrder.map((member: any) => {
                   const name = member.person?.full_name ?? '—'
                   const initial = name.charAt(0).toUpperCase()
-                  return (
-                    <div
-                      key={member.id}
-                      style={{
-                        flexShrink: 0, width: '100px',
-                        display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', textAlign: 'center',
-                      }}
-                    >
+                  const cardStyle: React.CSSProperties = {
+                    flexShrink: 0, width: '100px',
+                    display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', textAlign: 'center',
+                    textDecoration: 'none',
+                  }
+                  const card = (
+                    <>
                       {member.person?.profile_image ? (
                         <img
                           src={member.person.profile_image}
@@ -463,7 +486,12 @@ export default async function MovieDetailPage({ params }: PageProps) {
                           {member.character_name || member.role?.replace('_', ' ')}
                         </p>
                       </div>
-                    </div>
+                    </>
+                  )
+                  return member.person?.slug ? (
+                    <Link key={member.id} href={`/person/${member.person.slug}`} style={cardStyle}>{card}</Link>
+                  ) : (
+                    <div key={member.id} style={cardStyle}>{card}</div>
                   )
                 })}
               </div>

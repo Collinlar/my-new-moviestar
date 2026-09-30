@@ -16,11 +16,11 @@ const REACTION_LABELS: Record<string, string> = {
 }
 
 interface PageProps {
-  params: { token: string }
+  params: Promise<{ token: string }>
 }
 
 async function getShareData(token: string) {
-  const supabase = createStaticClient()
+  const supabase = createStaticClient() as any
 
   const { data: card } = await supabase
     .from('review_share_cards')
@@ -53,7 +53,8 @@ async function getShareData(token: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const data = await getShareData(params.token)
+  const { token } = await params
+  const data = await getShareData(token)
   if (!data?.movie) {
     return { title: 'MuvieStars' }
   }
@@ -61,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { movie, rxn } = data
   const reactionLabel = rxn?.reaction ? (REACTION_LABELS[rxn.reaction] ?? '') : ''
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://muviestars.com'
-  const ogImage = `${baseUrl}/api/og/take?token=${params.token}`
+  const ogImage = `${baseUrl}/api/og/take?token=${token}`
 
   return {
     title: `${movie.title} — My Take on MuvieStars`,
@@ -84,7 +85,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export const dynamic = 'force-dynamic'
 
 export default async function TakePage({ params }: PageProps) {
-  const data = await getShareData(params.token)
+  const { token } = await params
+  const data = await getShareData(token)
   if (!data?.movie || !data?.rxn) notFound()
 
   const { movie, rxn, tags } = data

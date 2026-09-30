@@ -7,6 +7,8 @@ import { GENRES, LANGUAGES, LANGUAGE_META, INDUSTRIES, STREAMING_PLATFORMS, capi
 import { toast } from 'sonner'
 import { Plus, Trash2 } from 'lucide-react'
 import type { Movie, StreamingLink } from '@/lib/queries'
+import { CreditsEditor } from '@/components/admin/CreditsEditor'
+import { saveCredits, findDuplicate, type CreditDraft } from '@/lib/credits'
 
 const COUNTRIES = [
   'Nigeria', 'Ghana', 'South Africa', 'Kenya', 'Ethiopia', 'Tanzania',
@@ -18,6 +20,7 @@ const DIST_STATUSES = ['streaming', 'theatrical', 'home_video', 'festival', 'lim
 
 interface Props {
   movie?: Movie
+  initialCredits?: CreditDraft[]
 }
 
 function field(label: string, children: React.ReactNode, required = false) {
@@ -31,12 +34,13 @@ function field(label: string, children: React.ReactNode, required = false) {
   )
 }
 
-export function MovieForm({ movie }: Props) {
+export function MovieForm({ movie, initialCredits = [] }: Props) {
   const isEdit = !!movie
   const router = useRouter()
   const supabase = createClient() as any
 
   const [saving, setSaving] = useState(false)
+  const [credits, setCredits] = useState<CreditDraft[]>(initialCredits)
   const [form, setForm] = useState({
     title:               movie?.title               ?? '',
     original_title:      movie?.original_title      ?? '',
@@ -47,7 +51,6 @@ export function MovieForm({ movie }: Props) {
     industry:            movie?.industry            ?? '',
     release_year:        movie?.release_year        ? String(movie.release_year) : '',
     country:             movie?.country             ?? '',
-    director:            movie?.director            ?? '',
     poster_url:          movie?.poster_url          ?? '',
     youtube_url:         movie?.youtube_url         ?? '',
     distribution_status: movie?.distribution_status ?? '',
@@ -87,6 +90,14 @@ export function MovieForm({ movie }: Props) {
     if (!form.language) { toast.error('Language is required'); return }
     if (!form.release_year || isNaN(Number(form.release_year))) { toast.error('Valid release year is required'); return }
     if (!form.poster_url.trim()) { toast.error('Poster URL is required'); return }
+    const dupCredit = findDuplicate(credits)
+    if (dupCredit) { toast.error(dupCredit); return }
+
+    // movies.director mirrors the director credits. A film that only has legacy director text
+    // (no director credits yet) keeps it until a director is picked.
+    const directorNames = credits.filter(c => c.role === 'director').map(c => c.person.full_name).join(', ')
+    const hadDirectorCredit = initialCredits.some(c => c.role === 'director')
+    const directorText = directorNames || (isEdit && !hadDirectorCredit ? movie?.director ?? null : null)
 
     setSaving(true)
 
@@ -100,7 +111,7 @@ export function MovieForm({ movie }: Props) {
       industry:            form.industry || null,
       release_year:        Number(form.release_year),
       country:             form.country.trim() || null,
-      director:            form.director.trim() || null,
+      director:            directorText || null,
       poster_url:          form.poster_url.trim(),
       youtube_url:         form.youtube_url.trim() || null,
       distribution_status: form.distribution_status || null,
@@ -114,16 +125,29 @@ export function MovieForm({ movie }: Props) {
     }
 
     let error
+    let movieId = movie?.id
     if (isEdit) {
       ;({ error } = await supabase.from('movies').update(payload).eq('id', movie!.id))
     } else {
-      ;({ error } = await supabase.from('movies').insert(payload))
+      const res = await supabase.from('movies').insert(payload).select('id').single()
+      error = res.error
+      movieId = res.data?.id
     }
 
+    if (error || !movieId) {
+      setSaving(false)
+      toast.error(error?.message || 'That did not save. Check the details and try again.')
+      return
+    }
+
+    const creditError = await saveCredits(supabase, movieId, credits, initialCredits.flatMap(c => (c.id ? [c.id] : [])))
     setSaving(false)
 
-    if (error) {
-      toast.error(error.message || 'Something went wrong. Try again.')
+    if (creditError) {
+      // The film exists now; send them to its edit page so the credits can be retried without losing the film.
+      toast.error(`"${payload.title}" saved, but the cast and crew did not. ${creditError}`)
+      router.push(`/admin/movies/${movieId}/edit`)
+      router.refresh()
       return
     }
 
@@ -195,9 +219,6 @@ export function MovieForm({ movie }: Props) {
               {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           ))}
-          {field('Director', (
-            <input className={inputClass} value={form.director} onChange={set('director')} placeholder="Genevieve Nnaji" />
-          ))}
           {field('Distribution status', (
             <select className={inputClass} value={form.distribution_status} onChange={set('distribution_status')}>
               <option value="">Select status</option>
@@ -205,6 +226,14 @@ export function MovieForm({ movie }: Props) {
             </select>
           ))}
         </div>
+      </section>
+
+      {/* Cast and crew */}
+      <section>
+        <h2 className="text-xs font-semibold text-film-muted uppercase tracking-widest mb-4 pb-2 border-b border-cinema-border">
+          Cast and crew
+        </h2>
+        <CreditsEditor credits={credits} onChange={setCredits} />
       </section>
 
       {/* Media */}

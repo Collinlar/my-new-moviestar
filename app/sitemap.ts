@@ -1,14 +1,15 @@
 import type { MetadataRoute } from 'next'
-import { getAllMovieIds, getAllCreatorIds } from '@/lib/queries'
+import { getAllMovieIds, getAllCreatorIds, getIndexablePeople } from '@/lib/queries'
 
 const SITE_URL = 'https://muviestars.com'
 
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [movieIds, creatorIds] = await Promise.all([
+  const [movieIds, creatorIds, people] = await Promise.all([
     getAllMovieIds().catch(() => []),
     getAllCreatorIds().catch(() => []),
+    getIndexablePeople().catch(() => []),
   ])
 
   const now = new Date().toISOString()
@@ -81,5 +82,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...staticPages, ...moviePages, ...creatorPages]
+  /* People profile pages: directors, actors and crew */
+  const peoplePages: MetadataRoute.Sitemap = people.map((p) => ({
+    url: `${SITE_URL}/person/${p.slug}`,
+    lastModified: p.updated_at,
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }))
+
+  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages]
 }
