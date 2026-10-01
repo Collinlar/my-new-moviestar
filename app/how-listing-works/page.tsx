@@ -124,14 +124,25 @@ export default function HowListingWorksPage() {
                 Made a film?
               </h2>
               <p style={{ margin: '0 0 20px', fontSize: '17px', lineHeight: 1.6, color: '#C7BFB2' }}>
-                Filmmaker submissions are coming. Until then, you can find your film and see whether it is Listed.
+                If you own the rights to a film, or you are authorised by the people who do, you can put it forward. Sending a film does not list it. An editor checks it against everything above, and you can follow its status from your submissions list.
               </p>
-              <Link
-                href="/search"
-                style={{ height: '52px', padding: '0 24px', borderRadius: '14px', background: '#C8963E', color: '#0B0A09', fontSize: '16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
-              >
-                Find my film
-              </Link>
+              <p style={{ margin: '0 0 20px', fontSize: '17px', lineHeight: 1.6, color: '#C7BFB2' }}>
+                Think a film we have not listed belongs here? Anyone can nominate it. When 5 different people nominate the same film, an editor takes a look.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <Link
+                  href="/submit"
+                  style={{ height: '52px', padding: '0 24px', borderRadius: '14px', background: '#C8963E', color: '#0B0A09', fontSize: '16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+                >
+                  Put a film forward
+                </Link>
+                <Link
+                  href="/search"
+                  style={{ height: '52px', padding: '0 24px', borderRadius: '14px', border: '1px solid rgba(237,228,210,0.18)', color: '#EDE4D2', fontSize: '16px', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+                >
+                  Find my film
+                </Link>
+              </div>
             </section>
 
           </div>

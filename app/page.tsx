@@ -14,6 +14,7 @@ import {
 import { MOOD_MAP } from '@/lib/mood'
 import { getPublishedDecks, sponsorLabel } from '@/lib/decks'
 import { getPublishedChallenges } from '@/lib/challenges'
+import { getCurrentSelection, periodLabel } from '@/lib/selections'
 import { sponsorLabel as challengeSponsor, stateLine, goalPhrase } from '@/lib/challenges-shared'
 import { websiteSchema, organizationSchema, faqSchema } from '@/lib/schema'
 
@@ -80,7 +81,7 @@ export default async function HomePage() {
     return cycle ? getMovieById(cycle.movie_id) : null
   })()
 
-  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks, challenges] = await Promise.all([
+  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks, challenges, selection] = await Promise.all([
     club,
     getOldButGoldMovies(6),
     isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
@@ -91,6 +92,7 @@ export default async function HomePage() {
     isSignedIn ? getRecentTakes(user.id) : Promise.resolve([]),
     getPublishedDecks({ featuredOnly: true, limit: 3 }).catch(() => []),
     getPublishedChallenges({ featuredOnly: true, openOnly: true, limit: 2 }).catch(() => []),
+    getCurrentSelection().catch(() => null),
   ])
 
   const daysLeft = daysLeftThisWeek()
@@ -279,6 +281,19 @@ export default async function HomePage() {
             )}
           </div>
         </section>
+
+        {/* ── THE CURRENT SELECTION ────────────────────────────────────── */}
+        {selection && selection.films.length >= MIN_SMALL_SHELF && (
+          <FilmShelf
+            id="selection"
+            eyebrow={[selection.selection.label, periodLabel(selection.selection.period)].filter(Boolean).join(' · ')}
+            title={selection.selection.title}
+            note={selection.selection.intro ?? undefined}
+            href={`/selections/${selection.selection.slug}`}
+            hrefLabel="See why each one is here"
+            films={selection.films.slice(0, 6).map((f) => ({ ...f.movie, why_listed: f.note ?? f.movie.why_listed }))}
+          />
+        )}
 
         {/* ── SIGNED-OUT: WORTH YOUR TIME ──────────────────────────────── */}
         {!isSignedIn && worth.length >= MIN_SHELF && (

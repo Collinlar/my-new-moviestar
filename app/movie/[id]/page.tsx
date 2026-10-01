@@ -18,6 +18,8 @@ import { movieSchema, breadcrumbSchema } from '@/lib/schema'
 import { ROLE_GROUPS } from '@/lib/people'
 import { REACTION_LABEL } from '@/lib/reactions'
 import { ListedMark } from '@/components/ListedMark'
+import { NominateButton } from '@/components/NominateButton'
+import { getSelectionsForMovie, periodLabel } from '@/lib/selections'
 import { watchLinks } from '@/lib/watch'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
 
@@ -80,13 +82,14 @@ export const revalidate = 3600
 
 export default async function MovieDetailPage({ params }: PageProps) {
   const { id } = await params
-  const [movie, reviews, cast, awards, verdict, communityTakes] = await Promise.all([
+  const [movie, reviews, cast, awards, verdict, communityTakes, selections] = await Promise.all([
     getMovieById(id),
     getMovieReviews(id, 8),
     getMovieCast(id),
     getMovieAwards(id),
     getMovieVerdict(id),
     getCommunityTakes(id, 6),
+    getSelectionsForMovie(id).catch(() => []),
   ])
 
   if (!movie) notFound()
@@ -211,6 +214,21 @@ export default async function MovieDetailPage({ params }: PageProps) {
                 {/* Industry / canon badge */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {movie.listing_status === 'approved' && <ListedMark />}
+                  {movie.listing_status === 'approved' && selections.map((s) => (
+                    <Link
+                      key={s.slug}
+                      href={`/selections/${s.slug}`}
+                      title={s.note ?? s.title}
+                      style={{
+                        height: '26px', padding: '0 12px', borderRadius: '999px',
+                        background: 'rgba(200,150,62,0.14)', border: '1px solid rgba(200,150,62,0.45)',
+                        ...MONO, fontSize: '11px', color: '#C8963E',
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+                      }}
+                    >
+                      {s.label}{periodLabel(s.period) ? `, ${periodLabel(s.period)}` : ''}
+                    </Link>
+                  ))}
                   {movie.industry && movie.industry !== 'Other' && (
                     <Link
                       href={`/browse?industry=${encodeURIComponent(movie.industry)}`}
@@ -378,6 +396,15 @@ export default async function MovieDetailPage({ params }: PageProps) {
             </div>
           </div>
         </section>
+
+        {/* ─── NOT LISTED YET ─────────────────────────────────────────────── */}
+        {['draft', 'submitted', 'under_review', 'needs_information'].includes(movie.listing_status ?? 'draft') && (
+          <section style={{ ...SECTION, paddingTop: '40px', paddingBottom: '40px' }} aria-label="Nominate this film for listing">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <NominateButton movieId={id} title={movie.title} />
+            </div>
+          </section>
+        )}
 
         {/* ─── COMMUNITY VERDICT ──────────────────────────────────────────── */}
         {verdict && <CommunityVerdict verdict={verdict} movieTitle={movie.title} />}

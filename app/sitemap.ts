@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { getSitemapMovies, getAllCreatorIds, getIndexablePeople } from '@/lib/queries'
 import { getPublishedDecks } from '@/lib/decks'
 import { getPublishedChallenges } from '@/lib/challenges'
+import { getPublishedSelections } from '@/lib/selections'
 import { createStaticClient } from '@/lib/supabase/static'
 
 const SITE_URL = 'https://muviestars.com'
@@ -9,12 +10,13 @@ const SITE_URL = 'https://muviestars.com'
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [movies, creatorIds, people, decks, challenges] = await Promise.all([
+  const [movies, creatorIds, people, decks, challenges, selections] = await Promise.all([
     getSitemapMovies().catch(() => []),
     getAllCreatorIds().catch(() => []),
     getIndexablePeople().catch(() => []),
     getPublishedDecks({ client: createStaticClient(), limit: 200 }).catch(() => []),
     getPublishedChallenges({ client: createStaticClient(), limit: 200 }).catch(() => []),
+    getPublishedSelections({ client: createStaticClient(), limit: 200 }).catch(() => []),
   ])
 
   const now = new Date().toISOString()
@@ -88,6 +90,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${SITE_URL}/selections`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/submit`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
       url: `${SITE_URL}/all-reviews`,
       lastModified: now,
       changeFrequency: 'daily',
@@ -135,5 +149,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages, ...challengePages]
+  /* Selection pages */
+  const selectionPages: MetadataRoute.Sitemap = selections.map((s) => ({
+    url: `${SITE_URL}/selections/${s.slug}`,
+    lastModified: s.published_at ?? now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+
+  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages, ...challengePages, ...selectionPages]
 }

@@ -5,6 +5,7 @@ const footerLinks = {
   Discover: [
     { href: '/discover',    label: 'Ways to discover'    },
     { href: '/browse',      label: 'Browse all films'    },
+    { href: '/selections',  label: 'Selections'          },
     { href: '/decks',       label: 'Decks'               },
     { href: '/challenges',  label: 'Challenges'          },
     { href: '/trending',    label: 'Trending now'        },
@@ -13,6 +14,7 @@ const footerLinks = {
     { href: '/festivals',   label: 'Film festivals'      },
     { href: '/all-reviews', label: 'Community reviews'  },
     { href: '/how-listing-works', label: 'How listing works' },
+    { href: '/submit',      label: 'Submit or nominate a film' },
   ],
   Filmmakers: [
     { href: '/creators',    label: 'Directors'           },
