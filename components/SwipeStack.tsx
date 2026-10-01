@@ -7,6 +7,7 @@ import { QuickReactionSheet } from '@/components/QuickReactionSheet'
 import { AuthPromptSheet } from '@/components/AuthPromptSheet'
 import type { Movie } from '@/lib/queries'
 import type { MoodConfig } from '@/lib/mood'
+import { watchLinks } from '@/lib/watch'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -51,6 +52,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
   const [exit, setExit]                     = useState<'left' | 'right' | null>(null)
   const [showReaction, setShowReaction]     = useState(false)
   const [haventSeenMode, setHaventSeenMode] = useState(false)
+  const [watching, setWatching]             = useState(false)
   const [showAuthPrompt, setShowAuthPrompt] = useState<'watch_later' | 'reaction' | null>(null)
   const [showSessionSummary, setShowSessionSummary] = useState(false)
   const [sessionStats, setSessionStats]     = useState<SessionStats>(EMPTY_STATS)
@@ -67,6 +69,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
     if (haventTimerRef.current) { clearTimeout(haventTimerRef.current); haventTimerRef.current = null }
     setShowReaction(false)
     setHaventSeenMode(false)
+    setWatching(false)
     setExit(dir)
     setTimeout(() => {
       setIdx(i => i + 1)
@@ -97,7 +100,13 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
     haventTimerRef.current = setTimeout(() => {
       if (current) saveInteraction(current.id, 'unseen')
       advance('left')
-    }, 3000)
+    }, 6000)
+  }
+
+  // Someone heading off to watch the film should not have the card whisked away.
+  const handleWatchNow = () => {
+    if (haventTimerRef.current) { clearTimeout(haventTimerRef.current); haventTimerRef.current = null }
+    setWatching(true)
   }
 
   const handleWatchLater = () => {
@@ -308,6 +317,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
   const art     = CARD_PALETTES[idx % CARD_PALETTES.length]
   const nextArt = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length]
   const hasPoster = !!(current.poster_url && current.poster_url.startsWith('http'))
+  const watchOptions = watchLinks(current)
 
   const cardTransform = exit === 'left'
     ? 'translateX(-130%) rotate(-14deg)'
@@ -425,6 +435,28 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
           <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8C857A', margin: 0, textAlign: 'center' }}>
             Haven&apos;t seen it yet
           </p>
+          {watchOptions.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Where to watch">
+              {watchOptions.slice(0, 3).map((w) => (
+                <a
+                  key={w.url}
+                  href={w.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleWatchNow}
+                  style={{
+                    height: '44px', padding: '0 18px', borderRadius: '14px',
+                    background: '#EDE4D2', color: '#0B0A09',
+                    fontSize: '15px', fontWeight: 600, textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  }}
+                >
+                  Watch on {w.label}
+                  {w.free && <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.08em', color: '#2F6B45' }}>FREE</span>}
+                </a>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={handleWatchLater}
@@ -453,8 +485,10 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
               Not for me
             </button>
           </div>
-          <p style={{ fontSize: '13px', color: '#4B4440', textAlign: 'center', margin: 0 }}>
-            Moving on in a moment...
+          <p style={{ fontSize: '13px', color: '#8C857A', textAlign: 'center', margin: 0 }}>
+            {watching
+              ? 'Take your time. Come back and tell us what you thought.'
+              : 'Moving on in a few seconds, or pick one.'}
           </p>
         </div>
       ) : (

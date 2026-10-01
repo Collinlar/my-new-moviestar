@@ -3,29 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { Movie } from '@/lib/queries'
+import { REACTIONS, TAGS } from '@/lib/reactions'
+import { SharePanel } from '@/components/SharePanel'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
-
-const REACTIONS = [
-  { key: 'loved',      emoji: '❤️', label: 'Loved it'    },
-  { key: 'liked',      emoji: '👍', label: 'Liked it'    },
-  { key: 'okay',       emoji: '😐', label: 'It was okay' },
-  { key: 'not_for_me', emoji: '👎', label: 'Not for me'  },
-]
-
-const TAGS = [
-  { slug: 'story',     label: 'Story'     },
-  { slug: 'acting',    label: 'Acting'    },
-  { slug: 'chemistry', label: 'Chemistry' },
-  { slug: 'visuals',   label: 'Visuals'   },
-  { slug: 'music',     label: 'Music'     },
-  { slug: 'culture',   label: 'Culture'   },
-  { slug: 'dialogue',  label: 'Dialogue'  },
-  { slug: 'pacing',    label: 'Pacing'    },
-  { slug: 'direction', label: 'Direction' },
-  { slug: 'ending',    label: 'Ending'    },
-]
 
 type Step = 'reaction' | 'rating' | 'tags' | 'oneliner' | 'auth' | 'share'
 
@@ -45,7 +27,6 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
   const [oneLiner, setOneLiner]   = useState('')
   const [saving, setSaving]       = useState(false)
   const [shareToken, setShareToken] = useState<string | null>(null)
-  const [copied, setCopied]       = useState(false)
 
   const toggleTag = (slug: string) => {
     setTags(prev =>
@@ -95,41 +76,6 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
     saveAndNext()
   }
 
-  const shareUrl = shareToken ? `${typeof window !== 'undefined' ? window.location.origin : 'https://muviestars.com'}/take/${shareToken}` : ''
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // fallback: select text
-    }
-  }
-
-  const nativeShare = async () => {
-    if (!navigator.share) { copyLink(); return }
-    try {
-      await navigator.share({
-        title: `${movie.title} — My Take`,
-        text: oneLiner || `I just rated ${movie.title} on MuvieStars.`,
-        url: shareUrl,
-      })
-    } catch {
-      // dismissed
-    }
-  }
-
-  const trackShare = (destination: string) => {
-    if (!shareToken) return
-    fetch('/api/share/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ share_token: shareToken, destination }),
-    }).catch(() => {})
-  }
-
-  const reactionItem = REACTIONS.find(r => r.key === reaction)
   const starDisplay = (n: number) => n <= (hoverStar || rating || 0) ? '★' : '☆'
 
   return (
@@ -409,97 +355,12 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
               </p>
             </div>
 
-            {/* Mini preview card */}
-            <div style={{
-              background: '#23201A',
-              border: '1px solid rgba(237,228,210,0.1)',
-              borderRadius: '16px',
-              padding: '16px',
-              display: 'flex', flexDirection: 'column', gap: '8px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {reactionItem && (
-                  <span style={{ fontSize: '22px', lineHeight: 1 }}>{reactionItem.emoji}</span>
-                )}
-                <span style={{ fontSize: '15px', fontWeight: 600, color: '#F6EFE2' }}>
-                  {movie.title}
-                </span>
-              </div>
-              {rating && (
-                <div style={{ display: 'flex', gap: '2px' }}>
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n} style={{ fontSize: '18px', color: n <= rating ? '#C8963E' : 'rgba(237,228,210,0.15)' }}>
-                      ★
-                    </span>
-                  ))}
-                </div>
-              )}
-              {oneLiner && (
-                <p style={{ margin: 0, fontSize: '14px', color: '#A39B8F', lineHeight: 1.5 }}>
-                  {oneLiner.length > 80 ? `${oneLiner.slice(0, 80).trimEnd()}...` : oneLiner}
-                </p>
-              )}
-            </div>
-
-            {/* Share buttons */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`I watched ${movie.title} on MuvieStars. Here's my take: ${shareUrl}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackShare('whatsapp')}
-                style={{
-                  height: '52px', borderRadius: '16px',
-                  background: '#25D366', color: '#0B0A09',
-                  fontSize: '15px', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  textDecoration: 'none',
-                }}
-              >
-                WhatsApp
-              </a>
-              <button
-                onClick={() => { copyLink(); trackShare('copy_link') }}
-                style={{
-                  height: '52px', borderRadius: '16px',
-                  background: copied ? '#1D9E75' : '#23201A',
-                  border: '1px solid rgba(237,228,210,0.12)',
-                  color: copied ? '#0B0A09' : '#C7BFB2',
-                  fontSize: '15px', fontWeight: 500,
-                  cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
-                }}
-              >
-                {copied ? 'Copied!' : 'Copy link'}
-              </button>
-              <a
-                href={`/api/og/take?token=${shareToken}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackShare('save_image')}
-                style={{
-                  height: '52px', borderRadius: '16px',
-                  background: '#23201A',
-                  border: '1px solid rgba(237,228,210,0.12)',
-                  color: '#C7BFB2', fontSize: '15px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  textDecoration: 'none',
-                }}
-              >
-                Save image
-              </a>
-              <button
-                onClick={() => { nativeShare(); trackShare('native_share') }}
-                style={{
-                  height: '52px', borderRadius: '16px',
-                  background: '#23201A',
-                  border: '1px solid rgba(237,228,210,0.12)',
-                  color: '#C7BFB2', fontSize: '15px',
-                  cursor: 'pointer',
-                }}
-              >
-                Share
-              </button>
-            </div>
+            <SharePanel
+              token={shareToken}
+              movieTitle={movie.title}
+              has={{ rating: !!rating, words: !!oneLiner.trim(), tags: tags.length > 0 }}
+              words={oneLiner.trim() || undefined}
+            />
 
             {/* Keep swiping */}
             <button

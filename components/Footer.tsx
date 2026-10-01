@@ -5,6 +5,7 @@ const footerLinks = {
   Discover: [
     { href: '/discover',    label: 'Ways to discover'    },
     { href: '/browse',      label: 'Browse all films'    },
+    { href: '/decks',       label: 'Decks'               },
     { href: '/trending',    label: 'Trending now'        },
     { href: '/featured',    label: 'Editor\'s picks'     },
     { href: '/canon',       label: 'African film canon'  },

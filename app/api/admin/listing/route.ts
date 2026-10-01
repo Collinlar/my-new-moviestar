@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdmin } from '@/lib/admin'
 import { missingHard, parseCountryFill, parseDecision, parseFieldUpdate, type QueueRow } from '@/lib/listing'
+import { parseErrorMessage, parseSuccessValue } from '@/lib/parsed'
 
 const NO_PERMISSION =
   'No films were changed. Your account may not be allowed to edit films. Ask the site owner to check your admin access.'
@@ -16,12 +17,14 @@ export async function POST(req: NextRequest) {
     // ---- fix a blocking field without leaving the queue -----------------------------------
     if (body?.action === 'update_fields') {
       const parsed = parseFieldUpdate(body)
-      if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+      const fieldError = parseErrorMessage(parsed)
+      if (fieldError) return NextResponse.json({ error: fieldError }, { status: 400 })
+      const fieldUpdate = parseSuccessValue(parsed)
 
       const { data, error } = await supabase
         .from('movies')
-        .update(parsed.value.patch)
-        .eq('id', parsed.value.id)
+        .update(fieldUpdate.patch)
+        .eq('id', fieldUpdate.id)
         .select('id')
       if (error) return NextResponse.json({ error: 'That did not save. Check the details and try again.' }, { status: 500 })
       if (!data || data.length === 0) return NextResponse.json({ error: NO_PERMISSION }, { status: 403 })
@@ -31,22 +34,25 @@ export async function POST(req: NextRequest) {
     // ---- fill a missing country on many films at once ----------------------------------
     if (body?.action === "set_country") {
       const parsed = parseCountryFill(body)
-      if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+      const countryError = parseErrorMessage(parsed)
+      if (countryError) return NextResponse.json({ error: countryError }, { status: 400 })
+      const countryFill = parseSuccessValue(parsed)
 
       const { data, error } = await supabase
         .from("movies")
-        .update({ country: parsed.value.country })
-        .in("id", parsed.value.ids)
+        .update({ country: countryFill.country })
+        .in("id", countryFill.ids)
         .or("country.is.null,country.eq.")
         .select("id")
       if (error) return NextResponse.json({ error: "That did not save. Try again." }, { status: 500 })
-      return NextResponse.json({ ok: true, updated: data?.length ?? 0, skipped: parsed.value.ids.length - (data?.length ?? 0) })
+      return NextResponse.json({ ok: true, updated: data?.length ?? 0, skipped: countryFill.ids.length - (data?.length ?? 0) })
     }
 
     // ---- listing decisions ----------------------------------------------------------------
     const parsed = parseDecision(body)
-    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
-    const d = parsed.value
+    const decisionError = parseErrorMessage(parsed)
+    if (decisionError) return NextResponse.json({ error: decisionError }, { status: 400 })
+    const d = parseSuccessValue(parsed)
 
     let allowedIds = d.ids
     const skipped: Array<{ id: string; title: string; missing: string[] }> = []

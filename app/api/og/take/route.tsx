@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { createStaticClient } from '@/lib/supabase/static'
+import { parseShareOptions, visibleTake } from '@/lib/share'
 
 export const runtime = 'edge'
 
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   // Fetch share card + reaction + movie
   const { data: card } = await supabase
     .from('share_cards')
-    .select('reaction_id, movie_id, user_id')
+    .select('reaction_id, movie_id, user_id, payload')
     .eq('share_token', token)
     .eq('object_type', 'take')
     .maybeSingle()
@@ -53,15 +54,36 @@ export async function GET(request: Request) {
       .eq('reaction_id', card.reaction_id),
   ])
 
+  const options = parseShareOptions(card.payload)
+
+  // The name is only looked up when the person chose to show it.
+  let displayName: string | null = null
+  if (options.show_name && card.user_id) {
+    const { data: profile } = await supabase
+      .from('public_profiles')
+      .select('display_name')
+      .eq('user_id', card.user_id)
+      .maybeSingle()
+    displayName = profile?.display_name ?? null
+  }
+
+  const shown = visibleTake(options, {
+    reaction: rxn?.reaction ?? null,
+    rating: rxn?.rating ?? null,
+    words: rxn?.one_liner ?? null,
+    tags: (tags ?? []).map((t: any) => t.reaction_tags?.label).filter(Boolean) as string[],
+    name: displayName,
+  })
+
   const title = movie?.title ?? 'Untitled'
   const year = movie?.release_year?.toString() ?? ''
   const country = movie?.country ?? ''
-  const posterUrl = movie?.poster_url ?? null
-  const reaction = rxn?.reaction ?? null
-  const rating = rxn?.rating ?? null
-  const oneLiner = rxn?.one_liner ?? null
-  const tagLabels = (tags ?? []).map((t: any) => t.reaction_tags?.label).filter(Boolean) as string[]
-  const reactionLabel = reaction ? REACTION_LABELS[reaction] ?? reaction : null
+  const wordsFirst = options.template === 'quote'
+  const posterUrl = wordsFirst ? null : movie?.poster_url ?? null
+  const rating = shown.rating
+  const oneLiner = shown.words
+  const tagLabels = shown.tags
+  const reactionLabel = shown.reaction ? REACTION_LABELS[shown.reaction] ?? shown.reaction : null
 
   const W = 1080
   const H = 1080
@@ -123,7 +145,7 @@ export async function GET(request: Request) {
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '640px',
+            width: posterUrl ? '640px' : '1080px',
             height: `${H}px`,
             display: 'flex',
             flexDirection: 'column',
@@ -150,7 +172,7 @@ export async function GET(request: Request) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Movie title */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ fontSize: '52px', fontWeight: 700, color: '#F6EFE2', lineHeight: '1.05', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: wordsFirst ? '34px' : '52px', fontWeight: 700, color: '#F6EFE2', lineHeight: '1.05', letterSpacing: '-0.02em' }}>
                 {truncate(title, 28)}
               </div>
               <div style={{ fontSize: '20px', color: '#8C857A', letterSpacing: '0.02em' }}>
@@ -163,7 +185,7 @@ export async function GET(request: Request) {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                width: 'fit-content',
+                alignSelf: 'flex-start',
                 padding: '8px 20px',
                 borderRadius: '999px',
                 background: 'rgba(200,150,62,0.15)',
@@ -174,13 +196,16 @@ export async function GET(request: Request) {
               </div>
             )}
 
-            {/* Star rating */}
+            {/* Star rating, drawn as shapes so it never depends on a font */}
             {rating && (
               <div style={{ display: 'flex', gap: '6px' }}>
                 {[1, 2, 3, 4, 5].map(n => (
-                  <span key={n} style={{ fontSize: '36px', color: n <= rating ? '#C8963E' : '#2A2520' }}>
-                    ★
-                  </span>
+                  <svg key={n} width="38" height="38" viewBox="0 0 24 24">
+                    <polygon
+                      points="12,2 15.1,8.6 22,9.3 16.8,14 18.2,21 12,17.5 5.8,21 7.2,14 2,9.3 8.9,8.6"
+                      fill={n <= rating ? '#C8963E' : '#2A2520'}
+                    />
+                  </svg>
                 ))}
               </div>
             )}
@@ -188,11 +213,11 @@ export async function GET(request: Request) {
             {/* One-liner */}
             {oneLiner && (
               <div style={{
-                fontSize: '26px', color: '#C7BFB2', lineHeight: '1.45',
+                fontSize: wordsFirst ? '62px' : '26px', color: wordsFirst ? '#F6EFE2' : '#C7BFB2', lineHeight: '1.35',
                 borderLeft: '3px solid rgba(200,150,62,0.5)',
                 paddingLeft: '20px',
               }}>
-                "{truncate(oneLiner, 100)}"
+                {`"${truncate(oneLiner, wordsFirst ? 110 : 100)}"`}
               </div>
             )}
 
@@ -217,9 +242,16 @@ export async function GET(request: Request) {
             )}
           </div>
 
-          {/* Bottom: share URL */}
-          <div style={{ fontSize: '16px', color: '#4B4440', letterSpacing: '0.03em' }}>
-            muviestars.com/take/{token}
+          {/* Bottom: who said it, and the share URL */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {shown.name && (
+              <div style={{ fontSize: '20px', color: '#C7BFB2' }}>
+                {`A take by ${truncate(shown.name, 30)}`}
+              </div>
+            )}
+            <div style={{ fontSize: '16px', color: '#4B4440', letterSpacing: '0.03em' }}>
+              {`muviestars.com/take/${token}`}
+            </div>
           </div>
         </div>
       </div>

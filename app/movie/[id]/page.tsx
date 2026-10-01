@@ -5,10 +5,10 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import {
   getMovieById, getMovieReviews, getMovieCast,
-  getMovieAwards, getAllMovieIds, browseMovies, getMovieVerdict,
+  getMovieAwards, getAllMovieIds, browseMovies, getMovieVerdict, getCommunityTakes,
 } from '@/lib/queries'
 import { hasSupabaseConfig } from '@/lib/supabase/env'
-import { ReviewForm } from '@/components/ReviewForm'
+import { TakeForm } from '@/components/TakeForm'
 import { WatchlistButton } from '@/components/WatchlistButton'
 import { HelpfulButton } from '@/components/HelpfulButton'
 import { SaveToListButton } from '@/components/SaveToListButton'
@@ -16,7 +16,9 @@ import { CommunityVerdict } from '@/components/CommunityVerdict'
 import { PersonalContext } from '@/components/PersonalContext'
 import { movieSchema, breadcrumbSchema } from '@/lib/schema'
 import { ROLE_GROUPS } from '@/lib/people'
+import { REACTION_LABEL } from '@/lib/reactions'
 import { ListedMark } from '@/components/ListedMark'
+import { watchLinks } from '@/lib/watch'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
 
 // Films that were turned down or taken down should not be found through search engines.
@@ -78,12 +80,13 @@ export const revalidate = 3600
 
 export default async function MovieDetailPage({ params }: PageProps) {
   const { id } = await params
-  const [movie, reviews, cast, awards, verdict] = await Promise.all([
+  const [movie, reviews, cast, awards, verdict, communityTakes] = await Promise.all([
     getMovieById(id),
     getMovieReviews(id, 8),
     getMovieCast(id),
     getMovieAwards(id),
     getMovieVerdict(id),
+    getCommunityTakes(id, 6),
   ])
 
   if (!movie) notFound()
@@ -100,6 +103,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
   const dir       = movie.director || movie.creator?.name
   const wonAwards = awards.filter((a) => a.won)
+  const watch     = watchLinks(movie)
 
   // Directors link to their profiles when they have one. Older films fall back to the text field.
   const directorCredits = cast.filter((c: any) => c.role === 'director' && c.person?.slug)
@@ -356,7 +360,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
                   </a>
                   <WatchlistButton movieId={id} />
                   <SaveToListButton movieId={id} />
-                  {movie.streaming_links && movie.streaming_links.length > 0 && (
+                  {watch.length > 0 && (
                     <a
                       href="#where-to-watch"
                       style={{
@@ -367,21 +371,6 @@ export default async function MovieDetailPage({ params }: PageProps) {
                       }}
                     >
                       Where to watch
-                    </a>
-                  )}
-                  {movie.youtube_url && (
-                    <a
-                      href={movie.youtube_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        height: '52px', padding: '0 24px', borderRadius: '14px',
-                        border: '1px solid rgba(237,228,210,0.15)', color: '#EDE4D2',
-                        fontSize: '16px', fontWeight: 500, textDecoration: 'none',
-                        display: 'inline-flex', alignItems: 'center', gap: '8px',
-                      }}
-                    >
-                      Watch trailer
                     </a>
                   )}
                 </div>
@@ -506,6 +495,32 @@ export default async function MovieDetailPage({ params }: PageProps) {
           </section>
         )}
 
+        {/* ─── COMMUNITY TAKES ────────────────────────────────────────────── */}
+        {communityTakes.length > 0 && (
+          <section style={SECTION} aria-labelledby="takes-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p id="takes-heading" style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}>
+                Community takes
+              </p>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '14px' }} className="grid-cols-1 md:grid-cols-2">
+                {communityTakes.map((t) => (
+                  <li key={t.user_id} style={{ padding: '20px 22px', borderRadius: '14px', background: '#15120E', border: '1px solid rgba(237,228,210,0.06)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <p style={{ ...SERIF, margin: 0, fontSize: '22px', lineHeight: 1.35, color: '#F6EFE2' }}>
+                      &ldquo;{t.quick_take}&rdquo;
+                    </p>
+                    <p style={{ margin: 0, ...MONO, fontSize: '12px', color: '#8C857A' }}>
+                      {t.name}
+                      {'  ·  '}
+                      {REACTION_LABEL[t.reaction] ?? t.reaction}
+                      {t.rating ? `  ·  ${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}` : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
+
         {/* ─── REVIEWS ────────────────────────────────────────────────────── */}
         <section id="community-reviews" style={SECTION} aria-labelledby="reviews-heading">
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
@@ -520,7 +535,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <ReviewForm movieId={id} />
+            <TakeForm movieId={id} movieTitle={movie.title} />
 
             {reviews.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '28px' }}>
@@ -661,14 +676,14 @@ export default async function MovieDetailPage({ params }: PageProps) {
         )}
 
         {/* ─── WHERE TO WATCH ─────────────────────────────────────────────── */}
-        {movie.streaming_links && movie.streaming_links.length > 0 && (
+        {watch.length > 0 && (
           <section id="where-to-watch" style={SECTION} aria-labelledby="watch-heading">
             <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
               <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
                 Where to watch
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {movie.streaming_links.map((link: { url: string; platform: string; free?: boolean }, i: number) => (
+                {watch.map((link, i) => (
                   <a
                     key={i}
                     href={link.url}
@@ -681,7 +696,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
                       textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
                     }}
                   >
-                    {link.platform}
+                    {link.label}
                     {link.free && (
                       <span style={{
                         height: '20px', padding: '0 8px', borderRadius: '4px',

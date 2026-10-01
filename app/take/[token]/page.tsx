@@ -5,6 +5,7 @@ import { createStaticClient } from '@/lib/supabase/static'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { ShareVisitBeacon } from '@/components/ShareVisitBeacon'
+import { parseShareOptions, visibleTake } from '@/lib/share'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -25,7 +26,7 @@ async function getShareData(token: string) {
 
   const { data: card } = await supabase
     .from('share_cards')
-    .select('reaction_id, movie_id, user_id')
+    .select('reaction_id, movie_id, user_id, payload')
     .eq('share_token', token)
     .eq('object_type', 'take')
     .maybeSingle()
@@ -49,9 +50,30 @@ async function getShareData(token: string) {
       .eq('reaction_id', card.reaction_id),
   ])
 
-  const tags = (tagJoin ?? []).map((t: any) => t.reaction_tags).filter(Boolean) as { slug: string; label: string }[]
+  const options = parseShareOptions(card.payload)
 
-  return { card, rxn, movie, tags }
+  // The name is only looked up when the person chose to show it.
+  let name: string | null = null
+  if (options.show_name && card.user_id) {
+    const { data: profile } = await supabase
+      .from('public_profiles')
+      .select('display_name')
+      .eq('user_id', card.user_id)
+      .maybeSingle()
+    name = profile?.display_name ?? null
+  }
+
+  const allTags = (tagJoin ?? []).map((t: any) => t.reaction_tags).filter(Boolean) as { slug: string; label: string }[]
+  const shown = visibleTake(options, {
+    reaction: rxn?.reaction ?? null,
+    rating: rxn?.rating ?? null,
+    words: rxn?.one_liner ?? null,
+    tags: allTags.map((t) => t.slug),
+    name,
+  })
+  const tags = allTags.filter((t) => shown.tags.includes(t.slug))
+
+  return { card, rxn, movie, tags, shown }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -61,24 +83,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'MuvieStars' }
   }
 
-  const { movie, rxn } = data
+  const { movie, rxn, shown } = data
   const reactionLabel = rxn?.reaction ? (REACTION_LABELS[rxn.reaction] ?? '') : ''
+  const words = shown.words
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://muviestars.com'
   const ogImage = `${baseUrl}/api/og/take?token=${token}`
 
   return {
-    title: `${movie.title} — My Take on MuvieStars`,
-    description: rxn?.one_liner ?? `${reactionLabel ? `${reactionLabel}: ` : ''}${movie.title}${movie.release_year ? ` (${movie.release_year})` : ''}`,
+    title: `${movie.title}: ${shown.name ? `${shown.name}'s` : 'My'} Take`,
+    description: words ?? `${reactionLabel ? `${reactionLabel}: ` : ''}${movie.title}${movie.release_year ? ` (${movie.release_year})` : ''}`,
     openGraph: {
-      title: `${movie.title} — My Take`,
-      description: rxn?.one_liner ?? reactionLabel,
+      title: `${movie.title}: ${shown.name ? `${shown.name}'s` : 'My'} Take`,
+      description: words ?? reactionLabel,
       images: [{ url: ogImage, width: 1080, height: 1080, alt: `${movie.title} review card` }],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${movie.title} — My Take`,
-      description: rxn?.one_liner ?? reactionLabel,
+      title: `${movie.title}: ${shown.name ? `${shown.name}'s` : 'My'} Take`,
+      description: words ?? reactionLabel,
       images: [ogImage],
     },
   }
@@ -91,9 +114,9 @@ export default async function TakePage({ params }: PageProps) {
   const data = await getShareData(token)
   if (!data?.movie || !data?.rxn) notFound()
 
-  const { movie, rxn, tags } = data
+  const { movie, rxn, tags, shown } = data
   const reactionLabel = rxn.reaction ? (REACTION_LABELS[rxn.reaction] ?? rxn.reaction) : null
-  const rating = rxn.rating ?? null
+  const rating = shown.rating
 
   return (
     <>
@@ -138,7 +161,7 @@ export default async function TakePage({ params }: PageProps) {
                 {/* From label */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E' }}>
-                    A take from MuvieStars
+                    {shown.name ? `A take by ${shown.name}` : 'A take from MuvieStars'}
                   </span>
                 </div>
 
@@ -196,9 +219,9 @@ export default async function TakePage({ params }: PageProps) {
                   </div>
 
                   {/* One-liner */}
-                  {rxn.one_liner && (
+                  {shown.words && (
                     <p style={{ ...SERIF, margin: 0, fontSize: 'clamp(22px,3vw,28px)', lineHeight: '1.4', color: '#F6EFE2', fontWeight: 400 }}>
-                      &ldquo;{rxn.one_liner}&rdquo;
+                      &ldquo;{shown.words}&rdquo;
                     </p>
                   )}
 
@@ -250,7 +273,7 @@ export default async function TakePage({ params }: PageProps) {
                 <p style={{ margin: 0, fontSize: '13px', color: '#6E675E', lineHeight: 1.6 }}>
                   Shared via{' '}
                   <Link href="/" style={{ color: '#C8963E', textDecoration: 'none' }}>MuvieStars</Link>
-                  {' '}— the home of African cinema on the internet.
+                  {' '}is the home of African cinema on the internet.
                 </p>
 
               </div>

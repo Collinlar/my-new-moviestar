@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Movie } from '@/lib/queries'
-import type { MoodConfig } from '@/lib/mood'
 import { TRANSITION_MIN_POOL } from '@/lib/listing'
+import { MOOD_MAP, type MoodConfig } from '@/lib/mood'
+import { deckAsMood, getDeckBySlug, type Deck } from '@/lib/decks'
 
 // Films marked "haven't seen it" come back after this many days.
 const UNSEEN_COOLOFF_DAYS = 14
@@ -228,4 +229,33 @@ export async function getSwipeDeck(opts: {
 
   const byId = new Map<string, Movie>((full ?? []).map((m: Movie) => [m.id, m]))
   return ids.map(id => byId.get(id)).filter((m): m is Movie => !!m)
+}
+
+/**
+ * The cards for a published deck. A curated deck keeps its editorial order and skips films the
+ * person has already handled; a mood deck uses its mood rules. Returns null when the deck is
+ * missing or not published, so the caller can fall back to the ordinary deck.
+ */
+export async function getDeckCards(opts: {
+  userId: string | null
+  deckSlug: string
+  limit?: number
+}): Promise<{ deck: Deck; display: MoodConfig; movies: Movie[] } | null> {
+  const { userId, deckSlug, limit = 40 } = opts
+  const found = await getDeckBySlug(deckSlug)
+  if (!found) return null
+  const { deck, films } = found
+  const display = deckAsMood(deck)
+
+  if (deck.kind === "mood") {
+    const mood = deck.mood_slug ? MOOD_MAP[deck.mood_slug] : null
+    if (!mood) return null
+    return { deck, display, movies: await getSwipeDeck({ userId, mood, limit }) }
+  }
+
+  const supabase = (await createClient()) as any
+  const history = userId ? await loadHistory(supabase, userId) : EMPTY_HISTORY
+  let fresh = films.filter((f) => !history.hard.has(f.movie.id) && !history.soft.has(f.movie.id))
+  if (fresh.length === 0) fresh = films.filter((f) => !history.hard.has(f.movie.id))
+  return { deck, display, movies: fresh.slice(0, limit).map((f) => f.movie) }
 }

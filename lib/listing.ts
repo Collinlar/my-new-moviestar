@@ -182,7 +182,8 @@ export interface Decision {
   note: string | null
   whyListed: string | null
 }
-export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string }
+import type { Parsed } from '@/lib/parsed'
+export type { Parsed } from '@/lib/parsed'
 
 const str = (v: unknown, max: number): string | null =>
   typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null

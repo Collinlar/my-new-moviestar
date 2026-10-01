@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Navigation } from '@/components/Navigation'
 import { getDbStats } from '@/lib/queries'
-import { getSwipeDeck } from '@/lib/deck'
+import { getDeckCards, getSwipeDeck } from '@/lib/deck'
 import { SwipeStack } from '@/components/SwipeStack'
 import { MOOD_MAP } from '@/lib/mood'
 import { createClient } from '@/lib/supabase/server'
@@ -15,11 +15,11 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
-  searchParams: Promise<{ mood?: string }>
+  searchParams: Promise<{ mood?: string; deck?: string }>
 }
 
 export default async function SwipePage({ searchParams }: PageProps) {
-  const { mood: moodSlug } = await searchParams
+  const { mood: moodSlug, deck: deckSlug } = await searchParams
   const moodConfig = moodSlug ? MOOD_MAP[moodSlug] ?? null : null
 
   const supabase = await createClient() as any
@@ -28,18 +28,21 @@ export default async function SwipePage({ searchParams }: PageProps) {
     getDbStats(),
   ])
 
-  const movies = await getSwipeDeck({ userId: user?.id ?? null, mood: moodConfig, limit: 30 })
+  // A published deck takes priority. An unknown or unpublished deck quietly falls back to the ordinary deck.
+  const fromDeck = deckSlug ? await getDeckCards({ userId: user?.id ?? null, deckSlug, limit: 40 }) : null
+  const movies = fromDeck ? fromDeck.movies : await getSwipeDeck({ userId: user?.id ?? null, mood: moodConfig, limit: 30 })
+  const display = fromDeck ? fromDeck.display : moodConfig
 
   return (
     <>
       <Navigation />
       <main>
         <SwipeStack
-          key={`${moodConfig?.slug ?? 'all'}:${movies[0]?.id ?? 'empty'}`}
+          key={`${display?.slug ?? 'all'}:${movies[0]?.id ?? 'empty'}`}
           movies={movies}
           totalCount={stats.movieCount}
           userId={user?.id ?? null}
-          mood={moodConfig ?? undefined}
+          mood={display ?? undefined}
         />
       </main>
     </>

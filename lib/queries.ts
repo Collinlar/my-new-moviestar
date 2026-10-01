@@ -396,6 +396,40 @@ export interface MovieVerdict {
   confidence:          'forming' | 'building' | 'confident'
 }
 
+export interface CommunityTake {
+  user_id: string
+  reaction: string
+  rating: number | null
+  quick_take: string
+  name: string
+}
+
+/** Short one-line takes from viewers, most helpful first. Longer reviews are listed separately. */
+export async function getCommunityTakes(movieId: string, limit = 6): Promise<CommunityTake[]> {
+  try {
+    const supabase = await createClient() as any
+    const { data } = await supabase
+      .from('takes')
+      .select('user_id, reaction, rating, quick_take, helpful_count, updated_at')
+      .eq('movie_id', movieId)
+      .not('quick_take', 'is', null)
+      .order('helpful_count', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(limit)
+    const rows = (data ?? []) as Array<Omit<CommunityTake, 'name'>>
+    if (rows.length === 0) return []
+
+    const { data: people } = await supabase
+      .from('public_profiles')
+      .select('user_id, display_name')
+      .in('user_id', rows.map((r) => r.user_id))
+    const names = new Map(((people ?? []) as Array<{ user_id: string; display_name: string | null }>).map((p) => [p.user_id, p.display_name]))
+    return rows.map((r) => ({ ...r, name: names.get(r.user_id) || 'A MuvieStars member' }))
+  } catch {
+    return []
+  }
+}
+
 export async function getMovieVerdict(movieId: string): Promise<MovieVerdict | null> {
   try {
     const supabase = await createClient() as any

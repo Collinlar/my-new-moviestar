@@ -1,15 +1,18 @@
 import type { MetadataRoute } from 'next'
 import { getSitemapMovies, getAllCreatorIds, getIndexablePeople } from '@/lib/queries'
+import { getPublishedDecks } from '@/lib/decks'
+import { createStaticClient } from '@/lib/supabase/static'
 
 const SITE_URL = 'https://muviestars.com'
 
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [movies, creatorIds, people] = await Promise.all([
+  const [movies, creatorIds, people, decks] = await Promise.all([
     getSitemapMovies().catch(() => []),
     getAllCreatorIds().catch(() => []),
     getIndexablePeople().catch(() => []),
+    getPublishedDecks({ client: createStaticClient(), limit: 200 }).catch(() => []),
   ])
 
   const now = new Date().toISOString()
@@ -71,6 +74,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${SITE_URL}/decks`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/all-reviews`,
       lastModified: now,
       changeFrequency: 'daily',
@@ -102,5 +111,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages]
+  /* Deck pages: published decks with enough listed films */
+  const deckPages: MetadataRoute.Sitemap = decks.map((d) => ({
+    url: `${SITE_URL}/decks/${d.slug}`,
+    lastModified: d.published_at ?? now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }))
+
+  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages]
 }
