@@ -5,6 +5,8 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/utils'
+import { getLaurels } from '@/lib/challenges'
+import { formatDay } from '@/lib/challenges-shared'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -36,7 +38,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 
   if (!profile) notFound()
 
-  const [{ data: reviews }, { data: publicLists }] = await Promise.all([
+  const [{ data: reviews }, { data: publicLists }, laurels] = await Promise.all([
     supabase
       .from('reviews')
       .select('id, rating, content, created_at, helpful_count, movie:movies(id, title, release_year, poster_url, genre)')
@@ -52,6 +54,8 @@ export default async function UserProfilePage({ params }: PageProps) {
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(20),
+
+    getLaurels(profile.user_id).catch(() => []),
   ])
 
   const reviewList  = (reviews as any[]) || []
@@ -134,6 +138,31 @@ export default async function UserProfilePage({ params }: PageProps) {
             </div>
           </div>
         </section>
+
+        {/* ─── LAURELS ────────────────────────────────────────────────── */}
+        {laurels.length > 0 && (
+          <section style={SECTION}>
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 24px' }}>
+                Laurels
+              </p>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                {laurels.map((l) => (
+                  <li key={l.id}>
+                    <Link
+                      href={`/challenges/${l.challenge.slug}`}
+                      style={{ padding: '18px 22px', borderRadius: '14px', background: '#0F0D0B', border: '1px solid rgba(200,150,62,0.3)', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '4px', minHeight: '44px' }}
+                    >
+                      <span style={{ ...MONO, fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C8963E' }}>Challenge completed</span>
+                      <span style={{ ...SERIF, fontSize: '24px', lineHeight: 1.1, color: '#F6EFE2' }}>{l.challenge.title}</span>
+                      <span style={{ fontSize: '13px', color: '#6A6258' }}>{formatDay(l.completed_at)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
 
         {/* ─── LISTS ──────────────────────────────────────────────────── */}
         {lists.length > 0 && (

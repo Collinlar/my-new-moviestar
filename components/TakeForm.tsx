@@ -19,6 +19,8 @@ interface Props {
 interface Saved {
   token: string | null
   review: 'submitted' | 'updated' | 'unchanged' | null
+  /** Challenges this take finished. */
+  completed: Array<{ slug: string; title: string }>
   /** What the take contained, so the share panel only offers choices that change something. */
   snapshot: { rating: number | null; words: string | null; tags: number }
 }
@@ -114,6 +116,7 @@ export function TakeForm({ movieId, movieTitle }: Props) {
       setSaved({
         token: json.shareToken ?? null,
         review: json.review ?? null,
+        completed: Array.isArray(json.completed) ? json.completed : [],
         snapshot: { rating: rating || null, words: oneLiner.trim() || null, tags: tags.length },
       })
       setHasTake(true)
@@ -145,12 +148,27 @@ export function TakeForm({ movieId, movieTitle }: Props) {
         {saved.review === 'submitted' || saved.review === 'updated' ? (
           <p className="text-sm text-film-muted">Your longer review is with our moderators. It appears once approved.</p>
         ) : null}
+        {saved.completed.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {saved.completed.map(c => (
+                  <Link
+                    key={c.slug}
+                    href={`/challenges/${c.slug}`}
+                    style={{ display: 'block', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.1)', textDecoration: 'none', minHeight: '44px' }}
+                  >
+                    <span style={{ display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: '"Geist Mono", monospace' }}>Challenge finished</span>
+                    <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>{c.title}. Tap to collect your laurel.</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
         {saved.token && (
           <div className="pt-2">
             <p className="text-xs text-film-muted mb-3">Share it with people who love African cinema. You choose what shows.</p>
             <SharePanel
               token={saved.token}
-              movieTitle={movieTitle}
+              title={movieTitle}
               has={{ rating: !!saved.snapshot.rating, words: !!saved.snapshot.words, tags: saved.snapshot.tags > 0 }}
               words={saved.snapshot.words ?? undefined}
             />

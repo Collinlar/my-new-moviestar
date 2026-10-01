@@ -17,7 +17,7 @@ export default function robots(): MetadataRoute.Robots {
       /* AI crawlers: allow the public film, people and discovery pages */
       {
         userAgent: ['GPTBot', 'Claude-Web', 'PerplexityBot'],
-        allow: ['/movie/', '/person/', '/people', '/discover', '/how-listing-works', '/browse', '/trending', '/canon', '/creators', '/all-reviews', '/api/og/'],
+        allow: ['/movie/', '/person/', '/people', '/discover', '/how-listing-works', '/browse', '/trending', '/canon', '/creators', '/all-reviews', '/decks', '/challenges', '/api/og/'],
         disallow: [...PRIVATE, '/api/'],
       },
     ],

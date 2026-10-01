@@ -117,7 +117,20 @@ export async function POST(req: NextRequest) {
       shareToken = newCard?.share_token ?? null
     }
 
-    return NextResponse.json({ ok: true, saved: true, shareToken, review })
+    // Did this take finish a challenge? The database awards laurels, so just ask what is new.
+    let completed: Array<{ slug: string; title: string }> = []
+    try {
+      const { data: fresh } = await supabase
+        .from('challenge_completions')
+        .select('completed_at, challenge:challenges(slug, title)')
+        .eq('user_id', user.id)
+        .gte('completed_at', new Date(Date.now() - 60_000).toISOString())
+      completed = ((fresh ?? []) as any[]).filter((r) => r.challenge).map((r) => ({ slug: r.challenge.slug, title: r.challenge.title }))
+    } catch {
+      // The take is saved either way.
+    }
+
+    return NextResponse.json({ ok: true, saved: true, shareToken, review, completed })
   } catch {
     return NextResponse.json({ ok: true, saved: false })
   }

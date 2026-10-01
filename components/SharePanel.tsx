@@ -7,9 +7,12 @@ const MONO: React.CSSProperties = { fontFamily: '"Geist Mono", monospace' }
 
 interface Props {
   token: string
-  movieTitle: string
+  /** The film (for a take) or the challenge (for a laurel). */
+  title: string
+  /** A take has layouts and several things to show or hide. A laurel only has the name. */
+  kind?: 'take' | 'laurel'
   /** What this take contains, so the panel only offers choices that change something. */
-  has: { rating: boolean; words: boolean; tags: boolean }
+  has?: { rating: boolean; words: boolean; tags: boolean }
   words?: string
   /** Called when the person opens one of the share routes. */
   onShared?: () => void
@@ -21,18 +24,22 @@ const BTN: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', padding: '0 12px',
 }
 
-export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
+export function SharePanel({ token, title, kind = 'take', has = { rating: false, words: false, tags: false }, words, onShared }: Props) {
   const [options, setOptions] = useState<ShareOptions>(DEFAULT_SHARE_OPTIONS)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const latest = useRef(0)
 
-  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://muviestars.com'}/take/${token}`
+  const isLaurel = kind === 'laurel'
+  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://muviestars.com'}/${isLaurel ? 'laurel' : 'take'}/${token}`
+  const imagePath = `/api/og/${isLaurel ? 'laurel' : 'take'}`
 
   // Saves the choices, then refreshes the preview so it always shows what will be shared.
   const update = async (patch: Partial<ShareOptions>) => {
+    if (!loaded) return
     const next = { ...options, ...patch }
     const call = ++latest.current
     setOptions(next)
@@ -81,8 +88,8 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
     if (!navigator.share) { copyLink(); return }
     try {
       await navigator.share({
-        title: `${movieTitle}: my take`,
-        text: options.show_words && words ? words : `I just rated ${movieTitle} on MuvieStars.`,
+        title: isLaurel ? `I completed ${title}` : `${title}: my take`,
+        text: isLaurel ? `I completed the ${title} challenge on MuvieStars.` : options.show_words && words ? words : `I just rated ${title} on MuvieStars.`,
         url: shareUrl,
       })
     } catch {
@@ -92,11 +99,23 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
 
   useEffect(() => { setCopied(false) }, [token])
 
+  // A card can already have choices saved from an earlier visit. Show those, not the defaults.
+  useEffect(() => {
+    let cancelled = false
+    setLoaded(false)
+    fetch(`/api/share/card?token=${token}`)
+      .then((r) => r.json())
+      .then((json) => { if (!cancelled && json?.ok) setOptions(json.options) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoaded(true) })
+    return () => { cancelled = true }
+  }, [token])
+
   const toggles: Array<{ key: 'show_name' | 'show_rating' | 'show_words' | 'show_tags'; label: string; show: boolean }> = [
     { key: 'show_name',   label: 'Put my name on it',      show: true },
-    { key: 'show_rating', label: 'Show my stars',          show: has.rating },
-    { key: 'show_words',  label: 'Show my words',          show: has.words },
-    { key: 'show_tags',   label: 'Show what stood out',    show: has.tags },
+    { key: 'show_rating', label: 'Show my stars',          show: !isLaurel && has.rating },
+    { key: 'show_words',  label: 'Show my words',          show: !isLaurel && has.words },
+    { key: 'show_tags',   label: 'Show what stood out',    show: !isLaurel && has.tags },
   ]
 
   return (
@@ -105,8 +124,8 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
       <div style={{ borderRadius: '14px', overflow: 'hidden', background: '#15120E', aspectRatio: '1 / 1', maxWidth: '260px', width: '100%', alignSelf: 'center', position: 'relative' }}>
         <img
           key={version}
-          src={`/api/og/take?token=${token}&v=${version}`}
-          alt={`How your take on ${movieTitle} will look when shared`}
+          src={`${imagePath}?token=${token}&v=${version}`}
+          alt={isLaurel ? `How your ${title} laurel will look when shared` : `How your take on ${title} will look when shared`}
           width={260}
           height={260}
           style={{ width: '100%', height: '100%', display: 'block', opacity: saving ? 0.4 : 1, transition: 'opacity 0.15s' }}
@@ -114,6 +133,7 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
       </div>
 
       {/* Layout */}
+      {!isLaurel && (
       <div role="group" aria-label="Card layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         {SHARE_TEMPLATES.map((t) => {
           const on = options.template === t.key
@@ -135,6 +155,7 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
           )
         })}
       </div>
+      )}
 
       {/* What to show */}
       <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
@@ -159,7 +180,7 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
       {/* Where to send it */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', opacity: saving ? 0.6 : 1 }} aria-busy={saving}>
         <a
-          href={`https://wa.me/?text=${encodeURIComponent(`I watched ${movieTitle} on MuvieStars. Here is my take: ${shareUrl}`)}`}
+          href={`https://wa.me/?text=${encodeURIComponent(isLaurel ? `I completed the ${title} challenge on MuvieStars: ${shareUrl}` : `I watched ${title} on MuvieStars. Here is my take: ${shareUrl}`)}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => track('whatsapp')}
@@ -171,10 +192,10 @@ export function SharePanel({ token, movieTitle, has, words, onShared }: Props) {
           {copied ? 'Link copied' : 'Copy my link'}
         </button>
         <a
-          href={`/api/og/take?token=${token}&v=${version}`}
+          href={`${imagePath}?token=${token}&v=${version}`}
           target="_blank"
           rel="noopener noreferrer"
-          download={`${movieTitle.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-my-take.png`}
+          download={`${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${isLaurel ? 'laurel' : 'my-take'}.png`}
           onClick={() => track('save_image')}
           style={{ ...BTN, pointerEvents: saving ? 'none' : 'auto' }}
         >

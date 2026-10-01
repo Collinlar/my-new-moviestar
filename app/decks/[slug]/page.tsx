@@ -6,6 +6,8 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getDeckBySlug, sponsorLabel, MIN_DECK_FILMS } from '@/lib/decks'
 import { MOOD_MAP } from '@/lib/mood'
+import { getOpenChallengesForDeck } from '@/lib/challenges'
+import { stateLine } from '@/lib/challenges-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
 
@@ -43,6 +45,7 @@ export default async function DeckPage({ params }: PageProps) {
   if (!found) notFound()
   const { deck, films } = found
 
+  const challenges = await getOpenChallengesForDeck(deck.id)
   const sponsor = sponsorLabel(deck)
   const mood = deck.mood_slug ? MOOD_MAP[deck.mood_slug] : null
 
@@ -102,6 +105,24 @@ export default async function DeckPage({ params }: PageProps) {
               </Link>
             </div>
           </header>
+
+          {challenges.length > 0 && (
+            <ul style={{ listStyle: 'none', margin: '0 0 40px', padding: 0, maxWidth: '720px' }}>
+              {challenges.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    href={`/challenges/${c.slug}`}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '16px 18px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.35)', background: 'rgba(200,150,62,0.07)', textDecoration: 'none', minHeight: '44px' }}
+                  >
+                    <span style={{ ...MONO, fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C8963E' }}>
+                      Challenge on this deck · {stateLine(c)}
+                    </span>
+                    <span style={{ fontSize: '18px', color: '#F6EFE2' }}>{c.title}: take {c.goal} and earn the laurel</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {deck.kind === 'mood' ? (
             <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.6, color: '#8C857A', maxWidth: '560px' }}>

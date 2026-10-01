@@ -27,6 +27,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
   const [oneLiner, setOneLiner]   = useState('')
   const [saving, setSaving]       = useState(false)
   const [shareToken, setShareToken] = useState<string | null>(null)
+  const [finished, setFinished] = useState<Array<{ slug: string; title: string }>>([])
 
   const toggleTag = (slug: string) => {
     setTags(prev =>
@@ -50,6 +51,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
         }),
       })
       const data = await res.json()
+      setFinished(Array.isArray(data.completed) ? data.completed : [])
       return data.shareToken ?? null
     } catch {
       return null
@@ -355,9 +357,24 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
               </p>
             </div>
 
+            {finished.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {finished.map(c => (
+                  <Link
+                    key={c.slug}
+                    href={`/challenges/${c.slug}`}
+                    style={{ display: 'block', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.1)', textDecoration: 'none', minHeight: '44px' }}
+                  >
+                    <span style={{ display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: '"Geist Mono", monospace' }}>Challenge finished</span>
+                    <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>{c.title}. Tap to collect your laurel.</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             <SharePanel
               token={shareToken}
-              movieTitle={movie.title}
+              title={movie.title}
               has={{ rating: !!rating, words: !!oneLiner.trim(), tags: tags.length > 0 }}
               words={oneLiner.trim() || undefined}
             />

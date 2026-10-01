@@ -13,6 +13,8 @@ import {
 } from '@/lib/home'
 import { MOOD_MAP } from '@/lib/mood'
 import { getPublishedDecks, sponsorLabel } from '@/lib/decks'
+import { getPublishedChallenges } from '@/lib/challenges'
+import { sponsorLabel as challengeSponsor, stateLine, goalPhrase } from '@/lib/challenges-shared'
 import { websiteSchema, organizationSchema, faqSchema } from '@/lib/schema'
 
 export const metadata: Metadata = {
@@ -78,7 +80,7 @@ export default async function HomePage() {
     return cycle ? getMovieById(cycle.movie_id) : null
   })()
 
-  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks] = await Promise.all([
+  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks, challenges] = await Promise.all([
     club,
     getOldButGoldMovies(6),
     isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
@@ -88,6 +90,7 @@ export default async function HomePage() {
     isSignedIn ? getUnfinishedTitles(user.id) : Promise.resolve([]),
     isSignedIn ? getRecentTakes(user.id) : Promise.resolve([]),
     getPublishedDecks({ featuredOnly: true, limit: 3 }).catch(() => []),
+    getPublishedChallenges({ featuredOnly: true, openOnly: true, limit: 2 }).catch(() => []),
   ])
 
   const daysLeft = daysLeftThisWeek()
@@ -451,6 +454,43 @@ export default async function HomePage() {
                   </li>
                 )
               })}
+            </ul>
+          </section>
+        )}
+
+        {/* ── FEATURED CHALLENGES ──────────────────────────────────────── */}
+        {challenges.length > 0 && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '96px' }}
+            aria-labelledby="challenges-heading"
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>Challenges</p>
+                <h2 id="challenges-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
+                  Finish a set. Earn the laurel.
+                </h2>
+              </div>
+              <Link href="/challenges" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                All challenges →
+              </Link>
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {challenges.map((c) => (
+                <li key={c.id} style={{ borderTop: '1px solid rgba(237,228,210,0.08)' }}>
+                  <Link
+                    href={`/challenges/${c.slug}`}
+                    className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 items-baseline"
+                    style={{ padding: '22px 0', textDecoration: 'none', minHeight: '44px' }}
+                  >
+                    <span style={{ ...SERIF, fontSize: 'clamp(26px,3vw,36px)', lineHeight: 1.1, color: '#F6EFE2' }}>{c.title}</span>
+                    <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>
+                      {[goalPhrase(c.goal, c.film_count), stateLine(c), challengeSponsor(c)].filter(Boolean).join(' · ')}
+                    </span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           </section>
         )}

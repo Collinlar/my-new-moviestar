@@ -20,6 +20,7 @@ const STARTS = [
   { href: '/canon',                 title: 'The Canon',        body: 'The films that defined African cinema, with essays on why.' },
   { href: '/swipe?mood=obg',        title: 'Old but Gold',     body: 'Films from before 2010 worth going back for.' },
   { href: '/decks',                 title: 'Decks',            body: 'Short, hand-picked sets of films to swipe through.' },
+  { href: '/challenges',            title: 'Challenges',       body: 'Take a handful of films before the window closes and earn a laurel.' },
   { href: '/trending',              title: 'Trending',         body: 'What people are watching and reacting to right now.' },
   { href: '/festivals',             title: 'Festivals',        body: 'Winners and nominees from the festivals that matter.' },
   { href: '/people',                title: 'People',           body: 'Actors, directors and crew, with their full filmographies.' },
