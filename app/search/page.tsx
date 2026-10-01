@@ -4,6 +4,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { SearchBar } from '@/components/SearchBar'
 import { searchMovies, searchPeople } from '@/lib/queries'
+import { ListedDot } from '@/components/ListedMark'
 import { SITE_URL, capitalise } from '@/lib/utils'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -141,6 +142,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                         🎬
                       </div>
                     )}
+                    {movie.listing_status === 'approved' && <ListedDot />}
                     {movie.average_rating > 0 && (
                       <div style={{
                         position: 'absolute', top: '7px', right: '7px',

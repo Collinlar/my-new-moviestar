@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Search, Menu, X, Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isActivePath } from '@/lib/nav'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
@@ -13,7 +14,7 @@ const ADMIN_EMAIL = 'kofcollkcl100@gmail.com'
 const navLinks = [
   { href: '/',        label: 'Home',     exact: true  },
   { href: '/swipe',   label: 'Swipe',    exact: false },
-  { href: '/browse',  label: 'Browse',   exact: false },
+  { href: '/discover', label: 'Discover', exact: false },
   { href: '/club',    label: 'Club',     exact: false },
 ]
 
@@ -87,7 +88,7 @@ export function Navigation() {
             {/* Desktop links */}
             <ul className="hidden md:flex items-center gap-1" role="list">
               {navLinks.map((link) => {
-                const isActive = link.exact ? pathname === link.href : pathname?.startsWith(link.href)
+                const isActive = isActivePath(pathname, link.href, link.exact)
                 return (
                   <li key={link.label}>
                     <Link
@@ -181,7 +182,7 @@ export function Navigation() {
                     onClick={() => setOpen(false)}
                     className={cn(
                       'flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors',
-                      pathname?.startsWith(link.href)
+                      isActivePath(pathname, link.href, link.exact)
                         ? 'text-film-gold bg-cinema-surface'
                         : 'text-film-cream hover:bg-cinema-surface'
                     )}

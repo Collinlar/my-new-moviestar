@@ -9,11 +9,11 @@ const SITE_URL = 'https://muviestars.com'
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'MuvieStars — The African Movie Database',
+    default: 'MuvieStars: Standout African Cinema',
     template: '%s | MuvieStars',
   },
   description:
-    'The most complete database of African cinema. Thousands of films from Nollywood, Ghallywood, Francophone Africa, East Africa, and the diaspora — reviewed, rated, and documented.',
+    'Find African films worth your time, say what you thought, and see what other viewers made of them. Every listed film has been checked by a person.',
   keywords: [
     'African movies', 'Nollywood', 'Ghallywood', 'African cinema',
     'African film database', 'Nigerian movies', 'Ghanaian movies',
@@ -39,15 +39,15 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: SITE_URL,
     siteName: 'MuvieStars',
-    title: 'MuvieStars — The African Movie Database',
+    title: 'MuvieStars: Standout African Cinema',
     description:
-      'The most complete database of African cinema. Thousands of films from Nollywood, Ghallywood, and across the continent — reviewed, rated, and documented.',
+      'Find African films worth your time, say what you thought, and see what other viewers made of them.',
     images: [
       {
         url: '/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'MuvieStars — The African Movie Database',
+        alt: 'MuvieStars: Standout African Cinema',
       },
     ],
   },
@@ -55,8 +55,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@MuvieStars',
     creator: '@MuvieStars',
-    title: 'MuvieStars — The African Movie Database',
-    description: 'Africa\'s most complete movie database. Discover, rate, and review African cinema.',
+    title: 'MuvieStars: Standout African Cinema',
+    description: 'African films worth your time. Rate what you watch and see what others thought.',
     images: ['/og-default.png'],
   },
   icons: {

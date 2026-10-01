@@ -58,9 +58,10 @@ export async function POST(req: NextRequest) {
 
     if (reactionRow?.id) {
       const { data: existingCard } = await supabase
-        .from('review_share_cards')
+        .from('share_cards')
         .select('share_token')
-        .eq('reaction_id', reactionRow.id)
+        .eq('object_type', 'take')
+        .eq('object_id', reactionRow.id)
         .maybeSingle()
 
       if (existingCard?.share_token) {
@@ -69,8 +70,10 @@ export async function POST(req: NextRequest) {
         // Generate a short opaque token from a UUID
         const token = crypto.randomUUID().replace(/-/g, '').slice(0, 10)
         const { data: newCard } = await supabase
-          .from('review_share_cards')
+          .from('share_cards')
           .insert({
+            object_type: 'take',
+            object_id: reactionRow.id,
             reaction_id: reactionRow.id,
             user_id: user.id,
             movie_id,

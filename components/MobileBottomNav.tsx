@@ -5,13 +5,14 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Home, Play, Compass, Users, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { isActivePath } from '@/lib/nav'
 
 const MONO: React.CSSProperties = { fontFamily: '"Geist Mono", monospace' }
 
 const NAV = [
   { href: '/',       label: 'Home',    Icon: Home,    exact: true  },
   { href: '/swipe',  label: 'Swipe',   Icon: Play,    exact: false },
-  { href: '/browse', label: 'Discover',Icon: Compass, exact: false },
+  { href: '/discover', label: 'Discover', Icon: Compass, exact: false },
   { href: '/club',   label: 'Club',    Icon: Users,   exact: false },
   { href: '/account',label: 'You',     Icon: User,    exact: false, authHref: '/auth' },
 ]
@@ -42,8 +43,7 @@ export function MobileBottomNav() {
     >
       {NAV.map(({ href, label, Icon, exact, authHref }) => {
         const resolvedHref = (label === 'You' && !isSignedIn && authHref) ? authHref : href
-        const isActive = exact ? pathname === href : (pathname?.startsWith(href) && href !== '/')
-          || (href === '/' && pathname === '/')
+        const isActive = isActivePath(pathname, href, exact)
         return (
           <Link
             key={label}

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Movie } from '@/lib/queries'
 import type { MoodConfig } from '@/lib/mood'
+import { TRANSITION_MIN_POOL } from '@/lib/listing'
 
 // Films marked "haven't seen it" come back after this many days.
 const UNSEEN_COOLOFF_DAYS = 14
@@ -21,6 +22,7 @@ export interface PoolRow {
   review_count: number | null
   average_rating: number | null
   poster_url: string | null
+  listing_status?: string | null
 }
 
 type Affinity = Record<string, number>
@@ -147,12 +149,15 @@ export function rankDeck(
     const popularity = Math.log1p(r.review_count ?? 0) * 0.6
     const rating = ((r.average_rating ?? 0) / 5) * 0.5
     const poster = r.poster_url?.startsWith('http') ? 0.4 : -1
+    // Listed films always come before drafts (the bonus beats the largest random swing), so
+    // drafts only fill the gaps when there are not enough listed films to build a deck.
+    const listed = r.listing_status === 'approved' ? 3.5 : 0
     // A film tagged with the mood's own genre beats one that only mentions it in its text.
     const moodFit = r.genre && moodGenres.includes(r.genre) ? 1.5 : 0
     const taste =
       (r.genre ? history.genreAffinity[r.genre] ?? 0 : 0) * 0.8 +
       (r.industry ? history.industryAffinity[r.industry] ?? 0 : 0) * 0.5
-    return { row: r, score: popularity + rating + poster + moodFit + taste + random() * noise }
+    return { row: r, score: popularity + rating + poster + listed + moodFit + taste + random() * noise }
   })
 
   // Greedy pick with a small penalty for repeating a genre or industry already in the deck,
@@ -192,9 +197,19 @@ export async function getSwipeDeck(opts: {
   const { userId, mood = null, limit = 30 } = opts
   const supabase = (await createClient()) as any
 
+  // Decks draw from listed films. Until enough films are listed, drafts fill the gaps so the
+  // product is not empty mid-triage. The threshold is on the whole catalogue, not the mood,
+  // so once triage is done a small mood honestly runs out instead of quietly using drafts.
+  const { count: listedCount } = await supabase
+    .from('movies')
+    .select('id', { count: 'exact', head: true })
+    .eq('listing_status', 'approved')
+  const statuses = (listedCount ?? 0) < TRANSITION_MIN_POOL ? ['approved', 'draft'] : ['approved']
+
   let poolQuery = supabase
     .from('movies')
-    .select('id, genre, industry, release_year, review_count, average_rating, poster_url')
+    .select('id, genre, industry, release_year, review_count, average_rating, poster_url, listing_status')
+    .in('listing_status', statuses)
     .limit(1000)
   if (mood) poolQuery = applyMood(poolQuery, mood)
 

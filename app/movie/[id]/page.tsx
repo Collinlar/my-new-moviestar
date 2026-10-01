@@ -16,7 +16,11 @@ import { CommunityVerdict } from '@/components/CommunityVerdict'
 import { PersonalContext } from '@/components/PersonalContext'
 import { movieSchema, breadcrumbSchema } from '@/lib/schema'
 import { ROLE_GROUPS } from '@/lib/people'
+import { ListedMark } from '@/components/ListedMark'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
+
+// Films that were turned down or taken down should not be found through search engines.
+const HIDDEN_FROM_SEARCH = ['rejected', 'archived', 'delisted']
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -55,6 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       'African movie', 'African cinema', 'movie review',
     ].filter(Boolean),
     alternates: { canonical: `${SITE_URL}/movie/${id}` },
+    robots: HIDDEN_FROM_SEARCH.includes(movie.listing_status ?? '') ? { index: false, follow: true } : undefined,
     openGraph: {
       title, description: fullDesc, type: 'video.movie',
       url: `${SITE_URL}/movie/${id}`,
@@ -89,7 +94,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
   const schema = movieSchema(movie, reviews, cast)
   const crumbs = breadcrumbSchema([
     { name: 'Home',   url: SITE_URL },
-    { name: 'Browse', url: `${SITE_URL}/browse` },
+    { name: 'Discover', url: `${SITE_URL}/discover` },
     { name: movie.title, url: `${SITE_URL}/movie/${id}` },
   ])
 
@@ -148,7 +153,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
               <ol style={{ display: 'flex', gap: '8px', alignItems: 'center', ...MONO, fontSize: '12px', color: '#6A6258', listStyle: 'none', padding: 0, margin: 0, flexWrap: 'wrap' }}>
                 <li><Link href="/" style={{ color: '#6A6258', textDecoration: 'none' }}>Home</Link></li>
                 <li aria-hidden="true" style={{ opacity: 0.4 }}>/</li>
-                <li><Link href="/browse" style={{ color: '#6A6258', textDecoration: 'none' }}>Browse</Link></li>
+                <li><Link href="/discover" style={{ color: '#6A6258', textDecoration: 'none' }}>Discover</Link></li>
                 <li aria-hidden="true" style={{ opacity: 0.4 }}>/</li>
                 <li style={{ color: '#8C857A' }} aria-current="page">{movie.title}</li>
               </ol>
@@ -201,6 +206,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
                 {/* Industry / canon badge */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {movie.listing_status === 'approved' && <ListedMark />}
                   {movie.industry && movie.industry !== 'Other' && (
                     <Link
                       href={`/browse?industry=${encodeURIComponent(movie.industry)}`}
@@ -270,12 +276,6 @@ export default async function MovieDetailPage({ params }: PageProps) {
                   )}
                 </div>
 
-                {/* Synopsis */}
-                {(movie.synopsis || movie.description) && (
-                  <p style={{ margin: 0, fontSize: '17px', lineHeight: '1.65', color: '#C7BFB2', maxWidth: '640px' }}>
-                    {movie.synopsis || movie.description}
-                  </p>
-                )}
 
                 {/* Credits grid */}
                 <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px 24px' }}>
@@ -356,6 +356,19 @@ export default async function MovieDetailPage({ params }: PageProps) {
                   </a>
                   <WatchlistButton movieId={id} />
                   <SaveToListButton movieId={id} />
+                  {movie.streaming_links && movie.streaming_links.length > 0 && (
+                    <a
+                      href="#where-to-watch"
+                      style={{
+                        height: '52px', padding: '0 24px', borderRadius: '14px',
+                        border: '1px solid rgba(237,228,210,0.15)', color: '#EDE4D2',
+                        fontSize: '16px', fontWeight: 500, textDecoration: 'none',
+                        display: 'inline-flex', alignItems: 'center',
+                      }}
+                    >
+                      Where to watch
+                    </a>
+                  )}
                   {movie.youtube_url && (
                     <a
                       href={movie.youtube_url}
@@ -377,39 +390,33 @@ export default async function MovieDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* ─── WHERE TO WATCH ─────────────────────────────────────────────── */}
-        {movie.streaming_links && movie.streaming_links.length > 0 && (
-          <section style={SECTION} aria-labelledby="watch-heading">
-            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
-              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
-                Where to watch
+        {/* ─── COMMUNITY VERDICT ──────────────────────────────────────────── */}
+        {verdict && <CommunityVerdict verdict={verdict} movieTitle={movie.title} />}
+
+        {/* ─── WHY IT'S ON MUVIESTARS ─────────────────────────────────────── */}
+        {movie.why_listed && (
+          <section style={{ ...SECTION, paddingTop: '56px', paddingBottom: '56px' }} aria-labelledby="why-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ maxWidth: '760px' }}>
+              <p id="why-heading" style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 16px' }}>
+                Why it&apos;s on MuvieStars
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {movie.streaming_links.map((link: { url: string; platform: string; free?: boolean }, i: number) => (
-                  <a
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      height: '44px', padding: '0 20px', borderRadius: '12px',
-                      border: '1px solid rgba(237,228,210,0.12)', background: '#15120E',
-                      color: '#EDE4D2', fontSize: '14px', fontWeight: 500,
-                      textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
-                    }}
-                  >
-                    {link.platform}
-                    {link.free && (
-                      <span style={{
-                        height: '20px', padding: '0 8px', borderRadius: '4px',
-                        background: 'rgba(127,168,139,0.15)', border: '1px solid rgba(127,168,139,0.25)',
-                        ...MONO, fontSize: '10px', fontWeight: 700, color: '#7FA88B',
-                        display: 'inline-flex', alignItems: 'center',
-                      }}>FREE</span>
-                    )}
-                  </a>
-                ))}
-              </div>
+              <p style={{ ...SERIF, margin: 0, fontSize: 'clamp(24px,3vw,32px)', lineHeight: 1.3, color: '#F6EFE2' }}>
+                {movie.why_listed}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* ─── SYNOPSIS ───────────────────────────────────────────────────── */}
+        {(movie.synopsis || movie.description) && (
+          <section style={SECTION} aria-labelledby="synopsis-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ maxWidth: '760px' }}>
+              <p id="synopsis-heading" style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
+                About the film
+              </p>
+              <p style={{ margin: 0, fontSize: '18px', lineHeight: 1.7, color: '#C7BFB2' }}>
+                {movie.synopsis || movie.description}
+              </p>
             </div>
           </section>
         )}
@@ -498,46 +505,6 @@ export default async function MovieDetailPage({ params }: PageProps) {
             </div>
           </section>
         )}
-
-        {/* ─── AWARDS ─────────────────────────────────────────────────────── */}
-        {awards.length > 0 && (
-          <section style={{ ...SECTION, background: '#0F0D0B' }} aria-labelledby="awards-heading">
-            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
-              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}>
-                Awards &amp; nominations
-              </p>
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px',
-              }}>
-                {awards.map((award) => (
-                  <div
-                    key={award.id}
-                    style={{
-                      display: 'flex', gap: '14px', alignItems: 'flex-start',
-                      padding: '16px 18px', borderRadius: '12px',
-                      background: award.won ? 'rgba(200,150,62,0.06)' : '#15120E',
-                      border: award.won ? '1px solid rgba(200,150,62,0.2)' : '1px solid rgba(237,228,210,0.06)',
-                    }}
-                  >
-                    <span style={{ fontSize: '16px', marginTop: '1px' }}>{award.won ? '🏆' : '🎖'}</span>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500, color: award.won ? '#C8963E' : '#D8CFC0' }}>
-                        {award.name}
-                        {award.won && <span style={{ ...MONO, fontSize: '11px', marginLeft: '8px', color: '#C8963E' }}>Won</span>}
-                      </p>
-                      <p style={{ margin: '3px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
-                        {award.category} · {award.year}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ─── COMMUNITY VERDICT ──────────────────────────────────────────── */}
-        {verdict && <CommunityVerdict verdict={verdict} movieTitle={movie.title} />}
 
         {/* ─── REVIEWS ────────────────────────────────────────────────────── */}
         <section id="community-reviews" style={SECTION} aria-labelledby="reviews-heading">
@@ -655,6 +622,80 @@ export default async function MovieDetailPage({ params }: PageProps) {
             )}
           </div>
         </section>
+
+        {/* ─── AWARDS ─────────────────────────────────────────────────────── */}
+        {awards.length > 0 && (
+          <section style={{ ...SECTION, background: '#0F0D0B' }} aria-labelledby="awards-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 28px' }}>
+                Festival &amp; industry recognition
+              </p>
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px',
+              }}>
+                {awards.map((award) => (
+                  <div
+                    key={award.id}
+                    style={{
+                      display: 'flex', gap: '14px', alignItems: 'flex-start',
+                      padding: '16px 18px', borderRadius: '12px',
+                      background: award.won ? 'rgba(200,150,62,0.06)' : '#15120E',
+                      border: award.won ? '1px solid rgba(200,150,62,0.2)' : '1px solid rgba(237,228,210,0.06)',
+                    }}
+                  >
+                    <span style={{ fontSize: '16px', marginTop: '1px' }}>{award.won ? '🏆' : '🎖'}</span>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500, color: award.won ? '#C8963E' : '#D8CFC0' }}>
+                        {award.name}
+                        {award.won && <span style={{ ...MONO, fontSize: '11px', marginLeft: '8px', color: '#C8963E' }}>Won</span>}
+                      </p>
+                      <p style={{ margin: '3px 0 0', ...MONO, fontSize: '11px', color: '#6A6258' }}>
+                        {award.category} · {award.year}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── WHERE TO WATCH ─────────────────────────────────────────────── */}
+        {movie.streaming_links && movie.streaming_links.length > 0 && (
+          <section id="where-to-watch" style={SECTION} aria-labelledby="watch-heading">
+            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
+              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
+                Where to watch
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {movie.streaming_links.map((link: { url: string; platform: string; free?: boolean }, i: number) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      height: '44px', padding: '0 20px', borderRadius: '12px',
+                      border: '1px solid rgba(237,228,210,0.12)', background: '#15120E',
+                      color: '#EDE4D2', fontSize: '14px', fontWeight: 500,
+                      textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
+                    }}
+                  >
+                    {link.platform}
+                    {link.free && (
+                      <span style={{
+                        height: '20px', padding: '0 8px', borderRadius: '4px',
+                        background: 'rgba(127,168,139,0.15)', border: '1px solid rgba(127,168,139,0.25)',
+                        ...MONO, fontSize: '10px', fontWeight: 700, color: '#7FA88B',
+                        display: 'inline-flex', alignItems: 'center',
+                      }}>FREE</span>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ─── SIMILAR FILMS ──────────────────────────────────────────────── */}
         {similar.length > 0 && (

@@ -3,19 +3,21 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { FilmShelf } from '@/components/FilmShelf'
 import { SignedInHero } from '@/components/SignedInHero'
 import { OnboardingFlow } from '@/components/OnboardingFlow'
 import { createClient } from '@/lib/supabase/server'
+import { getCanonMovies, getCurrentClubCycle, getMovieById, getOldButGoldMovies } from '@/lib/queries'
 import {
-  getCanonMovies, getDbStats, getCurrentClubCycle, getMovieById,
-} from '@/lib/queries'
-import { formatCount } from '@/lib/utils'
+  getWorthYourTime, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
+} from '@/lib/home'
+import { MOOD_MAP } from '@/lib/mood'
 import { websiteSchema, organizationSchema, faqSchema } from '@/lib/schema'
 
 export const metadata: Metadata = {
-  title: 'The Living Database of African Cinema | MuvieStars',
+  title: { absolute: 'MuvieStars: Standout African Cinema, Rated by the People Who Watch It' },
   description:
-    'Find what to watch, react to films you have seen, and explore the living database of African cinema. From Nollywood to Francophone Africa.',
+    'Find African films worth your time, say what you thought, and see what other viewers made of them. Every listed film has been checked by a person. Nollywood, Ghallywood, Francophone, East and South African cinema.',
   alternates: { canonical: 'https://muviestars.com' },
 }
 
@@ -24,12 +26,35 @@ export const dynamic = 'force-dynamic'
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
-const STATIC_CANON = [
-  { title: 'Touki Bouki',                   meta: '1973 · Senegal',       dir: 'Djibril Diop Mambéty' },
-  { title: 'Yeelen',                         meta: '1987 · Mali',          dir: 'Souleymane Cissé'      },
-  { title: 'Love Brewed in the African Pot', meta: '1980 · Ghana',         dir: 'Kwaw Ansah'            },
-  { title: 'Sarraounia',                     meta: '1986 · Burkina Faso',  dir: 'Med Hondo'             },
-  { title: 'Living in Bondage',              meta: '1992 · Nigeria',       dir: 'Chris Obi Rapu'        },
+// A section only appears once there is enough real content to make it worth a visit.
+const MIN_SHELF = 4
+const MIN_SMALL_SHELF = 3
+
+const REACTION_LABEL: Record<string, string> = {
+  loved: 'Loved it', liked: 'Liked it', okay: 'It was okay', not_for_me: 'Not for me',
+}
+
+const HOME_FAQ = [
+  {
+    question: 'What is MuvieStars?',
+    answer:
+      'MuvieStars is a home for standout African cinema. A person at MuvieStars checks each film before it is listed, and viewers react to what they watch with a rating, a few words and the things that stood out. It covers Nollywood, Ghallywood, Francophone African, East African and South African films, and the diaspora.',
+  },
+  {
+    question: 'How do films get on MuvieStars?',
+    answer:
+      'A person at MuvieStars checks that a film is a real production, has an African origin, a synopsis, a poster, and evidence it has been released or shown. Listed films appear in Swipe and in recommendations. A listing cannot be bought. The full explanation is at muviestars.com/how-listing-works.',
+  },
+  {
+    question: 'What is the African Film Canon?',
+    answer:
+      'The African Film Canon is a small collection of landmark films that defined African storytelling, chosen for their cultural significance, critical acclaim or historical importance, each with an essay on why it belongs.',
+  },
+  {
+    question: 'Which African film industries are covered?',
+    answer:
+      'MuvieStars covers Nollywood (Nigeria), Ghallywood (Ghana), South African cinema, Kenyan, Ugandan and other East African films, Francophone African cinema, North African cinema, and diaspora films from Europe and North America.',
+  },
 ]
 
 function daysLeftThisWeek(): number {
@@ -40,55 +65,30 @@ function daysLeftThisWeek(): number {
 
 export default async function HomePage() {
   const supabase = await createClient() as any
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: { user } }, canon, stats, cycle] = await Promise.all([
-    supabase.auth.getUser(),
-    getCanonMovies(5),
-    getDbStats(),
-    getCurrentClubCycle(),
+  const isSignedIn     = !!user
+  const showOnboarding = isSignedIn && !user?.user_metadata?.onboarding_completed
+  const fullName       = user?.user_metadata?.full_name as string | undefined
+  const firstName      = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
+
+  const club = (async () => {
+    const cycle = await getCurrentClubCycle()
+    return cycle ? getMovieById(cycle.movie_id) : null
+  })()
+
+  const [clubPick, obg, worth, canon, people, loved, unfinished, takes] = await Promise.all([
+    club,
+    getOldButGoldMovies(6),
+    isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
+    isSignedIn ? Promise.resolve([]) : getCanonMovies(5),
+    isSignedIn ? Promise.resolve([]) : getFeaturedPeople(8),
+    isSignedIn ? getBecauseYouLoved(user.id) : Promise.resolve(null),
+    isSignedIn ? getUnfinishedTitles(user.id) : Promise.resolve([]),
+    isSignedIn ? getRecentTakes(user.id) : Promise.resolve([]),
   ])
 
-  const isSignedIn      = !!user
-  const showOnboarding  = isSignedIn && !user?.user_metadata?.onboarding_completed
-  const fullName        = user?.user_metadata?.full_name as string | undefined
-  const firstName       = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
-
   const daysLeft = daysLeftThisWeek()
-  const clubPick = cycle ? await getMovieById(cycle.movie_id) : null
-
-  const canonRows = canon.length >= 5
-    ? canon.slice(0, 5).map((m, i) => ({
-        n:    String(i + 1).padStart(2, '0'),
-        title: m.title,
-        meta:  `${m.release_year}${m.country ? ` · ${m.country}` : ''}`,
-        dir:   m.director || STATIC_CANON[i]?.dir || '',
-        href:  `/movie/${m.id}`,
-      }))
-    : STATIC_CANON.map((s, i) => ({ n: String(i + 1).padStart(2, '0'), ...s, href: '/browse' }))
-
-  const HOME_FAQ = [
-    {
-      question: 'What is MuvieStars?',
-      answer:
-        'MuvieStars is the most comprehensive database of African cinema on the internet. It covers films from Nollywood (Nigeria), Ghallywood (Ghana), Francophone African cinema, East African films, South African cinema, and the African diaspora worldwide. Users can discover movies, react to films, and explore filmmakers.',
-    },
-    {
-      question: 'How many African movies are on MuvieStars?',
-      answer:
-        `MuvieStars currently documents over ${stats.movieCount.toLocaleString()} verified African films, with new titles added regularly. The database includes films in Yoruba, Igbo, Hausa, Twi, Pidgin, Swahili, French, Arabic, Amharic, and English, among other African languages.`,
-    },
-    {
-      question: 'What is the African Film Canon?',
-      answer:
-        'The African Film Canon is a curated collection of landmark films that defined African storytelling. These are films selected for their cultural significance, critical acclaim, or historical importance to African cinema heritage.',
-    },
-    {
-      question: 'Which African film industries are covered?',
-      answer:
-        "MuvieStars covers all major African film industries including Nollywood (Nigeria), Ghallywood (Ghana), South African cinema, Kenyan films, Ethiopian cinema, Senegalese films, Cameroonian films, Ivorian productions, and diaspora African films from Europe and North America.",
-    },
-  ]
-
   const schemaGraph = [websiteSchema(), organizationSchema(), faqSchema(HOME_FAQ)]
 
   return (
@@ -116,30 +116,25 @@ export default async function HomePage() {
           <div className="ms-grain" aria-hidden="true" />
 
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20 w-full">
-            <div
-              className="grid items-center gap-6 lg:grid-cols-12"
-              style={{ minHeight: '684px' }}
-            >
-              {/* Left: 7 cols */}
+            <div className="grid items-center gap-6 lg:grid-cols-12" style={{ minHeight: '684px' }}>
               <div
                 style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}
                 className="col-span-12 lg:col-span-7 flex flex-col gap-8"
               >
                 <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E' }}>
-                  The living database of African cinema
+                  African cinema worth your time
                 </p>
 
                 <h1
                   id="hero-heading"
                   style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(52px, 8vw, 116px)', lineHeight: '0.92', letterSpacing: '-0.025em', color: '#F6EFE2', margin: 0 }}
                 >
-                  African cinema,{' '}
-                  <em style={{ color: '#C8963E', fontStyle: 'italic' }}>discovered</em>{' '}
-                  differently.
+                  African films worth your{' '}
+                  <em style={{ color: '#C8963E', fontStyle: 'italic' }}>time.</em>
                 </h1>
 
                 <p style={{ margin: 0, maxWidth: '540px', fontSize: '20px', lineHeight: '1.5', color: '#C7BFB2' }}>
-                  Find what to watch, react to films you have seen, and explore the living database of African cinema.
+                  Swipe through films a person at MuvieStars has checked. Say what you thought. See what everyone else made of it.
                 </p>
 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -151,42 +146,34 @@ export default async function HomePage() {
                     <ArrowRight size={18} />
                   </Link>
                   <Link
-                    href="/browse"
+                    href="/discover"
                     style={{ height: '58px', padding: '0 28px', borderRadius: '16px', border: '1px solid rgba(237,228,210,0.18)', color: '#EDE4D2', fontSize: '17px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
                   >
-                    Explore the database
+                    Pick a way in
                   </Link>
                 </div>
               </div>
 
-              {/* Right: swipe card — hidden on mobile */}
+              {/* Right: swipe card, hidden on mobile */}
               <div
                 className="hidden lg:flex"
                 style={{ gridColumn: 'span 5', flexDirection: 'column', alignItems: 'center', gap: '22px' }}
               >
-                {/* Stacked cards */}
                 <div style={{ position: 'relative', width: '380px', height: '520px' }}>
-                  {/* Ghost back */}
                   <div style={{ position: 'absolute', inset: 0, borderRadius: '26px', background: '#3A1520', transform: 'translateX(46px) rotate(9deg)', opacity: 0.45 }} />
-                  {/* Ghost mid */}
                   <div style={{ position: 'absolute', inset: 0, borderRadius: '26px', background: '#0F2230', transform: 'translateX(22px) rotate(4.5deg)', opacity: 0.7, overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', left: 0, right: 0, top: '270px', height: '2px', background: '#E8C27A' }} />
                   </div>
-                  {/* Main card */}
                   <div className="ph-card" style={{ position: 'absolute', inset: 0, borderRadius: '26px', overflow: 'hidden', boxShadow: '0 40px 80px rgba(0,0,0,.6)' }}>
                     <div style={{ position: 'absolute', inset: 0, background: '#12242B' }} />
-                    {/* Abstract arch art */}
                     <div style={{ position: 'absolute', left: '50%', top: '14%', width: '270px', height: '360px', marginLeft: '-135px', borderRadius: '135px 135px 0 0', background: '#C8963E' }} />
                     <div style={{ position: 'absolute', left: '50%', top: '25%', width: '118px', height: '118px', marginLeft: '-59px', borderRadius: '50%', background: '#12242B' }} />
                     <div className="ms-grain" />
-                    {/* Gradient */}
                     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '60%', background: 'linear-gradient(to top,rgba(8,7,6,.96) 0%,rgba(8,7,6,.7) 40%,rgba(8,7,6,0))' }} />
-                    {/* Club pick badge */}
                     <div style={{ position: 'absolute', top: '16px', left: '16px', height: '30px', padding: '0 12px', borderRadius: '999px', background: 'rgba(11,10,9,0.6)', display: 'flex', alignItems: 'center', gap: '8px', ...MONO, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C8963E', display: 'inline-block' }} />
                       Club pick
                     </div>
-                    {/* Film info */}
                     <div style={{ position: 'absolute', left: '24px', right: '24px', bottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ ...SERIF, fontSize: '48px', lineHeight: '0.98', color: '#F6EFE2' }}>
                         {clubPick?.title || 'Silence'}
@@ -200,7 +187,6 @@ export default async function HomePage() {
                   </div>
                 </div>
 
-                {/* Swipe buttons */}
                 <div style={{ display: 'flex', gap: '12px', width: '380px' }}>
                   <Link
                     href="/swipe"
@@ -218,8 +204,8 @@ export default async function HomePage() {
                   </Link>
                 </div>
 
-                <p style={{ fontSize: '13px', color: '#8C857A' }}>
-                  Try it — no account needed. {stats.movieCount.toLocaleString()}+ films in the stack.
+                <p style={{ fontSize: '13px', color: '#8C857A', margin: 0 }}>
+                  Try it. No account needed.
                 </p>
               </div>
             </div>
@@ -227,53 +213,16 @@ export default async function HomePage() {
         </section>
         )}
 
-        {/* ── STATS ────────────────────────────────────────────────────── */}
-        <div
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ borderTop: '1px solid rgba(237,228,210,.1)', borderBottom: '1px solid rgba(237,228,210,.1)' }}
-          aria-label="Database statistics"
-        >
-          <div className="grid grid-cols-2 sm:grid-cols-4">
-            {[
-              { n: formatCount(stats.movieCount),   label: 'films documented'       },
-              { n: String(stats.creatorCount || 0), label: 'people & filmographies' },
-              { n: String(stats.countryCount || 0), label: 'countries'              },
-              { n: '0',                              label: 'festivals & awards'     },
-            ].map(({ n, label }, i) => (
-              <div
-                key={label}
-                className={i > 0 ? 'border-l border-white/10' : ''}
-                style={{
-                  padding: '24px 20px',
-                  display: 'flex', flexDirection: 'column', gap: '14px',
-                }}
-              >
-                <div style={{ ...SERIF, fontSize: 'clamp(36px,5vw,64px)', lineHeight: 1, color: '#F6EFE2' }}>
-                  {n}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '15px', color: '#C7BFB2' }}>{label}</span>
-                  <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7FA88B' }}>Live</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* ── MUVIESTARS CLUB ──────────────────────────────────────────── */}
         <section
           className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px' }}
+          style={{ paddingTop: '96px' }}
           aria-labelledby="club-heading"
         >
           <div
             className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-[480px]"
-            style={{
-              borderRadius: '32px', background: '#12242B',
-              position: 'relative', overflow: 'hidden',
-            }}
+            style={{ borderRadius: '32px', background: '#12242B', position: 'relative', overflow: 'hidden' }}
           >
-            {/* Arch fallback — only when no poster */}
             {!clubPick?.poster_url && (
               <>
                 <div style={{ position: 'absolute', right: '140px', top: '60px', width: '340px', height: '460px', borderRadius: '170px 170px 0 0', background: '#C8963E' }} />
@@ -282,7 +231,6 @@ export default async function HomePage() {
             )}
             <div className="ms-grain" />
 
-            {/* Content */}
             <div
               style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
               className="col-span-12 lg:col-span-6 p-8 lg:p-14"
@@ -298,7 +246,7 @@ export default async function HomePage() {
                   {clubPick?.title || 'African Cinema'}
                 </h2>
                 <p style={{ margin: 0, maxWidth: '460px', fontSize: '18px', lineHeight: '1.5', color: '#C9D4D7' }}>
-                  One film, watched together, every week. This week: a story worth watching and discussing as a community.
+                  One film, watched together, every week. Watch it when you can, then come back and say what you thought.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -314,146 +262,305 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Poster — desktop right column */}
             {clubPick?.poster_url && (
-              <div
-                className="hidden lg:block lg:col-span-6"
-                style={{ position: 'relative', minHeight: '480px' }}
-              >
+              <div className="hidden lg:block lg:col-span-6" style={{ position: 'relative', minHeight: '480px' }}>
                 <img
                   src={clubPick.poster_url}
                   alt={`${clubPick.title} poster`}
-                  style={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'cover', objectPosition: 'center top',
-                    opacity: 0.75,
-                  }}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', opacity: 0.75 }}
                 />
-                {/* Blend left edge into card background */}
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #12242B 0%, transparent 40%)' }} />
               </div>
             )}
           </div>
         </section>
 
-        {/* ── AFRICAN FILM CANON ───────────────────────────────────────── */}
-        <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px' }}
-          aria-labelledby="canon-heading"
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        {/* ── SIGNED-OUT: WORTH YOUR TIME ──────────────────────────────── */}
+        {!isSignedIn && worth.length >= MIN_SHELF && (
+          <FilmShelf
+            id="worth"
+            eyebrow="Worth your time"
+            title="Start with these."
+            note="Listed films, checked by a person. The ones with a reason come first."
+            href="/discover"
+            hrefLabel="More ways in"
+            films={worth}
+          />
+        )}
+
+        {/* ── SIGNED-IN: BECAUSE YOU LOVED ─────────────────────────────── */}
+        {isSignedIn && loved && loved.films.length >= MIN_SMALL_SHELF && (
+          <FilmShelf
+            id="loved"
+            eyebrow="Because you loved"
+            title={loved.source.title}
+            href={`/movie/${loved.source.id}`}
+            hrefLabel="See the film"
+            films={loved.films}
+          />
+        )}
+
+        {/* ── OLD BUT GOLD ─────────────────────────────────────────────── */}
+        {obg.length >= MIN_SMALL_SHELF && (
+          <FilmShelf
+            id="obg"
+            eyebrow="Old but Gold"
+            title="Worth going back for."
+            note="Films from before 2010."
+            href="/swipe?mood=obg"
+            hrefLabel="Swipe through them"
+            films={obg}
+          />
+        )}
+
+        {/* ── SIGNED-IN: UNFINISHED TITLES ─────────────────────────────── */}
+        {isSignedIn && unfinished.length > 0 && (
+          <FilmShelf
+            id="unfinished"
+            eyebrow="Pick up where you left off"
+            title="You said you had seen these."
+            note="Tell us what you thought. It takes ten seconds."
+            films={unfinished}
+          />
+        )}
+
+        {/* ── SIGNED-IN: RECENT TAKES ──────────────────────────────────── */}
+        {isSignedIn && takes.length > 0 && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '96px' }}
+            aria-labelledby="takes-heading"
+          >
+            <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 10px' }}>
+              Your recent takes
+            </p>
+            <h2 id="takes-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: '0 0 28px' }}>
+              What you said.
+            </h2>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxWidth: '760px' }}>
+              {takes.map((t) => (
+                <li key={t.id} style={{ display: 'grid', gridTemplateColumns: '56px 1fr', gap: '16px', padding: '18px 0', borderTop: '1px solid rgba(237,228,210,.1)' }}>
+                  <Link href={`/movie/${t.movie.id}`} style={{ display: 'block', width: '56px', aspectRatio: '2/3', borderRadius: '8px', overflow: 'hidden', background: '#15120E' }}>
+                    {t.movie.poster_url && (
+                      <img src={t.movie.poster_url} alt="" width={56} height={84} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    )}
+                  </Link>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                    <Link href={`/movie/${t.movie.id}`} style={{ ...SERIF, fontSize: '26px', lineHeight: 1.1, color: '#F6EFE2', textDecoration: 'none' }}>
+                      {t.movie.title}
+                    </Link>
+                    <p style={{ margin: 0, ...MONO, fontSize: '12px', color: '#8C857A' }}>
+                      {REACTION_LABEL[t.reaction] ?? t.reaction}
+                      {t.rating ? `  ·  ${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}` : ''}
+                    </p>
+                    {t.one_liner && (
+                      <p style={{ margin: '4px 0 0', fontSize: '16px', lineHeight: 1.5, color: '#C7BFB2' }}>&ldquo;{t.one_liner}&rdquo;</p>
+                    )}
+                    {t.token && (
+                      <Link href={`/take/${t.token}`} style={{ marginTop: '6px', fontSize: '14px', color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                        Open your share card
+                      </Link>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ── SIGNED-OUT: CANON ────────────────────────────────────────── */}
+        {!isSignedIn && canon.length > 0 && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '96px' }}
+            aria-labelledby="canon-heading"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
+                    African Film Canon
+                  </p>
+                  <h2 id="canon-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
+                    The essentials.
+                  </h2>
+                </div>
+                <Link href="/canon" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                  View the Canon →
+                </Link>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '720px' }}>
+                {canon.map((m, i) => (
+                  <Link
+                    key={m.id}
+                    href={`/movie/${m.id}`}
+                    className="grid grid-cols-[44px_1fr] lg:grid-cols-[44px_1fr_auto] items-center gap-[14px] py-4 hover:bg-cinema-surface/30 rounded transition-colors"
+                    style={{ borderTop: '1px solid rgba(237,228,210,.1)', textDecoration: 'none', color: '#EDE4D2' }}
+                  >
+                    <span style={{ ...SERIF, fontSize: '36px', color: '#6E675E' }}>{String(i + 1).padStart(2, '0')}</span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ ...SERIF, fontSize: '30px', lineHeight: '1.05', color: '#F6EFE2' }}>{m.title}</span>
+                      <span style={{ fontSize: '14px', color: '#A39B8F' }}>
+                        {m.release_year}{m.country ? ` · ${m.country}` : ''}
+                      </span>
+                    </span>
+                    <span className="hidden lg:block" style={{ fontSize: '14px', color: '#A39B8F', textAlign: 'right' }}>{m.director ?? ''}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── SIGNED-OUT: PEOPLE TO WATCH ──────────────────────────────── */}
+        {!isSignedIn && people.length >= MIN_SMALL_SHELF && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '96px' }}
+            aria-labelledby="people-heading"
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap', marginBottom: '28px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
-                  African Film Canon
-                </p>
-                <h2
-                  id="canon-heading"
-                  style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}
-                >
-                  The essentials.
+                <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>People to watch</p>
+                <h2 id="people-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
+                  Behind and in front of the camera.
                 </h2>
               </div>
-              <Link href="/canon" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none' }}>
-                View the Canon →
+              <Link href="/people" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                All people →
               </Link>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '720px' }}>
-              {canonRows.map(({ n, title, meta, dir, href }) => (
-                <Link
-                  key={n}
-                  href={href}
-                  className="grid grid-cols-[44px_1fr] lg:grid-cols-[44px_1fr_auto] items-center gap-[14px] py-4 hover:bg-cinema-surface/30 rounded transition-colors"
-                  style={{ borderTop: '1px solid rgba(237,228,210,.1)', textDecoration: 'none', color: '#EDE4D2' }}
-                >
-                  <span style={{ ...SERIF, fontSize: '36px', color: '#6E675E' }}>{n}</span>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ ...SERIF, fontSize: '30px', lineHeight: '1.05', color: '#F6EFE2' }}>{title}</span>
-                    <span style={{ fontSize: '14px', color: '#A39B8F' }}>{meta}</span>
-                  </span>
-                  <span className="hidden lg:block" style={{ fontSize: '14px', color: '#A39B8F', textAlign: 'right' }}>{dir}</span>
-                </Link>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              {people.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/person/${p.slug}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', minHeight: '64px', padding: '8px 18px 8px 8px', borderRadius: '999px', border: '1px solid rgba(237,228,210,0.12)', background: '#0F0D0B', textDecoration: 'none' }}
+                  >
+                    <span style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(200,150,62,0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {p.profile_image ? (
+                        <img src={p.profile_image} alt="" width={48} height={48} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ ...SERIF, fontSize: '22px', color: '#C8963E' }}>{p.full_name.charAt(0)}</span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: '16px', color: '#F6EFE2' }}>{p.full_name}</span>
+                  </Link>
+                </li>
               ))}
-            </div>
-          </div>
-        </section>
+            </ul>
+          </section>
+        )}
 
-        {/* ── FAQ ──────────────────────────────────────────────────────── */}
-        <section
-          className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '120px', paddingBottom: '0' }}
-          aria-labelledby="faq-heading"
-        >
-          <div style={{ maxWidth: '760px' }}>
-            <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 12px' }}>
-              Common questions
-            </p>
-            <h2
-              id="faq-heading"
-              style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: '0 0 48px' }}
-            >
-              About MuvieStars
-            </h2>
-            <dl style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-              {HOME_FAQ.map((item) => (
-                <div key={item.question} style={{ borderTop: '1px solid rgba(237,228,210,.1)', padding: '24px 0' }}>
-                  <dt style={{ fontSize: '18px', fontWeight: 500, color: '#F6EFE2', marginBottom: '10px' }}>
-                    {item.question}
-                  </dt>
-                  <dd style={{ fontSize: '15px', color: '#C7BFB2', lineHeight: '1.65', margin: 0 }}>
-                    {item.answer}
-                  </dd>
+        {/* ── SIGNED-OUT: BY MOOD AND SEARCH ───────────────────────────── */}
+        {!isSignedIn && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '96px' }}
+            aria-labelledby="mood-heading"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              <div className="lg:col-span-7" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>Not sure what to watch?</p>
+                  <h2 id="mood-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
+                    Start from how you feel.
+                  </h2>
                 </div>
-              ))}
-            </dl>
-          </div>
-        </section>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {Object.values(MOOD_MAP).map((m) => (
+                    <li key={m.slug}>
+                      <Link
+                        href={`/swipe?mood=${m.slug}`}
+                        style={{ height: '44px', padding: '0 20px', borderRadius: '999px', background: m.chipBg, color: m.chipText, fontSize: '15px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', border: '1px solid rgba(237,228,210,0.08)' }}
+                      >
+                        {m.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p style={{ margin: 0, fontSize: '15px', color: '#8C857A' }}>
+                  Or go by <Link href="/browse" style={{ color: '#C8963E', textDecoration: 'none' }}>genre</Link>,{' '}
+                  <Link href="/discover" style={{ color: '#C8963E', textDecoration: 'none' }}>country and industry</Link>.
+                </p>
+              </div>
+
+              <div className="lg:col-span-5" style={{ display: 'flex', flexDirection: 'column', gap: '14px', justifyContent: 'flex-end' }}>
+                <form action="/search" method="get" role="search" style={{ display: 'flex', gap: '10px' }}>
+                  <label htmlFor="home-q" className="sr-only">Search films, people and places</label>
+                  <input
+                    id="home-q"
+                    name="q"
+                    type="search"
+                    autoComplete="off"
+                    placeholder="A film, an actor, a city"
+                    style={{ flex: 1, minWidth: 0, height: '52px', padding: '0 18px', borderRadius: '14px', background: '#0F0D0B', border: '1px solid rgba(237,228,210,0.16)', color: '#F6EFE2', fontSize: '16px' }}
+                  />
+                  <button
+                    type="submit"
+                    style={{ height: '52px', padding: '0 22px', borderRadius: '14px', background: '#C8963E', color: '#0B0A09', fontSize: '15px', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                  >
+                    Find it
+                  </button>
+                </form>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── FAQ (signed-out only) ────────────────────────────────────── */}
+        {!isSignedIn && (
+          <section
+            className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
+            style={{ paddingTop: '120px' }}
+            aria-labelledby="faq-heading"
+          >
+            <div style={{ maxWidth: '760px' }}>
+              <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 12px' }}>
+                Common questions
+              </p>
+              <h2 id="faq-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(28px,4vw,48px)', lineHeight: 1, color: '#F6EFE2', margin: '0 0 48px' }}>
+                About MuvieStars
+              </h2>
+              <dl style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                {HOME_FAQ.map((item) => (
+                  <div key={item.question} style={{ borderTop: '1px solid rgba(237,228,210,.1)', padding: '24px 0' }}>
+                    <dt style={{ fontSize: '18px', fontWeight: 500, color: '#F6EFE2', marginBottom: '10px' }}>{item.question}</dt>
+                    <dd style={{ fontSize: '15px', color: '#C7BFB2', lineHeight: '1.65', margin: 0 }}>{item.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        )}
 
         {/* ── CTA ──────────────────────────────────────────────────────── */}
         <section
           className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
-          style={{ paddingTop: '140px', paddingBottom: '0' }}
+          style={{ paddingTop: '120px', paddingBottom: '0' }}
           aria-labelledby="cta-heading"
         >
           <div
             className="p-8 sm:p-12 lg:p-[72px]"
-            style={{
-              borderRadius: '36px', background: '#C8963E', color: '#0B0A09',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '40px',
-              flexWrap: 'wrap',
-            }}
+            style={{ borderRadius: '36px', background: '#C8963E', color: '#0B0A09', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '40px', flexWrap: 'wrap' }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '760px' }}>
-              <h2
-                id="cta-heading"
-                style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(44px,6vw,88px)', lineHeight: '0.92', letterSpacing: '-0.02em', margin: 0 }}
-              >
-                {isSignedIn ? 'There is always more to discover.' : 'Find something worth watching.'}
+              <h2 id="cta-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(44px,6vw,88px)', lineHeight: '0.92', letterSpacing: '-0.02em', margin: 0 }}>
+                {isSignedIn ? 'There is always another one.' : 'Find something worth watching.'}
               </h2>
               <p style={{ margin: 0, fontSize: '19px', lineHeight: '1.5', color: 'rgba(43,33,18,.85)' }}>
                 {isSignedIn
-                  ? 'Every swipe adds to your collection and sharpens the picture of what African cinema actually is.'
-                  : 'Tell us what you thought. Help shape how African cinema is discovered. Free, always.'}
+                  ? 'Every swipe teaches us what you like, so the next film is a better pick.'
+                  : 'Tell us what you thought. Your rating helps the next viewer decide. Free, always.'}
               </p>
             </div>
-            {isSignedIn ? (
-              <Link
-                href="/swipe"
-                style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
-              >
-                Keep swiping
-              </Link>
-            ) : (
-              <Link
-                href="/auth"
-                style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
-              >
-                Create your free account
-              </Link>
-            )}
+            <Link
+              href={isSignedIn ? '/swipe' : '/auth'}
+              style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
+            >
+              {isSignedIn ? 'Keep swiping' : 'Create your free account'}
+            </Link>
           </div>
         </section>
 

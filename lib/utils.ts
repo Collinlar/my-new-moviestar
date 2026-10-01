@@ -110,3 +110,9 @@ export function formatCount(n: number): string {
   if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K+`
   return String(n)
 }
+
+export const COUNTRIES = [
+  'Nigeria', 'Ghana', 'South Africa', 'Kenya', 'Ethiopia', 'Tanzania',
+  'Uganda', 'Senegal', "Côte d'Ivoire", 'Cameroon', 'Zimbabwe',
+  'Zambia', 'Rwanda', 'Egypt', 'Morocco', 'Tunisia', 'Other',
+] as const

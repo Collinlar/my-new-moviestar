@@ -8,6 +8,18 @@ import { capitalise } from '@/lib/utils'
 import { Edit2, Trash2, Star, BookOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Movie } from '@/lib/queries'
+import { STATUS_LABELS, type ListingStatus } from '@/lib/listing'
+
+const LISTING_PILL: Record<ListingStatus, string> = {
+  draft:             'bg-cinema-surface text-film-muted',
+  submitted:         'bg-blue-400/10 text-blue-300',
+  under_review:      'bg-blue-400/10 text-blue-300',
+  needs_information: 'bg-film-gold/10 text-film-gold',
+  approved:          'bg-emerald-400/10 text-emerald-300',
+  rejected:          'bg-red-400/10 text-red-300',
+  archived:          'bg-cinema-surface text-film-subtle',
+  delisted:          'bg-red-400/10 text-red-300',
+}
 
 interface Props {
   movies: Movie[]
@@ -64,6 +76,7 @@ export function MovieTable({ movies: initial }: Props) {
             <th className="text-left py-3 px-3 text-xs font-semibold text-film-muted tracking-wide hidden md:table-cell">Genre</th>
             <th className="text-left py-3 px-3 text-xs font-semibold text-film-muted tracking-wide hidden lg:table-cell">Language</th>
             <th className="text-left py-3 px-3 text-xs font-semibold text-film-muted tracking-wide hidden md:table-cell">Year</th>
+            <th className="text-left py-3 px-3 text-xs font-semibold text-film-muted tracking-wide">Listing</th>
             <th className="text-center py-3 px-3 text-xs font-semibold text-film-muted tracking-wide">Featured</th>
             <th className="text-center py-3 px-3 text-xs font-semibold text-film-muted tracking-wide hidden sm:table-cell">Canon</th>
             <th className="text-right py-3 px-4 text-xs font-semibold text-film-muted tracking-wide">Actions</th>
@@ -86,6 +99,13 @@ export function MovieTable({ movies: initial }: Props) {
               </td>
               <td className="py-3 px-3 hidden md:table-cell">
                 <span className="text-film-muted">{movie.release_year}</span>
+              </td>
+              <td className="py-3 px-3">
+                {movie.listing_status && (
+                  <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded whitespace-nowrap ${LISTING_PILL[movie.listing_status]}`}>
+                    {STATUS_LABELS[movie.listing_status]}
+                  </span>
+                )}
               </td>
               <td className="py-3 px-3 text-center">
                 <button

@@ -9,9 +9,9 @@ export function websiteSchema() {
     '@type': 'WebSite',
     '@id': `${SITE_URL}/#website`,
     name: SITE_NAME,
-    alternateName: 'MuvieStars.com — The African Movie Database',
+    alternateName: 'MuvieStars: Standout African Cinema',
     description:
-      'The most comprehensive database of African cinema. Thousands of films from Nollywood, Ghallywood, Francophone Africa, East Africa, and the diaspora — fully reviewed, rated, and documented.',
+      'A home for standout African cinema. Find films worth your time from Nollywood, Ghallywood, Francophone, East and South Africa and the diaspora, rate what you watch, and see what other viewers thought.',
     url: SITE_URL,
     potentialAction: {
       '@type': 'SearchAction',
@@ -35,7 +35,7 @@ export function organizationSchema() {
       height: 512,
     },
     description:
-      'MuvieStars is dedicated to preserving and celebrating African cinema through a comprehensive archive of films, filmmakers, and community reviews.',
+      'MuvieStars helps people find, rate and talk about standout African cinema. Films are checked by a person before they are listed, and a listing cannot be bought.',
     foundingDate: '2024',
     areaServed: 'Africa',
     knowsAbout: ['African cinema', 'Nollywood', 'Ghallywood', 'African film history'],

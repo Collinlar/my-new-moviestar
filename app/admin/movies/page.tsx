@@ -3,11 +3,12 @@ import Link from 'next/link'
 import { MovieTable } from '@/components/admin/MovieTable'
 import { Plus } from 'lucide-react'
 import type { Movie } from '@/lib/queries'
+import { LISTING_STATUSES, STATUS_LABELS } from '@/lib/listing'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; page?: string }>
+  searchParams: Promise<{ q?: string; listing?: string; page?: string }>
 }
 
 export default async function AdminMoviesPage({ searchParams }: PageProps) {
@@ -19,9 +20,13 @@ export default async function AdminMoviesPage({ searchParams }: PageProps) {
 
   let query = supabase
     .from('movies')
-    .select('id, title, genre, language, release_year, country, director, featured, is_canon, average_rating, review_count, poster_url, youtube_url, description', { count: 'exact' })
+    .select('id, title, genre, language, release_year, country, director, featured, is_canon, listing_status, average_rating, review_count, poster_url, youtube_url, description', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + perPage - 1)
+
+  if (sp.listing && (LISTING_STATUSES as readonly string[]).includes(sp.listing)) {
+    query = query.eq('listing_status', sp.listing)
+  }
 
   if (sp.q) {
     query = query.or(`title.ilike.%${sp.q}%,director.ilike.%${sp.q}%`)
@@ -49,13 +54,20 @@ export default async function AdminMoviesPage({ searchParams }: PageProps) {
       </div>
 
       {/* Search */}
-      <form method="GET" className="mb-6">
-        <input
-          name="q"
-          defaultValue={sp.q}
-          placeholder="Search by title or director..."
-          className="cinema-input max-w-sm"
-        />
+      <form method="GET" className="mb-6 flex flex-wrap items-end gap-3">
+        <div>
+          <label htmlFor="m-q" className="block text-xs text-film-muted mb-1">Title or director</label>
+          <input id="m-q" name="q" defaultValue={sp.q} placeholder="Search by title or director" className="cinema-input w-72" />
+        </div>
+        <div>
+          <label htmlFor="m-listing" className="block text-xs text-film-muted mb-1">Listing</label>
+          <select id="m-listing" name="listing" defaultValue={sp.listing ?? ''} className="cinema-input w-48">
+            <option value="">Any status</option>
+            {LISTING_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+          </select>
+        </div>
+        <button type="submit" className="btn-outline py-2 text-sm">Apply filters</button>
+        <Link href="/admin/listing" className="text-sm text-film-gold hover:underline pb-2">Open the listing queue</Link>
       </form>
 
       {/* Table */}
@@ -72,7 +84,7 @@ export default async function AdminMoviesPage({ searchParams }: PageProps) {
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`/admin/movies?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), page: String(page - 1) })}`}
+                href={`/admin/movies?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.listing ? { listing: sp.listing } : {}), page: String(page - 1) })}`}
                 className="btn-outline py-1.5 px-3 text-xs"
               >
                 Previous
@@ -80,7 +92,7 @@ export default async function AdminMoviesPage({ searchParams }: PageProps) {
             )}
             {page < totalPages && (
               <Link
-                href={`/admin/movies?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), page: String(page + 1) })}`}
+                href={`/admin/movies?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.listing ? { listing: sp.listing } : {}), page: String(page + 1) })}`}
                 className="btn-outline py-1.5 px-3 text-xs"
               >
                 Next

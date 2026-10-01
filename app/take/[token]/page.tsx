@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createStaticClient } from '@/lib/supabase/static'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
+import { ShareVisitBeacon } from '@/components/ShareVisitBeacon'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -23,9 +24,10 @@ async function getShareData(token: string) {
   const supabase = createStaticClient() as any
 
   const { data: card } = await supabase
-    .from('review_share_cards')
+    .from('share_cards')
     .select('reaction_id, movie_id, user_id')
     .eq('share_token', token)
+    .eq('object_type', 'take')
     .maybeSingle()
 
   if (!card) return null
@@ -258,6 +260,7 @@ export default async function TakePage({ params }: PageProps) {
 
       </main>
 
+      <ShareVisitBeacon token={token} />
       <Footer />
     </>
   )

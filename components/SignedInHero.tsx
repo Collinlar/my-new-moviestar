@@ -167,7 +167,7 @@ export function SignedInHero({ userName }: Props) {
               Continue swiping
             </Link>
             <Link
-              href="/browse"
+              href="/discover"
               style={{
                 height: '56px', padding: '0 28px', borderRadius: '16px',
                 border: '1px solid rgba(237,228,210,0.18)', color: '#EDE4D2',
@@ -176,7 +176,7 @@ export function SignedInHero({ userName }: Props) {
                 textDecoration: 'none',
               }}
             >
-              Explore the database
+              Pick a way in
             </Link>
           </div>
 

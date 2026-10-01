@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createStaticClient } from '@/lib/supabase/static'
 import { cleanSearchTerm, isUuid, type Socials } from '@/lib/people'
+import { onlyListed, type ListingStatus } from '@/lib/listing'
 
 export interface StreamingLink {
   platform: string
@@ -38,6 +39,8 @@ export interface Movie {
   featured?: boolean
   canon_essay?: string
   canon_essay_author?: string
+  listing_status?: ListingStatus
+  why_listed?: string | null
   creator?: { id: string; name: string; image_url?: string }
 }
 
@@ -91,10 +94,12 @@ export interface PersonCredit {
 
 export async function getFeaturedMovies(limit = 6): Promise<Movie[]> {
   const supabase = await createClient() as any
-  const { data } = await supabase
-    .from('movies')
-    .select('*, creator:creators(id, name, image_url)')
-    .eq('featured', true)
+  const { data } = await onlyListed(
+    supabase
+      .from('movies')
+      .select('*, creator:creators(id, name, image_url)')
+      .eq('featured', true),
+  )
     .order('created_at', { ascending: false })
     .limit(limit)
   return (data as Movie[]) || []
@@ -104,22 +109,33 @@ export async function getTrendingMovies(limit = 8): Promise<Movie[]> {
   const supabase = await createClient() as any
   const { data, error } = await supabase.rpc('get_trending_movies')
   if (error || !data) {
-    const { data: fallback } = await supabase
-      .from('movies')
-      .select('*, creator:creators(id, name, image_url)')
+    const { data: fallback } = await onlyListed(
+      supabase
+        .from('movies')
+        .select('*, creator:creators(id, name, image_url)'),
+    )
       .order('review_count', { ascending: false })
       .limit(limit)
     return (fallback as Movie[]) || []
   }
-  return ((data as Movie[]) || []).slice(0, limit)
+  // The trending function predates listing statuses, so keep only listed films.
+  const trending = (data as Movie[]) || []
+  if (trending.length === 0) return []
+  const { data: listed } = await onlyListed(
+    supabase.from('movies').select('id').in('id', trending.map((m) => m.id)),
+  )
+  const listedIds = new Set(((listed as { id: string }[]) || []).map((m) => m.id))
+  return trending.filter((m) => listedIds.has(m.id)).slice(0, limit)
 }
 
 export async function getCanonMovies(limit = 8): Promise<Movie[]> {
   const supabase = await createClient() as any
-  const { data } = await supabase
-    .from('movies')
-    .select('*, creator:creators(id, name, image_url)')
-    .eq('is_canon', true)
+  const { data } = await onlyListed(
+    supabase
+      .from('movies')
+      .select('*, creator:creators(id, name, image_url)')
+      .eq('is_canon', true),
+  )
     .order('release_year', { ascending: true })
     .limit(limit)
   return (data as Movie[]) || []
@@ -249,6 +265,7 @@ export async function browseMovies(opts: {
   genre?: string
   language?: string
   industry?: string
+  country?: string
   yearFrom?: number
   yearTo?: number
   search?: string
@@ -265,6 +282,7 @@ export async function browseMovies(opts: {
   if (opts.genre)    query = query.eq('genre', opts.genre)
   if (opts.language) query = query.eq('language', opts.language)
   if (opts.industry) query = query.eq('industry', opts.industry)
+  if (opts.country)  query = query.eq('country', opts.country)
   if (opts.yearFrom) query = query.gte('release_year', opts.yearFrom)
   if (opts.yearTo)   query = query.lte('release_year', opts.yearTo)
   if (opts.search) {
@@ -296,10 +314,12 @@ export async function searchMovies(q: string, limit = 20): Promise<Movie[]> {
 
 export async function getOldButGoldMovies(limit = 6): Promise<Movie[]> {
   const supabase = await createClient() as any
-  const { data } = await supabase
-    .from('movies')
-    .select('*, creator:creators(id, name, image_url)')
-    .lte('release_year', 2000)
+  const { data } = await onlyListed(
+    supabase
+      .from('movies')
+      .select('*, creator:creators(id, name, image_url)')
+      .lte('release_year', 2010),
+  )
     .order('review_count', { ascending: false })
     .limit(limit)
   return (data as Movie[]) || []
@@ -344,6 +364,24 @@ export async function getAllMovieIds(): Promise<string[]> {
   return (data || []).map((m: { id: string }) => m.id)
 }
 
+/** Films that belong in the sitemap. Rejected, archived and delisted films are left out. */
+export async function getSitemapMovies(): Promise<Array<{ id: string; listing_status: ListingStatus; updated_at: string }>> {
+  const supabase = createStaticClient() as any
+  const out: Array<{ id: string; listing_status: ListingStatus; updated_at: string }> = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('movies')
+      .select('id, listing_status, updated_at')
+      .not('listing_status', 'in', '(rejected,archived,delisted)')
+      .order('created_at', { ascending: false })
+      .range(from, from + 999)
+    if (error || !data || data.length === 0) break
+    out.push(...(data as typeof out))
+    if (data.length < 1000) break
+  }
+  return out
+}
+
 export async function getAllCreatorIds(): Promise<string[]> {
   const supabase = createStaticClient() as any
   const { data } = await supabase.from('creators').select('id')
@@ -362,28 +400,35 @@ export async function getMovieVerdict(movieId: string): Promise<MovieVerdict | n
   try {
     const supabase = await createClient() as any
 
-    const { data: reactions } = await supabase
-      .from('movie_reactions')
-      .select(`
-        id,
-        reaction,
-        movie_reaction_tags (
-          reaction_tags ( slug, label )
-        )
-      `)
-      .eq('movie_id', movieId)
-      .eq('status', 'published')
+    // Every person counts once, whether they left a quick review, a full review or both.
+    // Tags only exist on quick reviews, so they are counted against quick reviewers.
+    const [{ data: takes }, { data: quick }] = await Promise.all([
+      supabase.from('takes').select('reaction').eq('movie_id', movieId),
+      supabase
+        .from('movie_reactions')
+        .select(`
+          id,
+          movie_reaction_tags (
+            reaction_tags ( slug, label )
+          )
+        `)
+        .eq('movie_id', movieId)
+        .eq('status', 'published'),
+    ])
 
-    if (!reactions || reactions.length === 0) return null
+    if (!takes || takes.length === 0) return null
 
-    const total = reactions.length
+    const total = takes.length
+    const quickCount = Math.max(quick?.length ?? 0, 1)
     const breakdown = { loved: 0, liked: 0, okay: 0, not_for_me: 0 }
     const tagCounts: Record<string, { label: string; count: number }> = {}
 
-    for (const r of reactions) {
-      if (r.reaction in breakdown) {
-        breakdown[r.reaction as keyof typeof breakdown]++
+    for (const t of takes as { reaction: string }[]) {
+      if (t.reaction in breakdown) {
+        breakdown[t.reaction as keyof typeof breakdown]++
       }
+    }
+    for (const r of (quick ?? []) as any[]) {
       for (const rt of r.movie_reaction_tags || []) {
         const tag = rt.reaction_tags as { slug: string; label: string } | null
         if (tag?.slug) {
@@ -397,7 +442,7 @@ export async function getMovieVerdict(movieId: string): Promise<MovieVerdict | n
     const top_tags = Object.entries(tagCounts)
       .map(([slug, { label, count }]) => ({
         slug, label, count,
-        pct: Math.round((count / total) * 100),
+        pct: Math.round((count / quickCount) * 100),
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6)

@@ -3,18 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { GENRES, LANGUAGES, LANGUAGE_META, INDUSTRIES, STREAMING_PLATFORMS, capitalise } from '@/lib/utils'
+import { GENRES, LANGUAGES, LANGUAGE_META, INDUSTRIES, STREAMING_PLATFORMS, COUNTRIES, capitalise } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Plus, Trash2 } from 'lucide-react'
 import type { Movie, StreamingLink } from '@/lib/queries'
 import { CreditsEditor } from '@/components/admin/CreditsEditor'
 import { saveCredits, findDuplicate, type CreditDraft } from '@/lib/credits'
-
-const COUNTRIES = [
-  'Nigeria', 'Ghana', 'South Africa', 'Kenya', 'Ethiopia', 'Tanzania',
-  'Uganda', 'Senegal', 'Côte d\'Ivoire', 'Cameroon', 'Zimbabwe',
-  'Zambia', 'Rwanda', 'Egypt', 'Morocco', 'Tunisia', 'Other',
-]
 
 const DIST_STATUSES = ['streaming', 'theatrical', 'home_video', 'festival', 'limited', 'unknown']
 

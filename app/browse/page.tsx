@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer'
 import { SearchBar } from '@/components/SearchBar'
 import { browseMovies } from '@/lib/queries'
 import { breadcrumbSchema } from '@/lib/schema'
+import { ListedDot } from '@/components/ListedMark'
 import { SITE_URL, GENRES, LANGUAGES, LANGUAGE_META, INDUSTRIES, capitalise } from '@/lib/utils'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -16,6 +17,7 @@ interface PageProps {
     genre?: string
     language?: string
     industry?: string
+    country?: string
     yearFrom?: string
     yearTo?: string
     sort?: string
@@ -53,6 +55,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
     genre:     sp.genre,
     language:  sp.language,
     industry:  sp.industry,
+    country:   sp.country,
     yearFrom:  sp.yearFrom ? Number(sp.yearFrom) : undefined,
     yearTo:    sp.yearTo   ? Number(sp.yearTo)   : undefined,
     sortBy:    sortBy as 'title' | 'release_year' | 'average_rating' | 'created_at',
@@ -103,7 +106,9 @@ export default async function BrowsePage({ searchParams }: PageProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '640px' }}>
               <div>
                 <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(36px,5vw,64px)', lineHeight: 1, color: '#F6EFE2', margin: 0 }}>
-                  {sp.industry
+                  {sp.country
+                    ? `Films from ${sp.country}`
+                    : sp.industry
                     ? `${sp.industry} films`
                     : sp.genre
                       ? `${capitalise(sp.genre)} films`
@@ -279,7 +284,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                 </div>
 
                 {/* Active filters */}
-                {(sp.genre || sp.language || sp.industry || sp.q) && (
+                {(sp.genre || sp.language || sp.industry || sp.country || sp.q) && (
                   <div>
                     <p style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6A6258', margin: '0 0 10px' }}>
                       Active filters
@@ -355,6 +360,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                           )}
 
                           {/* Rating badge */}
+                          {movie.listing_status === 'approved' && <ListedDot />}
                           {movie.average_rating > 0 && (
                             <div style={{
                               position: 'absolute', top: '7px', right: '7px',

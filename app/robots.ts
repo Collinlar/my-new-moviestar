@@ -2,39 +2,23 @@ import type { MetadataRoute } from 'next'
 
 const SITE_URL = 'https://muviestars.com'
 
+// Link-preview bots (WhatsApp, Facebook, X) follow the "*" rules. The share-card image route
+// lives under /api/, so it is allowed explicitly; the more specific rule wins over "/api/".
+const PRIVATE = ['/admin', '/dashboard', '/auth', '/account', '/edit-profile', '/profile/edit', '/watchlist', '/favorites', '/reviews', '/activity']
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        disallow: [
-          '/admin',
-          '/dashboard',
-          '/auth',
-          '/profile/edit',
-          '/watchlist',
-          '/favorites',
-          '/reviews',
-          '/activity',
-          '/api/',
-        ],
+        allow: ['/', '/api/og/'],
+        disallow: [...PRIVATE, '/api/'],
       },
-      /* AI crawlers — allow full access to movie content */
+      /* AI crawlers: allow the public film, people and discovery pages */
       {
-        userAgent: 'GPTBot',
-        allow: ['/movie/', '/browse', '/trending', '/canon', '/creators', '/people', '/all-reviews'],
-        disallow: ['/admin', '/dashboard', '/auth'],
-      },
-      {
-        userAgent: 'Claude-Web',
-        allow: ['/movie/', '/browse', '/trending', '/canon', '/creators', '/people', '/all-reviews'],
-        disallow: ['/admin', '/dashboard', '/auth'],
-      },
-      {
-        userAgent: 'PerplexityBot',
-        allow: ['/movie/', '/browse', '/trending', '/canon', '/creators', '/people', '/all-reviews'],
-        disallow: ['/admin', '/dashboard', '/auth'],
+        userAgent: ['GPTBot', 'Claude-Web', 'PerplexityBot'],
+        allow: ['/movie/', '/person/', '/people', '/discover', '/how-listing-works', '/browse', '/trending', '/canon', '/creators', '/all-reviews', '/api/og/'],
+        disallow: [...PRIVATE, '/api/'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

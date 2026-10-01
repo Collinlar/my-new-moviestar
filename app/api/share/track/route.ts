@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: card } = await supabase
-      .from('review_share_cards')
+      .from('share_cards')
       .select('id, reaction_id, movie_id')
       .eq('share_token', share_token)
       .maybeSingle()

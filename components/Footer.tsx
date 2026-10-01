@@ -3,12 +3,14 @@ import { Film } from 'lucide-react'
 
 const footerLinks = {
   Discover: [
+    { href: '/discover',    label: 'Ways to discover'    },
     { href: '/browse',      label: 'Browse all films'    },
     { href: '/trending',    label: 'Trending now'        },
     { href: '/featured',    label: 'Editor\'s picks'     },
     { href: '/canon',       label: 'African film canon'  },
     { href: '/festivals',   label: 'Film festivals'      },
     { href: '/all-reviews', label: 'Community reviews'  },
+    { href: '/how-listing-works', label: 'How listing works' },
   ],
   Filmmakers: [
     { href: '/creators',    label: 'Directors'           },
@@ -36,7 +38,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-film-muted leading-relaxed max-w-xs">
-              A living African cinema discovery network built on the continent&apos;s movie database.
+              A home for standout African cinema. Find it, rate it, and tell people what you thought.
             </p>
           </div>
 

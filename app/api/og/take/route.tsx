@@ -26,9 +26,10 @@ export async function GET(request: Request) {
 
   // Fetch share card + reaction + movie
   const { data: card } = await supabase
-    .from('review_share_cards')
+    .from('share_cards')
     .select('reaction_id, movie_id, user_id')
     .eq('share_token', token)
+    .eq('object_type', 'take')
     .maybeSingle()
 
   if (!card) {
