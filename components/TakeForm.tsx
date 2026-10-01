@@ -19,6 +19,8 @@ interface Props {
 interface Saved {
   token: string | null
   review: 'submitted' | 'updated' | 'unchanged' | null
+  /** Movie DNA has unlocked and the person has not opened it yet. */
+  dnaReady: boolean
   /** Challenges this take finished. */
   completed: Array<{ slug: string; title: string }>
   /** What the take contained, so the share panel only offers choices that change something. */
@@ -117,6 +119,7 @@ export function TakeForm({ movieId, movieTitle }: Props) {
         token: json.shareToken ?? null,
         review: json.review ?? null,
         completed: Array.isArray(json.completed) ? json.completed : [],
+        dnaReady: !!json.dnaReady,
         snapshot: { rating: rating || null, words: oneLiner.trim() || null, tags: tags.length },
       })
       setHasTake(true)
@@ -161,6 +164,16 @@ export function TakeForm({ movieId, movieTitle }: Props) {
                   </Link>
                 ))}
               </div>
+            )}
+
+        {saved.dnaReady && (
+              <Link
+                href="/dna"
+                style={{ display: 'block', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.1)', textDecoration: 'none', minHeight: '44px' }}
+              >
+                <span style={{ display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: '"Geist Mono", monospace' }}>Movie DNA</span>
+                <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>Your Movie DNA is ready. Tap to see it.</span>
+              </Link>
             )}
 
         {saved.token && (

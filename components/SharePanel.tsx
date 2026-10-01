@@ -10,7 +10,7 @@ interface Props {
   /** The film (for a take) or the challenge (for a laurel). */
   title: string
   /** A take has layouts and several things to show or hide. A laurel only has the name. */
-  kind?: 'take' | 'laurel'
+  kind?: 'take' | 'laurel' | 'dna'
   /** What this take contains, so the panel only offers choices that change something. */
   has?: { rating: boolean; words: boolean; tags: boolean }
   words?: string
@@ -34,8 +34,11 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
   const latest = useRef(0)
 
   const isLaurel = kind === 'laurel'
-  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://muviestars.com'}/${isLaurel ? 'laurel' : 'take'}/${token}`
-  const imagePath = `/api/og/${isLaurel ? 'laurel' : 'take'}`
+  const isDna = kind === 'dna'
+  // Laurels and Movie DNA cards have no layouts and only the name to show or hide.
+  const nameOnly = kind !== 'take'
+  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://muviestars.com'}/${kind === 'take' ? 'take' : kind}/${token}`
+  const imagePath = `/api/og/${kind}`
 
   // Saves the choices, then refreshes the preview so it always shows what will be shared.
   const update = async (patch: Partial<ShareOptions>) => {
@@ -88,8 +91,8 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
     if (!navigator.share) { copyLink(); return }
     try {
       await navigator.share({
-        title: isLaurel ? `I completed ${title}` : `${title}: my take`,
-        text: isLaurel ? `I completed the ${title} challenge on MuvieStars.` : options.show_words && words ? words : `I just rated ${title} on MuvieStars.`,
+        title: isDna ? 'My Movie DNA' : isLaurel ? `I completed ${title}` : `${title}: my take`,
+        text: isDna ? 'This is my Movie DNA on MuvieStars.' : isLaurel ? `I completed the ${title} challenge on MuvieStars.` : options.show_words && words ? words : `I just rated ${title} on MuvieStars.`,
         url: shareUrl,
       })
     } catch {
@@ -113,9 +116,9 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
 
   const toggles: Array<{ key: 'show_name' | 'show_rating' | 'show_words' | 'show_tags'; label: string; show: boolean }> = [
     { key: 'show_name',   label: 'Put my name on it',      show: true },
-    { key: 'show_rating', label: 'Show my stars',          show: !isLaurel && has.rating },
-    { key: 'show_words',  label: 'Show my words',          show: !isLaurel && has.words },
-    { key: 'show_tags',   label: 'Show what stood out',    show: !isLaurel && has.tags },
+    { key: 'show_rating', label: 'Show my stars',          show: !nameOnly && has.rating },
+    { key: 'show_words',  label: 'Show my words',          show: !nameOnly && has.words },
+    { key: 'show_tags',   label: 'Show what stood out',    show: !nameOnly && has.tags },
   ]
 
   return (
@@ -125,7 +128,7 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
         <img
           key={version}
           src={`${imagePath}?token=${token}&v=${version}`}
-          alt={isLaurel ? `How your ${title} laurel will look when shared` : `How your take on ${title} will look when shared`}
+          alt={isDna ? 'How your Movie DNA card will look when shared' : isLaurel ? `How your ${title} laurel will look when shared` : `How your take on ${title} will look when shared`}
           width={260}
           height={260}
           style={{ width: '100%', height: '100%', display: 'block', opacity: saving ? 0.4 : 1, transition: 'opacity 0.15s' }}
@@ -133,7 +136,7 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
       </div>
 
       {/* Layout */}
-      {!isLaurel && (
+      {!nameOnly && (
       <div role="group" aria-label="Card layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         {SHARE_TEMPLATES.map((t) => {
           const on = options.template === t.key
@@ -180,7 +183,7 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
       {/* Where to send it */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', opacity: saving ? 0.6 : 1 }} aria-busy={saving}>
         <a
-          href={`https://wa.me/?text=${encodeURIComponent(isLaurel ? `I completed the ${title} challenge on MuvieStars: ${shareUrl}` : `I watched ${title} on MuvieStars. Here is my take: ${shareUrl}`)}`}
+          href={`https://wa.me/?text=${encodeURIComponent(isDna ? `This is my Movie DNA on MuvieStars. Find yours: ${shareUrl}` : isLaurel ? `I completed the ${title} challenge on MuvieStars: ${shareUrl}` : `I watched ${title} on MuvieStars. Here is my take: ${shareUrl}`)}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => track('whatsapp')}
@@ -195,7 +198,7 @@ export function SharePanel({ token, title, kind = 'take', has = { rating: false,
           href={`${imagePath}?token=${token}&v=${version}`}
           target="_blank"
           rel="noopener noreferrer"
-          download={`${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${isLaurel ? 'laurel' : 'my-take'}.png`}
+          download={`${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${isDna ? 'movie-dna' : isLaurel ? 'laurel' : 'my-take'}.png`}
           onClick={() => track('save_image')}
           style={{ ...BTN, pointerEvents: saving ? 'none' : 'auto' }}
         >

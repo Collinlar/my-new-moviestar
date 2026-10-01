@@ -28,6 +28,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
   const [saving, setSaving]       = useState(false)
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [finished, setFinished] = useState<Array<{ slug: string; title: string }>>([])
+  const [dnaReady, setDnaReady] = useState(false)
 
   const toggleTag = (slug: string) => {
     setTags(prev =>
@@ -52,6 +53,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
       })
       const data = await res.json()
       setFinished(Array.isArray(data.completed) ? data.completed : [])
+      setDnaReady(!!data.dnaReady)
       return data.shareToken ?? null
     } catch {
       return null
@@ -370,6 +372,16 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
                   </Link>
                 ))}
               </div>
+            )}
+
+            {dnaReady && (
+              <Link
+                href="/dna"
+                style={{ display: 'block', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.1)', textDecoration: 'none', minHeight: '44px' }}
+              >
+                <span style={{ display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: '"Geist Mono", monospace' }}>Movie DNA</span>
+                <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>Your Movie DNA is ready. Tap to see it.</span>
+              </Link>
             )}
 
             <SharePanel

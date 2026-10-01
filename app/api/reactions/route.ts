@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseTake } from '@/lib/reactions'
 import { parseErrorMessage, parseSuccessValue } from '@/lib/parsed'
+import { DNA_MIN_TAKES } from '@/lib/dna'
+import { hasSeenDna } from '@/lib/dna-data'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -130,7 +132,16 @@ export async function POST(req: NextRequest) {
       // The take is saved either way.
     }
 
-    return NextResponse.json({ ok: true, saved: true, shareToken, review, completed })
+    // Movie DNA unlocks at a set number of takes. Say so until the person has opened it once.
+    let dnaReady = false
+    try {
+      const { count } = await supabase.from('takes').select('movie_id', { count: 'exact', head: true }).eq('user_id', user.id)
+      dnaReady = (count ?? 0) >= DNA_MIN_TAKES && !(await hasSeenDna(supabase, user.id))
+    } catch {
+      // The take is saved either way.
+    }
+
+    return NextResponse.json({ ok: true, saved: true, shareToken, review, completed, dnaReady })
   } catch {
     return NextResponse.json({ ok: true, saved: false })
   }

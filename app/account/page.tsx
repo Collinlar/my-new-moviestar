@@ -131,7 +131,15 @@ export default async function AccountPage() {
                   )}
                 </div>
 
-                <SignOutButton />
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Link
+                    href="/dna"
+                    style={{ minHeight: '44px', padding: '0 18px', borderRadius: '12px', border: '1px solid rgba(200,150,62,0.5)', color: '#C8963E', fontSize: '14px', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+                  >
+                    See my Movie DNA
+                  </Link>
+                  <SignOutButton />
+                </div>
               </div>
 
               {/* Stats row */}
