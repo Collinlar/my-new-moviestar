@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/Providers'
 import { MobileBottomNav } from '@/components/MobileBottomNav'
+import { CookieConsent } from '@/components/CookieConsent'
 import '@/app/globals.css'
 
 const SITE_URL = 'https://muviestars.com'
@@ -90,23 +91,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
         <link rel="preconnect" href="https://anjavnuqkkmpsnjmopou.supabase.co" />
-        {process.env.NEXT_PUBLIC_GA_ID && (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
-            />
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA_ID}');`,
-              }}
-            />
-          </>
-        )}
       </head>
       <body>
         <Providers>{children}</Providers>
         <MobileBottomNav />
+        <CookieConsent gaId={process.env.NEXT_PUBLIC_GA_ID} />
         {/* Spacer so content is not hidden behind the mobile bottom nav */}
         <div className="h-16 md:hidden" aria-hidden="true" />
         <Toaster

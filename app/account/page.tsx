@@ -5,10 +5,11 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { EditProfileForm } from '@/components/EditProfileForm'
 import { SignOutButton } from '@/components/SignOutButton'
+import { DeleteAccount } from '@/components/DeleteAccount'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
-  title: 'Your account — MuvieStars',
+  title: 'Your account',
   robots: { index: false },
 }
 
@@ -504,6 +505,14 @@ export default async function AccountPage() {
                 </Link>
               )}
             </div>
+          </div>
+        </section>
+
+        {/* ── DELETE ──────────────────────────────────────────────────── */}
+        <section aria-labelledby="delete-heading" style={{ paddingTop: '32px', paddingBottom: '80px', borderTop: '1px solid rgba(237,228,210,0.06)' }}>
+          <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ display: 'grid', gap: '12px' }}>
+            <h2 id="delete-heading" style={{ ...MONO, margin: 0, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8C857A' }}>Leaving MuvieStars</h2>
+            <DeleteAccount />
           </div>
         </section>
 

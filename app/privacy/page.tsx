@@ -105,8 +105,9 @@ const SECTIONS: LegalSection[] = [
     title: 'Cookies',
     body: (
       <>
-        <P>An essential cookie keeps you signed in. Google Analytics sets cookies to count visits. YouTube may set cookies when you play an embedded film.</P>
-        <P>You can block or clear cookies in your browser settings, and Google offers a browser add-on that switches its analytics off. The site still works if you do, apart from staying signed in.</P>
+        <P>An essential cookie keeps you signed in. It needs no yes from you. Google Analytics sets cookies to count visits, and it only loads after you say yes in the cookie question. If you say no, nothing from Google Analytics loads.</P>
+        <P>You can change your answer any time with “Cookie choices” at the bottom of any page. Saying no after a yes clears the Google Analytics cookies we can reach. YouTube may set its own cookies when you play an embedded film. The fonts on the site are fetched from Google, which means Google sees that a page was opened.</P>
+        <P>You can also block or clear cookies in your browser settings. The site still works if you do, apart from staying signed in.</P>
       </>
     ),
   },
@@ -129,7 +130,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <P>You can ask to see what we hold about you, have something corrected, object to how we use it, take back an agreement you gave, or have your data deleted.</P>
-        <P>Write to hello@muviestars.com from the email address on your account. We reply within 30 days. There is no delete button on the account page yet, so for now deletion is a request by email.</P>
+        <P>To delete your account, use the button at the bottom of your account page. It works at once and cannot be undone. For anything else, or if you cannot sign in, write to hello@muviestars.com from the email address on your account. We reply within 30 days.</P>
         <P>Deleting your account removes your profile, takes, reviews, lists, watchlist, votes and activity. Films you got listed stay on MuvieStars, because a film is not personal data. If you are unhappy with how we handled your request, you can complain to the Data Protection Commission of Ghana.</P>
       </>
     ),
@@ -167,7 +168,7 @@ export default function PrivacyPage() {
         'Your takes show your display name. How you voted in the awards is never public.',
         'Each awards vote keeps a scrambled connection address for up to 90 days, only to catch cheating.',
         'We do not sell your data and we do not run ads.',
-        'To have your data deleted, write to hello@muviestars.com and we reply within 30 days.',
+        'You can delete your account yourself from your account page. Other requests go to hello@muviestars.com, and we reply within 30 days.',
       ]}
       sections={SECTIONS}
       otherPage={{ href: '/terms', label: 'Terms of use' }}

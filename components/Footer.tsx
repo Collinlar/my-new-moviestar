@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Film } from 'lucide-react'
+import { CookieChoicesLink } from '@/components/CookieConsent'
 
 const footerLinks = {
   Discover: [
@@ -96,6 +97,7 @@ export function Footer() {
           <div className="flex items-center gap-4 text-xs text-film-subtle">
             <Link href="/privacy" className="hover:text-film-muted transition-colors">Privacy</Link>
             <Link href="/terms"   className="hover:text-film-muted transition-colors">Terms</Link>
+            {process.env.NEXT_PUBLIC_GA_ID && <CookieChoicesLink className="hover:text-film-muted transition-colors" />}
             <a href="mailto:hello@muviestars.com" className="hover:text-film-muted transition-colors">Contact</a>
           </div>
         </div>
