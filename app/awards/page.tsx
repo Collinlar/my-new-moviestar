@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getCycleBySlug, getPublicCycles } from '@/lib/awards'
-import { getOutcomes } from '@/lib/awards-results'
+import { getOutcomes, winnerNames } from '@/lib/awards-results'
 import { cycleHref, describeMethod, formatDate, type CycleStage } from '@/lib/awards-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL } from '@/lib/utils'
@@ -88,7 +88,7 @@ export default async function AwardsPage() {
                             <Link href={cycleHref(c.slug, k.slug)} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'baseline', padding: '10px 0', textDecoration: 'none', minHeight: '44px', flexWrap: 'wrap' }}>
                               <span style={{ fontSize: '17px', color: '#A39B8F' }}>{k.name}</span>
                               <span style={{ fontSize: '19px', color: o?.outcome === 'awarded' ? '#F6EFE2' : '#6E675E' }}>
-                                {o?.outcome === 'awarded' ? o.winners.map((w) => w.subject.title).join(' and ') : 'Not awarded'}
+                                {o?.outcome === 'awarded' ? winnerNames(o) : 'Not awarded'}
                               </span>
                             </Link>
                           </li>

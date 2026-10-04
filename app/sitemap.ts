@@ -25,7 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })().catch(() => [] as Array<{ slug: string; published_at: string | null }>),
     (async () => {
       const db = createStaticClient() as any
-      const { data } = await db.from('award_recognition').select('verification_code, awarded_at, status').in('status', ['valid', 'corrected']).limit(1000)
+      const { data } = await db.from('award_recognition').select('verification_code, awarded_at, status').in('status', ['valid', 'under_review']).limit(1000)
       return ((data ?? []) as Array<{ verification_code: string; awarded_at: string }>)
     })().catch(() => [] as Array<{ verification_code: string; awarded_at: string }>),
   ])

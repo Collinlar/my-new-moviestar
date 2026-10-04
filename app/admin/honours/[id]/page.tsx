@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { CycleWorkbench, type WorkbenchCategory, type WorkbenchRow } from '@/components/admin/CycleWorkbench'
 import { ResultsDesk, type DeskResult } from '@/components/admin/ResultsDesk'
+import { RecognitionDesk, type DeskRecord } from '@/components/admin/RecognitionDesk'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ export default async function AdminCyclePage({ params }: { params: Promise<{ id:
   const { data: cycle } = await db.from('award_cycles').select('*, program:award_programs(name)').eq('id', id).maybeSingle()
   if (!cycle) notFound()
 
-  const [{ data: categories }, { data: eligibility }, { data: nominees }, { data: audit }, { data: voteRows }, { data: jurorRows }, { data: resultRows }, { data: outcomeRows }] = await Promise.all([
+  const [{ data: categories }, { data: eligibility }, { data: nominees }, { data: audit }, { data: voteRows }, { data: jurorRows }, { data: resultRows }, { data: outcomeRows }, { data: recognitionRows }] = await Promise.all([
     db.from('award_categories').select('id, name, slug, subject_type, method_type, min_nominees, max_nominees').eq('program_id', cycle.program_id).eq('active', true).order('name'),
     db.from('award_eligibility').select('id, category_id, subject_type, subject_id, eligible, qualification_score, disqualification_reason, metadata, override').eq('cycle_id', id).limit(2000),
     db.from('award_nominees').select('id, category_id, subject_type, subject_id, shortlist_rank, status, selection_reason').eq('cycle_id', id).order('shortlist_rank', { ascending: true }).limit(500),
@@ -26,6 +27,7 @@ export default async function AdminCyclePage({ params }: { params: Promise<{ id:
     db.from('award_jurors').select('id, category_id, name, organisation, bio, user_id').eq('cycle_id', id).order('name'),
     db.from('award_results').select('nominee_id, category_id, rank, result_status, final_score, jury_score, community_score, engagement_score, confidence_score, components').eq('cycle_id', id),
     db.from('award_cycle_categories').select('category_id, outcome, outcome_reason, manual, story').eq('cycle_id', id),
+    db.from('award_recognition').select('id, category_id, subject_type, subject_id, verification_code, status, status_note, superseded_by, description, awarded_at').eq('cycle_id', id).order('awarded_at'),
   ])
 
   const votes: Record<string, number> = {}
@@ -74,6 +76,19 @@ export default async function AdminCyclePage({ params }: { params: Promise<{ id:
     }
   })
 
+  const recCode = new Map<string, string>(((recognitionRows ?? []) as any[]).map((r) => [r.id, r.verification_code]))
+  const deskRecords: DeskRecord[] = ((recognitionRows ?? []) as any[]).map((r) => {
+    const cat = cats.find((k) => k.id === r.category_id)
+    const who = nameOf(r.subject_type, r.subject_id)
+    return {
+      id: r.id, code: r.verification_code, categoryName: cat?.name ?? 'Honour', label: who.label, sub: who.sub,
+      status: r.status, statusNote: r.status_note ?? null, supersededBy: r.superseded_by ? recCode.get(r.superseded_by) ?? null : null, story: r.description ?? '',
+      candidates: (cat?.nominees ?? [])
+        .filter((n) => ['approved', 'runner_up'].includes(n.status) && !(n.subjectType === r.subject_type && n.subjectId === r.subject_id))
+        .map((n) => ({ id: n.id, label: n.label, sub: n.sub })),
+    }
+  })
+
   return (
     <div className="p-8">
       <Link href="/admin/honours" className="text-sm text-film-muted">← All cycles</Link>
@@ -95,6 +110,7 @@ export default async function AdminCyclePage({ params }: { params: Promise<{ id:
           outcomes={((outcomeRows ?? []) as any[]).map((o) => ({ categoryId: o.category_id, outcome: o.outcome, reason: o.outcome_reason, manual: !!o.manual, story: o.story }))}
         />
       )}
+      {['published', 'archived'].includes(cycle.status) && <RecognitionDesk records={deskRecords} />}
     </div>
   )
 }

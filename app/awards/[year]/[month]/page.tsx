@@ -5,7 +5,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { NomineeRows } from '@/components/NomineeRows'
 import { getCycleBySlug } from '@/lib/awards'
-import { getOutcomes } from '@/lib/awards-results'
+import { getOutcomes, winnerNames } from '@/lib/awards-results'
 import { NOT_AWARDED_COPY, cycleHref, formatDate } from '@/lib/awards-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL } from '@/lib/utils'
@@ -71,7 +71,7 @@ export default async function CyclePage({ params }: PageProps) {
                 {k.description && <p style={{ margin: '0 0 12px', fontSize: '16px', lineHeight: 1.6, color: '#A39B8F' }}>{k.description}</p>}
                 {o && (
                   <p style={{ margin: '0 0 14px', fontSize: '19px', color: o.outcome === 'awarded' ? '#C8963E' : '#8C857A' }}>
-                    {o.outcome === 'awarded' ? `Winner: ${o.winners.map((w) => w.subject.title).join(' and ')}` : NOT_AWARDED_COPY}
+                    {o.outcome === 'awarded' ? (o.winners.some((w) => w.status !== 'revoked') ? `Winner: ${winnerNames(o)}` : winnerNames(o)) : NOT_AWARDED_COPY}
                   </p>
                 )}
                 {enough ? <NomineeRows nominees={noms} /> : <p style={{ margin: 0, fontSize: '16px', color: '#8C857A', lineHeight: 1.6 }}>Not enough films qualified for a shortlist this month. {NOT_AWARDED_COPY}</p>}

@@ -77,13 +77,18 @@ export default async function CategoryPage({ params }: PageProps) {
               {outcome.outcome === 'awarded' ? (
                 <>
                   {outcome.winners.map((w) => (
-                    <p key={w.recognitionId} style={{ margin: '0 0 8px' }}>
-                      <Link href={`/recognition/${w.code}`} style={{ ...SERIF, fontSize: 'clamp(36px,5vw,60px)', lineHeight: 1.02, color: '#F6EFE2', textDecoration: 'none' }}>
-                        {w.subject.title}{w.subject.filmTitle ? <span style={{ fontSize: '0.5em', color: '#8C857A' }}> in {w.subject.filmTitle}</span> : null}
-                      </Link>
-                    </p>
+                    <div key={w.recognitionId} style={{ margin: '0 0 8px' }}>
+                      <p style={{ margin: 0 }}>
+                        <Link href={`/recognition/${w.code}`} style={{ ...SERIF, fontSize: 'clamp(36px,5vw,60px)', lineHeight: 1.02, color: w.status === 'revoked' ? '#6E675E' : '#F6EFE2', textDecoration: w.status === 'revoked' ? 'line-through' : 'none' }}>
+                          {w.subject.title}{w.subject.filmTitle ? <span style={{ fontSize: '0.5em', color: '#8C857A' }}> in {w.subject.filmTitle}</span> : null}
+                        </Link>
+                      </p>
+                      {w.status === 'under_review' && <p style={{ margin: '6px 0 0', fontSize: '15px', color: '#E8A020' }}>Under review. {w.note}</p>}
+                      {w.status === 'revoked' && <p style={{ margin: '6px 0 0', fontSize: '15px', color: '#E58A7B' }}>Withdrawn after review. {w.note}</p>}
+                      {w.status === 'valid' && w.note && <p style={{ margin: '6px 0 0', fontSize: '15px', color: '#A39B8F' }}>{w.note}</p>}
+                    </div>
                   ))}
-                  {outcome.story && <p style={{ margin: '14px 0 12px', fontSize: '19px', lineHeight: 1.6, color: '#C7BFB2', maxWidth: '680px' }}>{outcome.story}</p>}
+                  {outcome.story && outcome.winners.some((w) => w.status !== 'revoked') && <p style={{ margin: '14px 0 12px', fontSize: '19px', lineHeight: 1.6, color: '#C7BFB2', maxWidth: '680px' }}>{outcome.story}</p>}
                   {outcome.winners[0] && (
                     <p style={{ margin: 0 }}>
                       <Link href={`/recognition/${outcome.winners[0].code}`} style={{ ...MONO, fontSize: '13px', color: '#C8963E', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Verification ID {outcome.winners[0].code}</Link>

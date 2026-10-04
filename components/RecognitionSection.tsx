@@ -42,7 +42,7 @@ export function RecognitionSection({ items, wins = [], selections = [], heading 
                   {w.who ? `${w.who}: ` : ''}{w.title}
                 </span>
                 <span style={{ ...MONO, fontSize: '12px', color: '#C8963E' }}>
-                  {w.status === 'corrected' ? 'Winner, corrected' : 'Winner'} · Verification ID {w.code}
+                  {w.status === 'under_review' ? 'Winner, under review' : 'Winner'} · Verification ID {w.code}
                 </span>
               </Link>
             </li>
