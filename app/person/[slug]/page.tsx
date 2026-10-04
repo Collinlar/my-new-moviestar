@@ -5,6 +5,8 @@ import { BadgeCheck } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getPersonByRef, getPersonCredits, type PersonCredit } from '@/lib/queries'
+import { getRecognitionForPerson } from '@/lib/awards'
+import { RecognitionSection } from '@/components/RecognitionSection'
 import { personProfileSchema, breadcrumbSchema } from '@/lib/schema'
 import {
   ROLE_GROUPS, ROLE_LABELS, SOCIAL_KEYS, SOCIAL_LABELS,
@@ -74,6 +76,7 @@ export default async function PersonPage({ params }: PageProps) {
   if (isUuid(slug)) permanentRedirect(`/person/${person.slug}`)
 
   const credits = await getPersonCredits(person.id)
+  const recognition = await getRecognitionForPerson(person.id).catch(() => [])
   const roles = credits.map(c => c.role)
   const roleText = describeRoles(roles)
   const uniqueFilms = new Map(credits.map(c => [c.movie.id, c.movie]))
@@ -236,6 +239,8 @@ export default async function PersonPage({ params }: PageProps) {
         )}
 
         {/* ── FILMOGRAPHY ───────────────────────────────────────────── */}
+        <RecognitionSection items={recognition} sectionStyle={{ paddingTop: '56px' }} />
+
         <section style={{ paddingTop: '56px', paddingBottom: '96px' }} aria-labelledby="filmography-heading">
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ maxWidth: '900px', marginLeft: 0 }}>
             <h2 id="filmography-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,4vw,44px)', lineHeight: 1, color: '#F6EFE2', margin: '0 0 32px' }}>

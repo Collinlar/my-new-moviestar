@@ -16,6 +16,7 @@ const navLinks = [
   { href: '/swipe',   label: 'Swipe',    exact: false },
   { href: '/discover', label: 'Discover', exact: false },
   { href: '/club',    label: 'Club',     exact: false },
+  { href: '/awards',  label: 'Awards',   exact: false },
 ]
 
 export function Navigation() {

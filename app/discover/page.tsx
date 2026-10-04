@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 const STARTS = [
   { href: '/canon',                 title: 'The Canon',        body: 'The films that defined African cinema, with essays on why.' },
   { href: '/swipe?mood=obg',        title: 'Old but Gold',     body: 'Films from before 2010 worth going back for.' },
+  { href: '/awards',                title: 'Awards and Honours', body: 'Monthly honours with public rules, shortlists and an audience vote.' },
   { href: '/selections',            title: 'Selections',       body: 'Films our editors single out, each with a note on why.' },
   { href: '/decks',                 title: 'Decks',            body: 'Short, hand-picked sets of films to swipe through.' },
   { href: '/dna',                   title: 'Movie DNA',        body: 'A portrait of your taste, built from the takes you save.' },

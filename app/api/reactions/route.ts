@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { parseTake } from '@/lib/reactions'
+import { parseTake, parseStandouts, STANDOUT_KINDS } from '@/lib/reactions'
 import { parseErrorMessage, parseSuccessValue } from '@/lib/parsed'
 import { DNA_MIN_TAKES } from '@/lib/dna'
 import { hasSeenDna } from '@/lib/dna-data'
@@ -60,6 +60,27 @@ export async function POST(req: NextRequest) {
         await supabase
           .from('movie_reaction_tags')
           .insert((tagRows as { id: string; slug: string }[]).map((t) => ({ reaction_id: reactionRow.id, tag_id: t.id })))
+      }
+    }
+
+    // Which performance or direction stood out. These feed the monthly honours, so they are saved
+    // separately and never block the take itself.
+    let standoutsSaved = true
+    const standouts = parseStandouts(body?.standouts)
+    for (const kind of STANDOUT_KINDS) {
+      if (!(kind in standouts)) continue
+      try {
+        const personId = standouts[kind]
+        if (personId === null) {
+          await supabase.from('take_standouts').delete().eq('user_id', user.id).eq('movie_id', movie_id).eq('kind', kind)
+        } else {
+          const { error } = await supabase
+            .from('take_standouts')
+            .upsert({ user_id: user.id, movie_id, kind, person_id: personId }, { onConflict: 'user_id,movie_id,kind' })
+          if (error) standoutsSaved = false
+        }
+      } catch {
+        standoutsSaved = false
       }
     }
 
@@ -141,7 +162,22 @@ export async function POST(req: NextRequest) {
       // The take is saved either way.
     }
 
-    return NextResponse.json({ ok: true, saved: true, shareToken, review, completed, dnaReady })
+    // What this take means for the monthly honours (qualification window, shortlists). Optional and never blocks the take.
+    let awards: { counts: unknown; needsRating: unknown; shortlisted: unknown[] } | null = null
+    try {
+      const { data: note } = await supabase.rpc('award_participation_note', { p_movie: movie_id })
+      if (note) {
+        awards = {
+          counts: rating && note.qualifying ? note.qualifying : null,
+          needsRating: !rating && note.qualifying ? note.qualifying : null,
+          shortlisted: Array.isArray(note.shortlisted) ? note.shortlisted : [],
+        }
+      }
+    } catch {
+      // Nothing to say is fine.
+    }
+
+    return NextResponse.json({ ok: true, saved: true, shareToken, review, completed, dnaReady, standoutsSaved, awards })
   } catch {
     return NextResponse.json({ ok: true, saved: false })
   }

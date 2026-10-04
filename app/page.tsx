@@ -15,6 +15,8 @@ import { MOOD_MAP } from '@/lib/mood'
 import { getPublishedDecks, sponsorLabel } from '@/lib/decks'
 import { getPublishedChallenges } from '@/lib/challenges'
 import { getCurrentSelection, periodLabel } from '@/lib/selections'
+import { getPublicCycles } from '@/lib/awards'
+import { cycleHref, formatDate } from '@/lib/awards-shared'
 import { sponsorLabel as challengeSponsor, stateLine, goalPhrase } from '@/lib/challenges-shared'
 import { websiteSchema, organizationSchema, faqSchema } from '@/lib/schema'
 
@@ -81,7 +83,7 @@ export default async function HomePage() {
     return cycle ? getMovieById(cycle.movie_id) : null
   })()
 
-  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks, challenges, selection] = await Promise.all([
+  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks, challenges, selection, honours] = await Promise.all([
     club,
     getOldButGoldMovies(6),
     isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
@@ -93,6 +95,7 @@ export default async function HomePage() {
     getPublishedDecks({ featuredOnly: true, limit: 3 }).catch(() => []),
     getPublishedChallenges({ featuredOnly: true, openOnly: true, limit: 2 }).catch(() => []),
     getCurrentSelection().catch(() => null),
+    getPublicCycles(1).catch(() => []),
   ])
 
   const daysLeft = daysLeftThisWeek()
@@ -281,6 +284,26 @@ export default async function HomePage() {
             )}
           </div>
         </section>
+
+        {/* ── THIS MONTH'S HONOURS ─────────────────────────────────────── */}
+        {honours[0] && ['shortlist_published', 'voting_open'].includes(honours[0].status) && (
+          <section className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '96px' }} aria-labelledby="honours-heading">
+            <Link
+              href={honours[0].status === 'voting_open' ? cycleHref(honours[0].slug, 'audience-choice') : cycleHref(honours[0].slug)}
+              style={{ display: 'grid', gap: '6px', padding: '28px 0', borderTop: '1px solid rgba(200,150,62,0.4)', borderBottom: '1px solid rgba(200,150,62,0.4)', textDecoration: 'none', minHeight: '44px' }}
+            >
+              <span style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E' }}>
+                {honours[0].name} honours · {honours[0].status === 'voting_open' ? 'Voting open' : 'Shortlists announced'}
+              </span>
+              <span id="honours-heading" style={{ ...SERIF, fontSize: 'clamp(30px,4vw,48px)', lineHeight: 1.05, color: '#F6EFE2' }}>
+                {honours[0].status === 'voting_open' ? "Pick this month's Audience Choice." : 'See who made the shortlist.'}
+              </span>
+              <span style={{ fontSize: '16px', color: '#A39B8F' }}>
+                {honours[0].status === 'voting_open' ? `Voting closes ${formatDate(honours[0].voting_end)}. Review a nominee and your vote counts.` : 'Movie, performance, director and audience honours. The rules are public.'}
+              </span>
+            </Link>
+          </section>
+        )}
 
         {/* ── THE CURRENT SELECTION ────────────────────────────────────── */}
         {selection && selection.films.length >= MIN_SMALL_SHELF && (

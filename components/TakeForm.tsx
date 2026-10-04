@@ -6,6 +6,8 @@ import { Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { SharePanel } from '@/components/SharePanel'
+import { AwardNote, type AwardsInfo } from '@/components/AwardNote'
+import { StandoutPicker, NO_STANDOUTS, loadExistingStandouts, standoutsPayload, useStandoutOptions, type StandoutValue } from '@/components/StandoutPicker'
 import {
   FULL_REVIEW_MAX, MAX_TAGS, QUICK_TAKE_MAX, REACTIONS, TAGS,
   type ReactionKey,
@@ -19,6 +21,8 @@ interface Props {
 interface Saved {
   token: string | null
   review: 'submitted' | 'updated' | 'unchanged' | null
+  /** What the take means for the monthly honours. */
+  awards: AwardsInfo | null
   /** Movie DNA has unlocked and the person has not opened it yet. */
   dnaReady: boolean
   /** Challenges this take finished. */
@@ -45,6 +49,8 @@ export function TakeForm({ movieId, movieTitle }: Props) {
   const [oneLiner, setOneLiner] = useState('')
   const [longText, setLongText] = useState('')
   const [showLong, setShowLong] = useState(false)
+  const [standouts, setStandouts] = useState<StandoutValue>(NO_STANDOUTS)
+  const standoutOptions = useStandoutOptions(movieId, !!userId)
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState<Saved | null>(null)
@@ -78,6 +84,8 @@ export function TakeForm({ movieId, movieTitle }: Props) {
       } else if (rv) {
         setRating(rv.rating)
       }
+      if (rx) setStandouts(await loadExistingStandouts(movieId, user.id))
+      if (cancelled) return
       if (rv?.content) {
         setLongText(rv.content)
         setShowLong(true)
@@ -108,6 +116,7 @@ export function TakeForm({ movieId, movieTitle }: Props) {
           tags,
           one_liner: oneLiner.trim() || null,
           review_text: longText.trim() || null,
+          standouts: standoutsPayload(standoutOptions, standouts),
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -120,6 +129,7 @@ export function TakeForm({ movieId, movieTitle }: Props) {
         review: json.review ?? null,
         completed: Array.isArray(json.completed) ? json.completed : [],
         dnaReady: !!json.dnaReady,
+        awards: json.awards ?? null,
         snapshot: { rating: rating || null, words: oneLiner.trim() || null, tags: tags.length },
       })
       setHasTake(true)
@@ -176,6 +186,7 @@ export function TakeForm({ movieId, movieTitle }: Props) {
               </Link>
             )}
 
+        <AwardNote info={saved.awards} />
         {saved.token && (
           <div className="pt-2">
             <p className="text-xs text-film-muted mb-3">Share it with people who love African cinema. You choose what shows.</p>
@@ -273,6 +284,9 @@ export function TakeForm({ movieId, movieTitle }: Props) {
           })}
         </div>
       </div>
+
+      {/* Which performance or direction stood out */}
+      <StandoutPicker options={standoutOptions} value={standouts} onChange={setStandouts} />
 
       {/* One sentence */}
       <div>

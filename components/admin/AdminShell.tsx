@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Film, LayoutDashboard, MessageSquare, Users, Shield,
-  ChevronRight, Award, Clapperboard, UserCircle, Star, Tv2, Globe, BookOpen, ListChecks, Layers, Trophy, Sparkles, Inbox,
+  ChevronRight, Award, Clapperboard, UserCircle, Star, Tv2, Globe, BookOpen, ListChecks, Layers, Trophy, Sparkles, Inbox, Medal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +25,7 @@ const navSections = [
       { href: '/admin/canon',     label: 'Canon',      icon: BookOpen     },
       { href: '/admin/decks',     label: 'Decks',      icon: Layers       },
       { href: '/admin/selections', label: 'Selections', icon: Sparkles    },
+      { href: '/admin/honours',    label: 'Honours',    icon: Medal       },
       { href: '/admin/submissions', label: 'Submissions', icon: Inbox     },
       { href: '/admin/challenges', label: 'Challenges', icon: Trophy      },
     ],

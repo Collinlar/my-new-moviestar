@@ -58,3 +58,24 @@ export function parseTake(body: any): Parsed<TakeInput> {
 
   return { ok: true, value: { reaction: body.reaction, rating, tags, one_liner, review_text } }
 }
+
+export type StandoutKind = 'performance' | 'direction'
+export const STANDOUT_KINDS: readonly StandoutKind[] = ['performance', 'direction']
+
+const PERSON_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * "Which performance stood out?" and "Was the direction a standout?".
+ * For each kind: a person id picks them, null clears an earlier pick, and leaving the kind out
+ * changes nothing. Anything else is ignored rather than trusted.
+ */
+export function parseStandouts(raw: unknown): Partial<Record<StandoutKind, string | null>> {
+  const out: Partial<Record<StandoutKind, string | null>> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const kind of STANDOUT_KINDS) {
+    const v = (raw as Record<string, unknown>)[kind]
+    if (v === null) out[kind] = null
+    else if (typeof v === 'string' && PERSON_ID.test(v)) out[kind] = v
+  }
+  return out
+}

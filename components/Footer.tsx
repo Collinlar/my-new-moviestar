@@ -5,6 +5,7 @@ const footerLinks = {
   Discover: [
     { href: '/discover',    label: 'Ways to discover'    },
     { href: '/browse',      label: 'Browse all films'    },
+    { href: '/awards',      label: 'Awards and honours'  },
     { href: '/selections',  label: 'Selections'          },
     { href: '/decks',       label: 'Decks'               },
     { href: '/challenges',  label: 'Challenges'          },

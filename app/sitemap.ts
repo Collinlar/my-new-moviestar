@@ -3,6 +3,7 @@ import { getSitemapMovies, getAllCreatorIds, getIndexablePeople } from '@/lib/qu
 import { getPublishedDecks } from '@/lib/decks'
 import { getPublishedChallenges } from '@/lib/challenges'
 import { getPublishedSelections } from '@/lib/selections'
+import { PUBLIC_STAGES, cycleHref } from '@/lib/awards-shared'
 import { createStaticClient } from '@/lib/supabase/static'
 
 const SITE_URL = 'https://muviestars.com'
@@ -10,13 +11,18 @@ const SITE_URL = 'https://muviestars.com'
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [movies, creatorIds, people, decks, challenges, selections] = await Promise.all([
+  const [movies, creatorIds, people, decks, challenges, selections, awardCycles] = await Promise.all([
     getSitemapMovies().catch(() => []),
     getAllCreatorIds().catch(() => []),
     getIndexablePeople().catch(() => []),
     getPublishedDecks({ client: createStaticClient(), limit: 200 }).catch(() => []),
     getPublishedChallenges({ client: createStaticClient(), limit: 200 }).catch(() => []),
     getPublishedSelections({ client: createStaticClient(), limit: 200 }).catch(() => []),
+    (async () => {
+      const db = createStaticClient() as any
+      const { data } = await db.from('award_cycles').select('slug, published_at').in('status', [...PUBLIC_STAGES]).limit(200)
+      return ((data ?? []) as Array<{ slug: string; published_at: string | null }>)
+    })().catch(() => [] as Array<{ slug: string; published_at: string | null }>),
   ])
 
   const now = new Date().toISOString()
@@ -90,6 +96,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${SITE_URL}/awards`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/selections`,
       lastModified: now,
       changeFrequency: 'weekly',
@@ -157,5 +169,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages, ...challengePages, ...selectionPages]
+  /* Awards: each public cycle and its four category pages */
+  const categorySlugs = ['movie-of-the-month', 'performance-of-the-month', 'director-of-the-month', 'audience-choice']
+  const awardPages: MetadataRoute.Sitemap = awardCycles.flatMap((c) => [
+    { url: `${SITE_URL}${cycleHref(c.slug)}`, lastModified: c.published_at ?? now, changeFrequency: 'weekly' as const, priority: 0.7 },
+    ...categorySlugs.map((s) => ({ url: `${SITE_URL}${cycleHref(c.slug, s)}`, lastModified: c.published_at ?? now, changeFrequency: 'weekly' as const, priority: 0.6 })),
+  ])
+
+  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages, ...challengePages, ...selectionPages, ...awardPages]
 }

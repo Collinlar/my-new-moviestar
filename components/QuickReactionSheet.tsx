@@ -5,6 +5,8 @@ import Link from 'next/link'
 import type { Movie } from '@/lib/queries'
 import { REACTIONS, TAGS } from '@/lib/reactions'
 import { SharePanel } from '@/components/SharePanel'
+import { AwardNote, type AwardsInfo } from '@/components/AwardNote'
+import { StandoutPicker, NO_STANDOUTS, standoutsPayload, useStandoutOptions, type StandoutValue } from '@/components/StandoutPicker'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -29,6 +31,9 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [finished, setFinished] = useState<Array<{ slug: string; title: string }>>([])
   const [dnaReady, setDnaReady] = useState(false)
+  const [awardsInfo, setAwardsInfo] = useState<AwardsInfo | null>(null)
+  const [standouts, setStandouts] = useState<StandoutValue>(NO_STANDOUTS)
+  const standoutOptions = useStandoutOptions(movie.id, isLoggedIn)
 
   const toggleTag = (slug: string) => {
     setTags(prev =>
@@ -49,11 +54,13 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
           rating,
           tags,
           one_liner: oneLiner.trim() || null,
+          standouts: standoutsPayload(standoutOptions, standouts),
         }),
       })
       const data = await res.json()
       setFinished(Array.isArray(data.completed) ? data.completed : [])
       setDnaReady(!!data.dnaReady)
+      setAwardsInfo(data.awards ?? null)
       return data.shareToken ?? null
     } catch {
       return null
@@ -231,6 +238,8 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
               })}
             </div>
 
+            <StandoutPicker options={standoutOptions} value={standouts} onChange={setStandouts} />
+
             <button
               onClick={() => setStep('oneliner')}
               style={{
@@ -383,6 +392,8 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
                 <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>Your Movie DNA is ready. Tap to see it.</span>
               </Link>
             )}
+
+            <AwardNote info={awardsInfo} />
 
             <SharePanel
               token={shareToken}
