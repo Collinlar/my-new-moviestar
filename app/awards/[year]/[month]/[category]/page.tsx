@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer'
 import { NomineeRows } from '@/components/NomineeRows'
 import { Ballot } from '@/components/Ballot'
 import { getCycleBySlug } from '@/lib/awards'
+import { getJurors, getOutcomes } from '@/lib/awards-results'
 import { NOT_AWARDED_COPY, cycleHref, describeMethod } from '@/lib/awards-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
@@ -42,6 +43,10 @@ export default async function CategoryPage({ params }: PageProps) {
   const noms = found.nominees.filter((n) => n.categoryId === cat.id)
   const enough = noms.length >= cat.min_nominees
   const ballot = cat.method_type === 'community' && enough
+  const decided = ['published', 'archived'].includes(cycle.status)
+  const [outcomes, jurors] = await Promise.all([decided ? getOutcomes(cycle.id) : Promise.resolve([]), getJurors(cycle.id)])
+  const outcome = outcomes.find((o) => o.categoryId === cat.id)
+  const judges = jurors.filter((j) => j.categoryId === cat.id)
 
   const crumbs = breadcrumbSchema([
     { name: 'Home', url: SITE_URL },
@@ -63,6 +68,36 @@ export default async function CategoryPage({ params }: PageProps) {
             <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(44px,7vw,88px)', lineHeight: 0.95, color: '#F6EFE2', margin: 0 }}>{cat.name}</h1>
             {cat.description && <p style={{ margin: 0, fontSize: '19px', lineHeight: 1.6, color: '#C7BFB2' }}>{cat.description}</p>}
           </header>
+
+          {outcome && (
+            <section aria-labelledby="result-heading" style={{ maxWidth: '860px', paddingBottom: '48px' }}>
+              <h2 id="result-heading" style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 12px' }}>
+                {outcome.outcome === 'awarded' ? (outcome.winners.length > 1 ? 'Joint winners' : 'The winner') : 'The result'}
+              </h2>
+              {outcome.outcome === 'awarded' ? (
+                <>
+                  {outcome.winners.map((w) => (
+                    <p key={w.recognitionId} style={{ margin: '0 0 8px' }}>
+                      <Link href={`/recognition/${w.code}`} style={{ ...SERIF, fontSize: 'clamp(36px,5vw,60px)', lineHeight: 1.02, color: '#F6EFE2', textDecoration: 'none' }}>
+                        {w.subject.title}{w.subject.filmTitle ? <span style={{ fontSize: '0.5em', color: '#8C857A' }}> in {w.subject.filmTitle}</span> : null}
+                      </Link>
+                    </p>
+                  ))}
+                  {outcome.story && <p style={{ margin: '14px 0 12px', fontSize: '19px', lineHeight: 1.6, color: '#C7BFB2', maxWidth: '680px' }}>{outcome.story}</p>}
+                  {outcome.winners[0] && (
+                    <p style={{ margin: 0 }}>
+                      <Link href={`/recognition/${outcome.winners[0].code}`} style={{ ...MONO, fontSize: '13px', color: '#C8963E', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Verification ID {outcome.winners[0].code}</Link>
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p style={{ ...SERIF, margin: 0, fontSize: 'clamp(26px,3.4vw,38px)', lineHeight: 1.2, color: '#F6EFE2', maxWidth: '680px' }}>
+                  {NOT_AWARDED_COPY}
+                  {outcome.reason && <span style={{ display: 'block', marginTop: '10px', fontSize: '17px', color: '#8C857A' }}>{outcome.reason}.</span>}
+                </p>
+              )}
+            </section>
+          )}
 
           <section aria-labelledby="shortlist-heading" style={{ maxWidth: '860px', paddingBottom: '48px' }}>
             <h2 id="shortlist-heading" style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8C857A', margin: '0 0 8px' }}>The shortlist</h2>
@@ -95,6 +130,20 @@ export default async function CategoryPage({ params }: PageProps) {
             <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'grid', gap: '10px', fontSize: '16px', lineHeight: 1.6, color: '#A39B8F' }}>
               {describeMethod(cat).map((line) => <li key={line}>{line}</li>)}
             </ul>
+            {judges.length > 0 && (
+              <div style={{ margin: '24px 0 0' }}>
+                <h3 style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8C857A', margin: '0 0 10px' }}>The judges</h3>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '10px' }}>
+                  {judges.map((j) => (
+                    <li key={j.name} style={{ fontSize: '16px', color: '#EDE4D2' }}>
+                      {j.name}{j.organisation ? <span style={{ color: '#8C857A' }}>, {j.organisation}</span> : null}
+                      {j.bio && <span style={{ display: 'block', fontSize: '14px', color: '#A39B8F', lineHeight: 1.5 }}>{j.bio}</span>}
+                    </li>
+                  ))}
+                </ul>
+                <p style={{ margin: '10px 0 0', fontSize: '14px', color: '#6E675E' }}>A judge connected to a nominee steps out of judging it.</p>
+              </div>
+            )}
             <p style={{ margin: '18px 0 0', fontSize: '15px' }}>
               <Link href="/awards" style={{ color: '#C8963E' }}>All the principles behind MuvieStars honours</Link>
             </p>

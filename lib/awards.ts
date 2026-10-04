@@ -31,7 +31,7 @@ export interface Nominee {
 const PUBLIC = [...PUBLIC_STAGES]
 
 /** Resolves nominee subject ids to names and links. A movie subject is a film. Performance and crew subjects are movie_people credits. */
-async function resolveSubjects(supabase: any, rows: Array<{ subject_type: string; subject_id: string }>): Promise<Map<string, NomineeSubject>> {
+export async function resolveSubjects(supabase: any, rows: Array<{ subject_type: string; subject_id: string }>): Promise<Map<string, NomineeSubject>> {
   const out = new Map<string, NomineeSubject>()
   const movieIds = [...new Set(rows.filter((r) => r.subject_type === 'movie').map((r) => r.subject_id))]
   const creditIds = [...new Set(rows.filter((r) => r.subject_type !== 'movie').map((r) => r.subject_id))]
@@ -57,7 +57,7 @@ async function resolveSubjects(supabase: any, rows: Array<{ subject_type: string
   return out
 }
 
-const keyOf = (type: string, id: string) => (type === 'movie' ? `movie:${id}` : `credit:${id}`)
+export const keyOf = (type: string, id: string) => (type === 'movie' ? `movie:${id}` : `credit:${id}`)
 
 /** Cycles the public can see, newest first. */
 export async function getPublicCycles(limit = 12): Promise<Array<AwardCycle & { programName: string }>> {
@@ -97,7 +97,7 @@ export async function getCycleBySlug(slug: string): Promise<{ cycle: AwardCycle;
 }
 
 export interface RecognitionItem {
-  kind: 'shortlisted'
+  kind: 'shortlisted' | 'winner'
   categoryName: string
   cycleName: string
   href: string

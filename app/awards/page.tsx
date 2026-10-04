@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getCycleBySlug, getPublicCycles } from '@/lib/awards'
+import { getOutcomes } from '@/lib/awards-results'
 import { cycleHref, describeMethod, formatDate, type CycleStage } from '@/lib/awards-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL } from '@/lib/utils'
@@ -43,6 +44,8 @@ export default async function AwardsPage() {
   const cycles = await getPublicCycles(6)
   const details = await Promise.all(cycles.map((c) => getCycleBySlug(c.slug)))
   const open = cycles.filter((c) => c.status === 'voting_open')
+  const published = cycles.filter((c) => ['published', 'archived'].includes(c.status))
+  const outcomeSets = await Promise.all(published.map((c) => getOutcomes(c.id)))
 
   const crumbs = breadcrumbSchema([
     { name: 'Home', url: SITE_URL },
@@ -68,6 +71,35 @@ export default async function AwardsPage() {
               Each month MuvieStars honours a film, a performance and a director, and the audience picks its own favourite. Few films qualify, so few awards are given. That is the point.
             </p>
           </header>
+
+          {published.length > 0 && (
+            <section aria-labelledby="winners-heading" style={{ paddingBottom: '56px' }}>
+              <h2 id="winners-heading" style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 8px' }}>Recent winners</h2>
+              {published.map((c, i) => {
+                const d = details[cycles.indexOf(c)]
+                return (
+                  <div key={c.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)', padding: '24px 0' }}>
+                    <Link href={cycleHref(c.slug)} style={{ ...SERIF, fontSize: 'clamp(28px,3.6vw,40px)', lineHeight: 1.05, color: '#F6EFE2', textDecoration: 'none' }}>{c.name}</Link>
+                    <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'grid', gap: '2px' }}>
+                      {(d?.categories ?? []).map((k) => {
+                        const o = outcomeSets[i].find((x) => x.categoryId === k.id)
+                        return (
+                          <li key={k.id}>
+                            <Link href={cycleHref(c.slug, k.slug)} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'baseline', padding: '10px 0', textDecoration: 'none', minHeight: '44px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '17px', color: '#A39B8F' }}>{k.name}</span>
+                              <span style={{ fontSize: '19px', color: o?.outcome === 'awarded' ? '#F6EFE2' : '#6E675E' }}>
+                                {o?.outcome === 'awarded' ? o.winners.map((w) => w.subject.title).join(' and ') : 'Not awarded'}
+                              </span>
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })}
+            </section>
+          )}
 
           {open.length > 0 && (
             <section aria-labelledby="open-heading" style={{ paddingBottom: '56px' }}>

@@ -5,6 +5,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { NomineeRows } from '@/components/NomineeRows'
 import { getCycleBySlug } from '@/lib/awards'
+import { getOutcomes } from '@/lib/awards-results'
 import { NOT_AWARDED_COPY, cycleHref, formatDate } from '@/lib/awards-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL } from '@/lib/utils'
@@ -34,6 +35,7 @@ export default async function CyclePage({ params }: PageProps) {
   const found = await getCycleBySlug(`${year}-${month}`)
   if (!found) notFound()
   const { cycle, categories, nominees } = found
+  const outcomes = ['published', 'archived'].includes(cycle.status) ? await getOutcomes(cycle.id) : []
 
   const crumbs = breadcrumbSchema([
     { name: 'Home', url: SITE_URL },
@@ -60,12 +62,18 @@ export default async function CyclePage({ params }: PageProps) {
           {categories.map((k) => {
             const noms = nominees.filter((n) => n.categoryId === k.id)
             const enough = noms.length >= k.min_nominees
+            const o = outcomes.find((x) => x.categoryId === k.id)
             return (
               <section key={k.id} aria-labelledby={`c-${k.slug}`} style={{ paddingBottom: '48px', maxWidth: '860px' }}>
                 <h2 id={`c-${k.slug}`} style={{ margin: '0 0 6px' }}>
                   <Link href={cycleHref(cycle.slug, k.slug)} style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,4vw,42px)', lineHeight: 1.05, color: '#F6EFE2', textDecoration: 'none' }}>{k.name}</Link>
                 </h2>
                 {k.description && <p style={{ margin: '0 0 12px', fontSize: '16px', lineHeight: 1.6, color: '#A39B8F' }}>{k.description}</p>}
+                {o && (
+                  <p style={{ margin: '0 0 14px', fontSize: '19px', color: o.outcome === 'awarded' ? '#C8963E' : '#8C857A' }}>
+                    {o.outcome === 'awarded' ? `Winner: ${o.winners.map((w) => w.subject.title).join(' and ')}` : NOT_AWARDED_COPY}
+                  </p>
+                )}
                 {enough ? <NomineeRows nominees={noms} /> : <p style={{ margin: 0, fontSize: '16px', color: '#8C857A', lineHeight: 1.6 }}>Not enough films qualified for a shortlist this month. {NOT_AWARDED_COPY}</p>}
               </section>
             )

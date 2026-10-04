@@ -166,7 +166,7 @@ export function CycleWorkbench({ cycle, categories, audit, votes = {} }: Props) 
             />
           )}
         </div>
-        {!['draft', 'qualification', 'shortlist_review', 'shortlist_published', 'voting_open', 'voting_closed'].includes(stage) && (
+        {false && (
           <p style={{ margin: 0, fontSize: '13px', color: '#8C857A' }}>Voting, jury scoring and results are not part of this release yet.</p>
         )}
         {notice && <p role={notice.tone === 'error' ? 'alert' : 'status'} style={{ margin: '14px 0 0', fontSize: '14px', color: notice.tone === 'error' ? '#E58A7B' : '#7FA88B' }}>{notice.text}</p>}

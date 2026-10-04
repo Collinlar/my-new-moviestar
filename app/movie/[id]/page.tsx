@@ -21,6 +21,7 @@ import { ListedMark } from '@/components/ListedMark'
 import { NominateButton } from '@/components/NominateButton'
 import { getSelectionsForMovie, periodLabel } from '@/lib/selections'
 import { getRecognitionForMovie } from '@/lib/awards'
+import { getWinsForMovie } from '@/lib/awards-results'
 import { RecognitionSection } from '@/components/RecognitionSection'
 import { watchLinks } from '@/lib/watch'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
@@ -84,7 +85,7 @@ export const revalidate = 3600
 
 export default async function MovieDetailPage({ params }: PageProps) {
   const { id } = await params
-  const [movie, reviews, cast, awards, verdict, communityTakes, selections, recognition] = await Promise.all([
+  const [movie, reviews, cast, awards, verdict, communityTakes, selections, recognition, wins] = await Promise.all([
     getMovieById(id),
     getMovieReviews(id, 8),
     getMovieCast(id),
@@ -93,6 +94,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
     getCommunityTakes(id, 6),
     getSelectionsForMovie(id).catch(() => []),
     getRecognitionForMovie(id).catch(() => []),
+    getWinsForMovie(id).catch(() => []),
   ])
 
   if (!movie) notFound()
@@ -708,6 +710,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
         {/* ─── MUVIESTARS RECOGNITION ─────────────────────────────────────── */}
         <RecognitionSection
           items={recognition}
+          wins={wins}
           selections={movie.listing_status === 'approved' ? selections.map((s) => ({ slug: s.slug, label: s.label, periodLabel: periodLabel(s.period) })) : []}
           sectionStyle={SECTION}
         />

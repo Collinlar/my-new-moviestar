@@ -6,6 +6,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getPersonByRef, getPersonCredits, type PersonCredit } from '@/lib/queries'
 import { getRecognitionForPerson } from '@/lib/awards'
+import { getWinsForPerson } from '@/lib/awards-results'
 import { RecognitionSection } from '@/components/RecognitionSection'
 import { personProfileSchema, breadcrumbSchema } from '@/lib/schema'
 import {
@@ -76,7 +77,10 @@ export default async function PersonPage({ params }: PageProps) {
   if (isUuid(slug)) permanentRedirect(`/person/${person.slug}`)
 
   const credits = await getPersonCredits(person.id)
-  const recognition = await getRecognitionForPerson(person.id).catch(() => [])
+  const [recognition, wins] = await Promise.all([
+    getRecognitionForPerson(person.id).catch(() => []),
+    getWinsForPerson(person.id).catch(() => []),
+  ])
   const roles = credits.map(c => c.role)
   const roleText = describeRoles(roles)
   const uniqueFilms = new Map(credits.map(c => [c.movie.id, c.movie]))
@@ -239,7 +243,7 @@ export default async function PersonPage({ params }: PageProps) {
         )}
 
         {/* ── FILMOGRAPHY ───────────────────────────────────────────── */}
-        <RecognitionSection items={recognition} sectionStyle={{ paddingTop: '56px' }} />
+        <RecognitionSection items={recognition} wins={wins} sectionStyle={{ paddingTop: '56px' }} />
 
         <section style={{ paddingTop: '56px', paddingBottom: '96px' }} aria-labelledby="filmography-heading">
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ maxWidth: '900px', marginLeft: 0 }}>

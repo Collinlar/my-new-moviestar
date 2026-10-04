@@ -11,7 +11,7 @@ const SITE_URL = 'https://muviestars.com'
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [movies, creatorIds, people, decks, challenges, selections, awardCycles] = await Promise.all([
+  const [movies, creatorIds, people, decks, challenges, selections, awardCycles, recognitions] = await Promise.all([
     getSitemapMovies().catch(() => []),
     getAllCreatorIds().catch(() => []),
     getIndexablePeople().catch(() => []),
@@ -23,6 +23,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const { data } = await db.from('award_cycles').select('slug, published_at').in('status', [...PUBLIC_STAGES]).limit(200)
       return ((data ?? []) as Array<{ slug: string; published_at: string | null }>)
     })().catch(() => [] as Array<{ slug: string; published_at: string | null }>),
+    (async () => {
+      const db = createStaticClient() as any
+      const { data } = await db.from('award_recognition').select('verification_code, awarded_at, status').in('status', ['valid', 'corrected']).limit(1000)
+      return ((data ?? []) as Array<{ verification_code: string; awarded_at: string }>)
+    })().catch(() => [] as Array<{ verification_code: string; awarded_at: string }>),
   ])
 
   const now = new Date().toISOString()
@@ -176,5 +181,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...categorySlugs.map((s) => ({ url: `${SITE_URL}${cycleHref(c.slug, s)}`, lastModified: c.published_at ?? now, changeFrequency: 'weekly' as const, priority: 0.6 })),
   ])
 
-  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages, ...challengePages, ...selectionPages, ...awardPages]
+  /* Permanent award records */
+  const recognitionPages: MetadataRoute.Sitemap = recognitions.map((r) => ({
+    url: `${SITE_URL}/recognition/${r.verification_code}`,
+    lastModified: r.awarded_at,
+    changeFrequency: 'yearly' as const,
+    priority: 0.6,
+  }))
+
+  return [...staticPages, ...moviePages, ...creatorPages, ...peoplePages, ...deckPages, ...challengePages, ...selectionPages, ...awardPages, ...recognitionPages]
 }
