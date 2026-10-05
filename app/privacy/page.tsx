@@ -93,7 +93,7 @@ const SECTIONS: LegalSection[] = [
         <UL>
           <li><strong>Supabase</strong> keeps our database and handles sign-in.</li>
           <li><strong>Vercel</strong> hosts the site.</li>
-          <li><strong>Google</strong> provides sign-in if you choose it, Analytics, and the fonts the site loads.</li>
+          <li><strong>Google</strong> provides sign-in if you choose it, and Analytics if you say yes to the cookie question.</li>
           <li><strong>YouTube</strong> plays films and trailers we embed. YouTube may set its own cookies when you press play.</li>
         </UL>
         <P>These services keep data on servers outside Ghana. We also share information when the law requires it, for example a valid order from a court.</P>
@@ -106,7 +106,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <P>An essential cookie keeps you signed in. It needs no yes from you. Google Analytics sets cookies to count visits, and it only loads after you say yes in the cookie question. If you say no, nothing from Google Analytics loads.</P>
-        <P>You can change your answer any time with “Cookie choices” at the bottom of any page. Saying no after a yes clears the Google Analytics cookies we can reach. YouTube may set its own cookies when you play an embedded film. The fonts on the site are fetched from Google, which means Google sees that a page was opened.</P>
+        <P>You can change your answer any time with “Cookie choices” at the bottom of any page. Saying no after a yes clears the Google Analytics cookies we can reach. YouTube may set its own cookies when you play an embedded film. The site’s fonts are kept on our own servers, so opening a page sends nothing to Google unless you chose Google sign-in or said yes to Analytics.</P>
         <P>You can also block or clear cookies in your browser settings. The site still works if you do, apart from staying signed in.</P>
       </>
     ),
