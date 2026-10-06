@@ -490,12 +490,12 @@ export async function getMovieVerdict(movieId: string): Promise<MovieVerdict | n
   }
 }
 
-export async function getCurrentClubCycle(): Promise<{ movie_id: string; title_override?: string } | null> {
+export async function getCurrentClubCycle(): Promise<{ movie_id: string; title_override?: string; starts_at?: string; ends_at?: string } | null> {
   try {
     const supabase = await createClient() as any
     const { data } = await supabase
       .from('club_cycles')
-      .select('movie_id, title_override')
+      .select('movie_id, title_override, starts_at, ends_at')
       .eq('status', 'active')
       .lte('starts_at', new Date().toISOString())
       .gte('ends_at',   new Date().toISOString())

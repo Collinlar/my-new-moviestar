@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -133,12 +134,12 @@ export default async function AccountPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Link
+                  <NavLink
                     href="/dna"
                     style={{ minHeight: '44px', padding: '0 18px', borderRadius: '12px', border: '1px solid rgba(200,150,62,0.5)', color: '#C8963E', fontSize: '14px', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
                   >
                     See my Movie DNA
-                  </Link>
+                  </NavLink>
                   <SignOutButton />
                 </div>
               </div>
@@ -214,7 +215,7 @@ export default async function AccountPage() {
                   <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
                     No reactions yet. Swipe through a few films.
                   </p>
-                  <Link
+                  <NavLink button pendingLabel="Opening Swipe..."
                     href="/swipe"
                     style={{
                       height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -224,7 +225,7 @@ export default async function AccountPage() {
                     }}
                   >
                     Start swiping
-                  </Link>
+                  </NavLink>
                 </div>
               ) : (
                 <div style={{
@@ -312,7 +313,7 @@ export default async function AccountPage() {
                   <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
                     Nothing saved yet. Tap &ldquo;Watch Later&rdquo; while swiping or from any film page.
                   </p>
-                  <Link
+                  <NavLink button pendingLabel="Opening Swipe..."
                     href="/swipe"
                     style={{
                       height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -322,7 +323,7 @@ export default async function AccountPage() {
                     }}
                   >
                     Start swiping
-                  </Link>
+                  </NavLink>
                 </div>
               ) : (
                 <div style={{
@@ -396,7 +397,7 @@ export default async function AccountPage() {
                   <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
                     No reviews yet. Write your first one from any film page.
                   </p>
-                  <Link
+                  <NavLink button pendingLabel="Opening the archive..."
                     href="/browse"
                     style={{
                       height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -406,7 +407,7 @@ export default async function AccountPage() {
                     }}
                   >
                     Browse films
-                  </Link>
+                  </NavLink>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '760px' }}>
@@ -478,7 +479,7 @@ export default async function AccountPage() {
         <section style={{ paddingTop: '32px', paddingBottom: '80px', borderTop: '1px solid rgba(237,228,210,0.06)' }}>
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <Link
+              <NavLink button pendingLabel="Opening your lists..."
                 href="/account/lists"
                 style={{
                   height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -489,9 +490,9 @@ export default async function AccountPage() {
                 }}
               >
                 My lists →
-              </Link>
+              </NavLink>
               {profile?.username && (
-                <Link
+                <NavLink button
                   href={`/u/${profile.username}`}
                   style={{
                     height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -502,7 +503,7 @@ export default async function AccountPage() {
                   }}
                 >
                   Public profile →
-                </Link>
+                </NavLink>
               )}
             </div>
           </div>

@@ -140,6 +140,28 @@ export async function POST(req: NextRequest) {
       shareToken = newCard?.share_token ?? null
     }
 
+    // If this is this week's Club film, saying what you thought also finishes your Club week, so the homepage
+    // and the Club page stop asking for something already done. Never blocks the take.
+    try {
+      const nowIso = new Date().toISOString()
+      const { data: active } = await supabase
+        .from('club_cycles')
+        .select('movie_id')
+        .eq('status', 'active')
+        .eq('movie_id', movie_id)
+        .lte('starts_at', nowIso)
+        .gte('ends_at', nowIso)
+        .limit(1)
+        .maybeSingle()
+      if (active) {
+        await supabase
+          .from('club_participation')
+          .upsert({ user_id: user.id, movie_id, status: 'completed', completed_at: nowIso }, { onConflict: 'user_id,movie_id' })
+      }
+    } catch {
+      // The take is saved either way.
+    }
+
     // Did this take finish a challenge? The database awards laurels, so just ask what is new.
     let completed: Array<{ slug: string; title: string }> = []
     try {

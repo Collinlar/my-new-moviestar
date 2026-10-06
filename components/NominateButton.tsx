@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -74,9 +74,9 @@ export function NominateButton({ movieId, title }: Props) {
         When enough people nominate a film, an editor checks it for listing.
       </p>
       {!signedIn ? (
-        <Link href={`/auth?next=/movie/${movieId}`} style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', color: '#C8963E', fontSize: '15px' }}>
+        <NavLink href={`/auth?next=/movie/${movieId}`} style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', color: '#C8963E', fontSize: '15px' }}>
           Sign in to nominate it
-        </Link>
+        </NavLink>
       ) : nominated ? (
         <button
           type="button"

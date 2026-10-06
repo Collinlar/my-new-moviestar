@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getCycleBySlug, getPublicCycles } from '@/lib/awards'
@@ -85,12 +86,12 @@ export default async function AwardsPage() {
                         const o = outcomeSets[i].find((x) => x.categoryId === k.id)
                         return (
                           <li key={k.id}>
-                            <Link href={cycleHref(c.slug, k.slug)} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'baseline', padding: '10px 0', textDecoration: 'none', minHeight: '44px', flexWrap: 'wrap' }}>
+                            <NavLink href={cycleHref(c.slug, k.slug)} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'baseline', padding: '10px 0', textDecoration: 'none', minHeight: '44px', flexWrap: 'wrap' }}>
                               <span style={{ fontSize: '17px', color: '#A39B8F' }}>{k.name}</span>
                               <span style={{ fontSize: '19px', color: o?.outcome === 'awarded' ? '#F6EFE2' : '#6E675E' }}>
                                 {o?.outcome === 'awarded' ? winnerNames(o) : 'Not awarded'}
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         )
                       })}
@@ -105,10 +106,10 @@ export default async function AwardsPage() {
             <section aria-labelledby="open-heading" style={{ paddingBottom: '56px' }}>
               <h2 id="open-heading" style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 10px' }}>Voting open now</h2>
               {open.map((c) => (
-                <Link key={c.id} href={cycleHref(c.slug, 'audience-choice')} style={{ display: 'block', padding: '20px 22px', borderRadius: '16px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.08)', textDecoration: 'none', maxWidth: '640px', minHeight: '44px' }}>
+                <NavLink key={c.id} href={cycleHref(c.slug, 'audience-choice')} style={{ display: 'block', padding: '20px 22px', borderRadius: '16px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.08)', textDecoration: 'none', maxWidth: '640px', minHeight: '44px' }}>
                   <span style={{ ...SERIF, fontSize: '30px', lineHeight: 1.1, color: '#F6EFE2', display: 'block' }}>{c.name} Audience Choice</span>
                   <span style={{ fontSize: '15px', color: '#C7BFB2' }}>Voting closes {formatDate(c.voting_end)}. Tap to see the shortlist and vote.</span>
-                </Link>
+                </NavLink>
               ))}
             </section>
           )}
@@ -139,12 +140,12 @@ export default async function AwardsPage() {
                             const enough = count >= k.min_nominees
                             return (
                               <li key={k.id}>
-                                <Link href={cycleHref(c.slug, k.slug)} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px 0', textDecoration: 'none', minHeight: '44px', flexWrap: 'wrap' }}>
+                                <NavLink href={cycleHref(c.slug, k.slug)} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', padding: '10px 0', textDecoration: 'none', minHeight: '44px', flexWrap: 'wrap' }}>
                                   <span style={{ fontSize: '18px', color: '#EDE4D2' }}>{k.name}</span>
                                   <span style={{ ...MONO, fontSize: '12px', color: enough ? '#8C857A' : '#6A6258' }}>
                                     {METHOD_LABEL[k.method_type] ?? k.method_type} · {enough ? `${count} shortlisted` : 'not enough qualified yet'}
                                   </span>
-                                </Link>
+                                </NavLink>
                               </li>
                             )
                           })}

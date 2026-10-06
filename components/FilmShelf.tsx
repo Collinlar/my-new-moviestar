@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import type { Movie } from '@/lib/queries'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -37,9 +38,9 @@ export function FilmShelf({ id, eyebrow, title, note, href, hrefLabel, films }: 
             {note && <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.55, color: '#A39B8F' }}>{note}</p>}
           </div>
           {href && (
-            <Link href={href} style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+            <NavLink href={href} style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
               {hrefLabel ?? 'See more'} →
-            </Link>
+            </NavLink>
           )}
         </div>
 

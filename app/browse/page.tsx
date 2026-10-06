@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { SearchBar } from '@/components/SearchBar'
@@ -136,7 +137,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                 {['All', ...INDUSTRIES.filter(i => i !== 'Other')].map((ind) => {
                   const active = ind === 'All' ? !sp.industry : sp.industry === ind
                   return (
-                    <Link
+                    <NavLink
                       key={ind}
                       href={buildUrl({ industry: ind === 'All' ? undefined : ind, page: '1' })}
                       style={{
@@ -150,7 +151,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                       }}
                     >
                       {ind}
-                    </Link>
+                    </NavLink>
                   )
                 })}
               </div>
@@ -163,7 +164,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                 {['All', ...GENRES].map((g) => {
                   const active = g === 'All' ? !sp.genre : sp.genre === g
                   return (
-                    <Link
+                    <NavLink
                       key={g}
                       href={buildUrl({ genre: g === 'All' ? undefined : g, page: '1' })}
                       style={{
@@ -177,7 +178,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                       }}
                     >
                       {g === 'All' ? 'All genres' : capitalise(g)}
-                    </Link>
+                    </NavLink>
                   )
                 })}
               </div>
@@ -313,7 +314,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                 {SORT_OPTIONS.map((opt) => {
                   const active = activeSort === opt.value
                   return (
-                    <Link
+                    <NavLink
                       key={opt.value}
                       href={buildUrl({ sort: opt.value, page: '1' })}
                       style={{
@@ -327,7 +328,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                       }}
                     >
                       {opt.label}
-                    </Link>
+                    </NavLink>
                   )
                 })}
               </div>
@@ -442,7 +443,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                     <p style={{ ...SERIF, fontSize: '22px', color: '#F6EFE2', margin: '0 0 8px' }}>No films found</p>
                     <p style={{ fontSize: '15px', color: '#6A6258', margin: 0 }}>Try different filters or search terms.</p>
                   </div>
-                  <Link
+                  <NavLink button pendingLabel="Opening the archive..."
                     href="/browse"
                     style={{
                       height: '44px', padding: '0 24px', borderRadius: '12px',
@@ -452,7 +453,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
                     }}
                   >
                     Clear filters
-                  </Link>
+                  </NavLink>
                 </div>
               )}
             </div>

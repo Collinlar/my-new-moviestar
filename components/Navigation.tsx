@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Search, Menu, X, Film } from 'lucide-react'
@@ -75,7 +75,7 @@ export function Navigation() {
         <div className="section-container">
           <nav className="flex items-center justify-between h-16" aria-label="Main navigation">
             {/* Logo */}
-            <Link
+            <NavLink
               href="/"
               className="flex items-center gap-2 text-film-cream hover:text-film-gold transition-colors"
               aria-label="MuvieStars — Home"
@@ -84,7 +84,7 @@ export function Navigation() {
               <span className="font-bold text-lg tracking-tight">
                 Muvie<span className="text-film-gold">Stars</span>
               </span>
-            </Link>
+            </NavLink>
 
             {/* Desktop links */}
             <ul className="hidden md:flex items-center gap-1" role="list">
@@ -92,7 +92,7 @@ export function Navigation() {
                 const isActive = isActivePath(pathname, link.href, link.exact)
                 return (
                   <li key={link.label}>
-                    <Link
+                    <NavLink
                       href={link.href}
                       className={cn(
                         'px-3 py-2 rounded-md text-sm font-medium transition-colors',
@@ -102,7 +102,7 @@ export function Navigation() {
                       )}
                     >
                       {link.label}
-                    </Link>
+                    </NavLink>
                   </li>
                 )
               })}
@@ -110,38 +110,38 @@ export function Navigation() {
 
             {/* Right actions */}
             <div className="flex items-center gap-2">
-              <Link
+              <NavLink
                 href="/search"
                 className="btn-ghost p-2"
                 aria-label="Search movies"
               >
                 <Search className="w-4 h-4" aria-hidden="true" />
-              </Link>
+              </NavLink>
               {isAdmin && (
-                <Link
+                <NavLink
                   href="/admin"
                   className="hidden sm:inline-flex btn-ghost text-xs py-1.5 text-film-gold hover:text-film-amber"
                 >
                   Admin
-                </Link>
+                </NavLink>
               )}
               {user ? (
                 <div className="hidden sm:flex items-center gap-2">
-                  <Link href="/account" className="btn-ghost text-sm py-1.5 text-film-muted hover:text-film-cream">
+                  <NavLink href="/account" className="btn-ghost text-sm py-1.5 text-film-muted hover:text-film-cream">
                     My account
-                  </Link>
+                  </NavLink>
                   <button onClick={handleSignOut} className="btn-outline text-sm py-1.5">
                     Sign out
                   </button>
                 </div>
               ) : (
                 <div className="hidden sm:flex items-center gap-2">
-                  <Link href="/auth" className="btn-ghost text-sm py-1.5">
+                  <NavLink href="/auth" className="btn-ghost text-sm py-1.5">
                     Sign in
-                  </Link>
-                  <Link href="/auth" className="btn-gold text-sm py-1.5 px-4">
+                  </NavLink>
+                  <NavLink button pendingLabel="Opening sign in..." href="/auth" className="btn-gold text-sm py-1.5 px-4">
                     Join free
-                  </Link>
+                  </NavLink>
                 </div>
               )}
 
@@ -178,7 +178,7 @@ export function Navigation() {
             <ul className="flex flex-col gap-1" role="list">
               {navLinks.map((link) => (
                 <li key={link.label}>
-                  <Link
+                  <NavLink
                     href={link.href}
                     onClick={() => setOpen(false)}
                     className={cn(
@@ -189,29 +189,29 @@ export function Navigation() {
                     )}
                   >
                     {link.label}
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
               {isAdmin && (
                 <li>
-                  <Link
+                  <NavLink
                     href="/admin"
                     onClick={() => setOpen(false)}
                     className="flex items-center px-4 py-3 rounded-lg text-base font-medium text-film-gold hover:bg-cinema-surface transition-colors"
                   >
                     Admin panel
-                  </Link>
+                  </NavLink>
                 </li>
               )}
               {user && (
                 <li>
-                  <Link
+                  <NavLink
                     href="/account"
                     onClick={() => setOpen(false)}
                     className="flex items-center px-4 py-3 rounded-lg text-base font-medium text-film-cream hover:bg-cinema-surface transition-colors"
                   >
                     My account
-                  </Link>
+                  </NavLink>
                 </li>
               )}
               <li className="mt-2 pt-2 border-t border-cinema-border">
@@ -223,13 +223,13 @@ export function Navigation() {
                     Sign out
                   </button>
                 ) : (
-                  <Link
+                  <NavLink button pendingLabel="Opening sign in..."
                     href="/auth"
                     onClick={() => setOpen(false)}
                     className="btn-gold w-full justify-center"
                   >
                     Sign in
-                  </Link>
+                  </NavLink>
                 )}
               </li>
             </ul>

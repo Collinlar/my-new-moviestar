@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getPublishedSelections, periodLabel } from '@/lib/selections'
@@ -50,7 +51,7 @@ export default async function SelectionsPage() {
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {selections.map((s) => (
                 <li key={s.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
-                  <Link
+                  <NavLink
                     href={`/selections/${s.slug}`}
                     className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 md:gap-10 items-center"
                     style={{ padding: '32px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -69,7 +70,7 @@ export default async function SelectionsPage() {
                         ))}
                       </span>
                     )}
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>

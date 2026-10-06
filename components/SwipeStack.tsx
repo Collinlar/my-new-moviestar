@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { ArrowRight, Bookmark } from 'lucide-react'
 import { QuickReactionSheet } from '@/components/QuickReactionSheet'
 import { AuthPromptSheet } from '@/components/AuthPromptSheet'
@@ -218,7 +219,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
                 : `You have been through all ${movies.length} films in this stack.`}
             </p>
             {mood && (
-              <Link
+              <NavLink button pendingLabel="Opening Swipe..."
                 href="/swipe"
                 style={{
                   width: '100%', height: '60px', borderRadius: '18px',
@@ -230,9 +231,9 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
               >
                 Swipe all films
                 <ArrowRight size={18} />
-              </Link>
+              </NavLink>
             )}
-            <Link
+            <NavLink button pendingLabel="Opening the archive..."
               href="/browse"
               style={{
                 width: '100%', height: '60px', borderRadius: '18px',
@@ -246,7 +247,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
             >
               Explore the full database
               <ArrowRight size={18} />
-            </Link>
+            </NavLink>
           </div>
         )}
       </div>
@@ -280,7 +281,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
           {mood && (
-            <Link
+            <NavLink button pendingLabel="Opening Swipe..."
               href="/swipe"
               style={{
                 height: '60px', padding: '0 32px', borderRadius: '18px',
@@ -292,9 +293,9 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
             >
               Swipe all films
               <ArrowRight size={18} />
-            </Link>
+            </NavLink>
           )}
-          <Link
+          <NavLink button pendingLabel="Opening the archive..."
             href="/browse"
             style={{
               height: '60px', padding: '0 32px', borderRadius: '18px',
@@ -308,7 +309,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
           >
             Explore the full database
             <ArrowRight size={18} />
-          </Link>
+          </NavLink>
         </div>
       </div>
     )

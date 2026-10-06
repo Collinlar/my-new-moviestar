@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/Providers'
 import { MobileBottomNav } from '@/components/MobileBottomNav'
 import { CookieConsent } from '@/components/CookieConsent'
+import { NavigationProgress } from '@/components/NavigationProgress'
 import '@/app/fonts.css'
 import '@/app/globals.css'
 
@@ -94,6 +96,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://anjavnuqkkmpsnjmopou.supabase.co" />
       </head>
       <body>
+        <Suspense fallback={null}><NavigationProgress /></Suspense>
         <Providers>{children}</Providers>
         <MobileBottomNav />
         <CookieConsent gaId={process.env.NEXT_PUBLIC_GA_ID} />

@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { cycleHref } from '@/lib/awards-shared'
 
 export interface AwardsInfo {
@@ -41,10 +41,10 @@ export function AwardNote({ info }: { info: AwardsInfo | null | undefined }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {lines.map((l) => (
-        <Link key={l.key} href={l.href} style={BOX}>
+        <NavLink key={l.key} href={l.href} style={BOX}>
           <span style={{ ...MONO, display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{l.label}</span>
           <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>{l.text}</span>
-        </Link>
+        </NavLink>
       ))}
     </div>
   )

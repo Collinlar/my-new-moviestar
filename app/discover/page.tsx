@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { MOOD_MAP } from '@/lib/mood'
@@ -97,14 +98,14 @@ export default function DiscoverPage() {
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
               {STARTS.map((s) => (
                 <li key={s.href} style={{ borderTop: '1px solid rgba(237,228,210,0.06)' }}>
-                  <Link
+                  <NavLink
                     href={s.href}
                     className="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-1 sm:gap-6"
                     style={{ padding: '16px 0', textDecoration: 'none', minHeight: '44px' }}
                   >
                     <span style={{ ...SERIF, fontSize: '28px', lineHeight: 1.1, color: '#F6EFE2' }}>{s.title}</span>
                     <span style={{ fontSize: '15px', color: '#A39B8F', alignSelf: 'center' }}>{s.body}</span>
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -113,7 +114,7 @@ export default function DiscoverPage() {
           <Row label="By genre">
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               {GENRES.map((g) => (
-                <li key={g}><Link href={`/browse?genre=${g}`} style={pill}>{capitalise(g)}</Link></li>
+                <li key={g}><NavLink href={`/browse?genre=${g}`} style={pill}>{capitalise(g)}</NavLink></li>
               ))}
             </ul>
           </Row>
@@ -121,7 +122,7 @@ export default function DiscoverPage() {
           <Row label="By industry">
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               {INDUSTRIES.filter((i) => i !== 'Other').map((i) => (
-                <li key={i}><Link href={`/browse?industry=${encodeURIComponent(i)}`} style={pill}>{i}</Link></li>
+                <li key={i}><NavLink href={`/browse?industry=${encodeURIComponent(i)}`} style={pill}>{i}</NavLink></li>
               ))}
             </ul>
           </Row>
@@ -129,7 +130,7 @@ export default function DiscoverPage() {
           <Row label="By country">
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               {COUNTRIES.filter((c) => c !== 'Other').map((c) => (
-                <li key={c}><Link href={`/browse?country=${encodeURIComponent(c)}`} style={pill}>{c}</Link></li>
+                <li key={c}><NavLink href={`/browse?country=${encodeURIComponent(c)}`} style={pill}>{c}</NavLink></li>
               ))}
             </ul>
           </Row>

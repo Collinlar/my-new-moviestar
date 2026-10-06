@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -174,7 +175,7 @@ export default async function ListPage({ params }: PageProps) {
                 No films in this list yet.
               </p>
               {isOwner && (
-                <Link
+                <NavLink button pendingLabel="Opening the archive..."
                   href="/browse"
                   style={{
                     height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -185,7 +186,7 @@ export default async function ListPage({ params }: PageProps) {
                   }}
                 >
                   Browse films to add
-                </Link>
+                </NavLink>
               )}
             </div>
           ) : (

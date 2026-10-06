@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Film } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -17,8 +17,8 @@ export default function NotFound() {
               you are looking for may have moved.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/" className="btn-gold">Back to home</Link>
-              <Link href="/browse" className="btn-outline">Browse the archive</Link>
+              <NavLink button pendingLabel="Taking you home..." href="/" className="btn-gold">Back to home</NavLink>
+              <NavLink button pendingLabel="Opening the archive..." href="/browse" className="btn-outline">Browse the archive</NavLink>
             </div>
           </div>
         </div>

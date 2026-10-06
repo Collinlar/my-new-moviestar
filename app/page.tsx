@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -7,7 +8,10 @@ import { FilmShelf } from '@/components/FilmShelf'
 import { SignedInHero } from '@/components/SignedInHero'
 import { OnboardingFlow } from '@/components/OnboardingFlow'
 import { createClient } from '@/lib/supabase/server'
-import { getCanonMovies, getCurrentClubCycle, getMovieById, getOldButGoldMovies } from '@/lib/queries'
+import { getCanonMovies, getOldButGoldMovies } from '@/lib/queries'
+import { getClubWeek, splitTitle } from '@/lib/club'
+import { ClubActions } from '@/components/ClubActions'
+import { ClubPoster } from '@/components/ClubPoster'
 import {
   getWorthYourTime, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
 } from '@/lib/home'
@@ -63,12 +67,6 @@ const HOME_FAQ = [
   },
 ]
 
-function daysLeftThisWeek(): number {
-  const day = new Date().getDay()
-  const daysSinceMonday = (day - 1 + 7) % 7
-  return 7 - daysSinceMonday
-}
-
 export default async function HomePage() {
   const supabase = await createClient() as any
   const { data: { user } } = await supabase.auth.getUser()
@@ -78,13 +76,8 @@ export default async function HomePage() {
   const fullName       = user?.user_metadata?.full_name as string | undefined
   const firstName      = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
 
-  const club = (async () => {
-    const cycle = await getCurrentClubCycle()
-    return cycle ? getMovieById(cycle.movie_id) : null
-  })()
-
-  const [clubPick, obg, worth, canon, people, loved, unfinished, takes, decks, challenges, selection, honours] = await Promise.all([
-    club,
+  const [clubWeek, obg, worth, canon, people, loved, unfinished, takes, decks, challenges, selection, honours] = await Promise.all([
+    getClubWeek(user?.id ?? null).catch(() => null),
     getOldButGoldMovies(6),
     isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
     isSignedIn ? Promise.resolve([]) : getCanonMovies(5),
@@ -98,7 +91,8 @@ export default async function HomePage() {
     getPublicCycles(1).catch(() => []),
   ])
 
-  const daysLeft = daysLeftThisWeek()
+  const clubPick = clubWeek?.movie ?? null
+  const clubName = clubPick ? splitTitle(clubPick.title) : null
   const schemaGraph = [websiteSchema(), organizationSchema(), faqSchema(HOME_FAQ)]
 
   return (
@@ -148,19 +142,19 @@ export default async function HomePage() {
                 </p>
 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link
+                  <NavLink button pendingLabel="Opening Swipe..."
                     href="/swipe"
                     style={{ height: '58px', padding: '0 28px', borderRadius: '16px', background: '#C8963E', color: '#0B0A09', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
                   >
                     Start swiping
                     <ArrowRight size={18} />
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink button pendingLabel="Opening Discover..."
                     href="/discover"
                     style={{ height: '58px', padding: '0 28px', borderRadius: '16px', border: '1px solid rgba(237,228,210,0.18)', color: '#EDE4D2', fontSize: '17px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
                   >
                     Pick a way in
-                  </Link>
+                  </NavLink>
                 </div>
               </div>
 
@@ -186,7 +180,7 @@ export default async function HomePage() {
                     </div>
                     <div style={{ position: 'absolute', left: '24px', right: '24px', bottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ ...SERIF, fontSize: '48px', lineHeight: '0.98', color: '#F6EFE2' }}>
-                        {clubPick?.title || 'Silence'}
+                        {clubName?.main || 'Silence'}
                       </div>
                       <div style={{ fontSize: '15px', color: '#D8CFC0' }}>
                         {clubPick
@@ -198,20 +192,20 @@ export default async function HomePage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', width: '380px' }}>
-                  <Link
+                  <NavLink button pendingLabel="Opening Swipe..."
                     href="/swipe"
                     style={{ flex: 1, height: '54px', borderRadius: '16px', border: '1px solid rgba(237,228,210,.16)', background: '#161411', color: '#EDE4D2', fontSize: '15px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
                   >
                     <ArrowRight size={18} style={{ transform: 'rotate(180deg)' }} />
                     Haven&apos;t seen it
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink button pendingLabel="Opening Swipe..."
                     href="/swipe"
                     style={{ flex: 1, height: '54px', borderRadius: '16px', background: '#C8963E', color: '#0B0A09', fontSize: '15px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
                   >
                     Seen it
                     <ArrowRight size={18} />
-                  </Link>
+                  </NavLink>
                 </div>
 
                 <p style={{ fontSize: '13px', color: '#8C857A', margin: 0 }}>
@@ -224,6 +218,35 @@ export default async function HomePage() {
         )}
 
         {/* ── MUVIESTARS CLUB ──────────────────────────────────────────── */}
+        {/* What this card shows depends on where the person is in the week. Before they join it is a full invitation.
+            Once their take is in, it shrinks to a short note so the homepage stops asking them to do what they have done. */}
+        {clubWeek && clubPick && clubName && clubWeek.state === 'took' && (
+          <section className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '72px' }} aria-labelledby="club-heading">
+            <div style={{ borderRadius: '28px', background: '#12242B', position: 'relative', overflow: 'hidden', padding: '20px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="ms-grain" />
+              {clubPick.poster_url && (
+                <img src={clubPick.poster_url} alt={`${clubPick.title} poster`} width={84} height={126} style={{ position: 'relative', width: '84px', height: '126px', objectFit: 'cover', borderRadius: '12px', flexShrink: 0 }} loading="lazy" />
+              )}
+              <div style={{ position: 'relative', flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+                <span style={{ ...MONO, fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C8963E' }}>MuvieStars Club · This week</span>
+                <h2 id="club-heading" style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(30px,4vw,44px)', lineHeight: 1, color: '#F6EFE2', margin: 0, overflowWrap: 'anywhere' }}>{clubName.main}</h2>
+              </div>
+              <div style={{ position: 'relative', flex: '1 1 320px' }}>
+                <ClubActions
+                  movieId={clubPick.id}
+                  name={clubName.main}
+                  watchUrl={clubPick.youtube_url ?? null}
+                  initialState={clubWeek.state}
+                  signedIn={isSignedIn}
+                  initialCount={clubWeek.participantCount}
+                  daysLeft={clubWeek.daysLeft}
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {clubWeek && clubPick && clubName && clubWeek.state !== 'took' && (
         <section
           className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20"
           style={{ paddingTop: '96px' }}
@@ -233,7 +256,12 @@ export default async function HomePage() {
             className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-[480px]"
             style={{ borderRadius: '32px', background: '#12242B', position: 'relative', overflow: 'hidden' }}
           >
-            {!clubPick?.poster_url && (
+            {clubPick.poster_url ? (
+              /* On a phone the poster is a band above the words. On a large screen it is the right half. */
+              <div className="order-first lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1" style={{ position: 'relative' }}>
+                <ClubPoster src={clubPick.poster_url} alt={`${clubPick.title} poster`} />
+              </div>
+            ) : (
               <>
                 <div style={{ position: 'absolute', right: '140px', top: '60px', width: '340px', height: '460px', borderRadius: '170px 170px 0 0', background: '#C8963E' }} />
                 <div style={{ position: 'absolute', right: '250px', top: '120px', width: '120px', height: '120px', borderRadius: '50%', background: '#12242B' }} />
@@ -242,8 +270,8 @@ export default async function HomePage() {
             <div className="ms-grain" />
 
             <div
-              style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
-              className="col-span-12 lg:col-span-6 p-8 lg:p-14"
+              style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '28px', position: 'relative' }}
+              className="col-span-12 lg:col-span-6 lg:col-start-1 lg:row-start-1 p-8 lg:p-14"
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <span style={{ height: '28px', padding: '0 12px', borderRadius: '999px', background: '#C8963E', color: '#0B0A09', ...MONO, fontSize: '11px', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', width: 'fit-content' }}>
@@ -251,44 +279,33 @@ export default async function HomePage() {
                 </span>
                 <h2
                   id="club-heading"
-                  style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(48px,7vw,96px)', lineHeight: '0.92', color: '#F6EFE2', margin: 0 }}
+                  style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(48px,7vw,96px)', lineHeight: '0.92', color: '#F6EFE2', margin: 0, overflowWrap: 'anywhere' }}
                 >
-                  {clubPick?.title || 'African Cinema'}
+                  {clubName.main}
                 </h2>
-                <p style={{ margin: 0, maxWidth: '460px', fontSize: '18px', lineHeight: '1.5', color: '#C9D4D7' }}>
-                  One film, watched together, every week. Watch it when you can, then come back and say what you thought.
-                </p>
+                {clubName.sub && (
+                  <p style={{ ...SERIF, margin: 0, fontSize: 'clamp(20px,2.2vw,28px)', lineHeight: 1.15, color: '#C9D4D7' }}>{clubName.sub}</p>
+                )}
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <Link
-                  href="/club"
-                  style={{ height: '54px', padding: '0 24px', borderRadius: '16px', background: '#EDE4D2', color: '#0B0A09', fontSize: '16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
-                >
-                  Join this week&apos;s Club
-                </Link>
-                <span style={{ fontSize: '14px', color: '#B9C7CC' }}>
-                  {daysLeft === 1 ? 'Last day today' : `${daysLeft} days left`}
-                </span>
-              </div>
+              <ClubActions
+                movieId={clubPick.id}
+                name={clubName.main}
+                watchUrl={clubPick.youtube_url ?? null}
+                initialState={clubWeek.state}
+                signedIn={isSignedIn}
+                initialCount={clubWeek.participantCount}
+                daysLeft={clubWeek.daysLeft}
+                showBlurb
+              />
             </div>
-
-            {clubPick?.poster_url && (
-              <div className="hidden lg:block lg:col-span-6" style={{ position: 'relative', minHeight: '480px' }}>
-                <img
-                  src={clubPick.poster_url}
-                  alt={`${clubPick.title} poster`}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', opacity: 0.75 }}
-                />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #12242B 0%, transparent 40%)' }} />
-              </div>
-            )}
           </div>
         </section>
+        )}
 
         {/* ── THIS MONTH'S HONOURS ─────────────────────────────────────── */}
         {honours[0] && ['shortlist_published', 'voting_open'].includes(honours[0].status) && (
           <section className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '96px' }} aria-labelledby="honours-heading">
-            <Link
+            <NavLink
               href={honours[0].status === 'voting_open' ? cycleHref(honours[0].slug, 'audience-choice') : cycleHref(honours[0].slug)}
               style={{ display: 'grid', gap: '6px', padding: '28px 0', borderTop: '1px solid rgba(200,150,62,0.4)', borderBottom: '1px solid rgba(200,150,62,0.4)', textDecoration: 'none', minHeight: '44px' }}
             >
@@ -301,7 +318,7 @@ export default async function HomePage() {
               <span style={{ fontSize: '16px', color: '#A39B8F' }}>
                 {honours[0].status === 'voting_open' ? `Voting closes ${formatDate(honours[0].voting_end)}. Review a nominee and your vote counts.` : 'Movie, performance, director and audience honours. The rules are public.'}
               </span>
-            </Link>
+            </NavLink>
           </section>
         )}
 
@@ -400,9 +417,9 @@ export default async function HomePage() {
                       <p style={{ margin: '4px 0 0', fontSize: '16px', lineHeight: 1.5, color: '#C7BFB2' }}>&ldquo;{t.one_liner}&rdquo;</p>
                     )}
                     {t.token && (
-                      <Link href={`/take/${t.token}`} style={{ marginTop: '6px', fontSize: '14px', color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                      <NavLink href={`/take/${t.token}`} style={{ marginTop: '6px', fontSize: '14px', color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                         Open your share card
-                      </Link>
+                      </NavLink>
                     )}
                   </div>
                 </li>
@@ -428,9 +445,9 @@ export default async function HomePage() {
                     The essentials.
                   </h2>
                 </div>
-                <Link href="/canon" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                <NavLink href="/canon" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                   View the Canon →
-                </Link>
+                </NavLink>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '720px' }}>
@@ -470,16 +487,16 @@ export default async function HomePage() {
                   Short sets, picked by a person.
                 </h2>
               </div>
-              <Link href="/decks" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+              <NavLink href="/decks" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                 All decks →
-              </Link>
+              </NavLink>
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {decks.map((d) => {
                 const sponsor = sponsorLabel(d)
                 return (
                   <li key={d.id} style={{ borderTop: '1px solid rgba(237,228,210,0.08)' }}>
-                    <Link
+                    <NavLink
                       href={`/decks/${d.slug}`}
                       className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 items-baseline"
                       style={{ padding: '22px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -488,7 +505,7 @@ export default async function HomePage() {
                       <span style={{ ...MONO, fontSize: '12px', color: sponsor ? '#C8963E' : '#8C857A' }}>
                         {sponsor ?? (d.film_count !== null ? `${d.film_count} films` : 'Picked by rule')}
                       </span>
-                    </Link>
+                    </NavLink>
                   </li>
                 )
               })}
@@ -510,14 +527,14 @@ export default async function HomePage() {
                   Finish a set. Earn the laurel.
                 </h2>
               </div>
-              <Link href="/challenges" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+              <NavLink href="/challenges" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                 All challenges →
-              </Link>
+              </NavLink>
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {challenges.map((c) => (
                 <li key={c.id} style={{ borderTop: '1px solid rgba(237,228,210,0.08)' }}>
-                  <Link
+                  <NavLink
                     href={`/challenges/${c.slug}`}
                     className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 items-baseline"
                     style={{ padding: '22px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -526,7 +543,7 @@ export default async function HomePage() {
                     <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>
                       {[goalPhrase(c.goal, c.film_count), stateLine(c), challengeSponsor(c)].filter(Boolean).join(' · ')}
                     </span>
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -547,14 +564,14 @@ export default async function HomePage() {
                   Behind and in front of the camera.
                 </h2>
               </div>
-              <Link href="/people" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+              <NavLink href="/people" style={{ fontSize: '15px', fontWeight: 500, color: '#C8963E', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                 All people →
-              </Link>
+              </NavLink>
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
               {people.map((p) => (
                 <li key={p.id}>
-                  <Link
+                  <NavLink
                     href={`/person/${p.slug}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '12px', minHeight: '64px', padding: '8px 18px 8px 8px', borderRadius: '999px', border: '1px solid rgba(237,228,210,0.12)', background: '#0F0D0B', textDecoration: 'none' }}
                   >
@@ -566,7 +583,7 @@ export default async function HomePage() {
                       )}
                     </span>
                     <span style={{ fontSize: '16px', color: '#F6EFE2' }}>{p.full_name}</span>
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -591,12 +608,12 @@ export default async function HomePage() {
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {Object.values(MOOD_MAP).map((m) => (
                     <li key={m.slug}>
-                      <Link
+                      <NavLink
                         href={`/swipe?mood=${m.slug}`}
                         style={{ height: '44px', padding: '0 20px', borderRadius: '999px', background: m.chipBg, color: m.chipText, fontSize: '15px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', border: '1px solid rgba(237,228,210,0.08)' }}
                       >
                         {m.label}
-                      </Link>
+                      </NavLink>
                     </li>
                   ))}
                 </ul>
@@ -675,12 +692,12 @@ export default async function HomePage() {
                   : 'Tell us what you thought. Your rating helps the next viewer decide. Free, always.'}
               </p>
             </div>
-            <Link
+            <NavLink button
               href={isSignedIn ? '/swipe' : '/auth'}
               style={{ height: '60px', padding: '0 30px', borderRadius: '18px', background: '#0B0A09', color: '#F6EFE2', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
             >
               {isSignedIn ? 'Keep swiping' : 'Create your free account'}
-            </Link>
+            </NavLink>
           </div>
         </section>
 

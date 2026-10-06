@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -49,7 +50,7 @@ export default async function CyclePage({ params }: PageProps) {
       <Navigation />
       <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
         <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '124px', paddingBottom: '96px' }}>
-          <Link href="/awards" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>← Awards and Honours</Link>
+          <NavLink href="/awards" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>← Awards and Honours</NavLink>
 
           <header style={{ maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 0 48px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>MuvieStars Honours</p>

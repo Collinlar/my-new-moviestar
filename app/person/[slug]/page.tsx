@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { BadgeCheck } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
@@ -141,12 +142,12 @@ export default async function PersonPage({ params }: PageProps) {
         <section style={{ background: '#0D1F26', paddingTop: '76px', borderBottom: '1px solid rgba(237,228,210,0.06)' }}>
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '48px', paddingBottom: '56px' }}>
 
-            <Link
+            <NavLink
               href="/people"
               style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', display: 'inline-block', marginBottom: '28px', minHeight: '44px', lineHeight: '44px' }}
             >
               ← All people
-            </Link>
+            </NavLink>
 
             <div className="flex flex-col sm:flex-row" style={{ gap: '28px', alignItems: 'flex-start' }}>
               <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(200,150,62,0.08)', border: '1px solid rgba(237,228,210,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -265,7 +266,7 @@ export default async function PersonPage({ params }: PageProps) {
                     <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                       {g.items.map((c, i) => (
                         <li key={`${c.movie.id}-${c.role}-${i}`} style={{ borderTop: '1px solid rgba(237,228,210,0.08)' }}>
-                          <Link
+                          <NavLink
                             href={`/movie/${c.movie.id}`}
                             className="grid grid-cols-[52px_1fr] sm:grid-cols-[64px_1fr_auto]"
                             style={{ gap: '16px', alignItems: 'baseline', padding: '14px 0', textDecoration: 'none', color: '#EDE4D2', minHeight: '44px' }}
@@ -275,7 +276,7 @@ export default async function PersonPage({ params }: PageProps) {
                             <span className="hidden sm:block" style={{ fontSize: '14px', color: '#8C857A', textAlign: 'right' }}>
                               {c.role === 'actor' && c.character_name ? `as ${c.character_name}` : ROLE_LABELS[c.role] ?? c.role}
                             </span>
-                          </Link>
+                          </NavLink>
                         </li>
                       ))}
                     </ol>

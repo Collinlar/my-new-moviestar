@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { createClient } from '@/lib/supabase/client'
 
 const REACTION_LABELS: Record<string, { text: string; color: string; bg: string }> = {
@@ -91,7 +91,7 @@ export function PersonalContext({ movieId }: Props) {
         </span>
       )}
       {!reaction && (
-        <Link
+        <NavLink
           href="#community-reviews"
           style={{
             height: '32px', padding: '0 14px', borderRadius: '999px',
@@ -101,7 +101,7 @@ export function PersonalContext({ movieId }: Props) {
           }}
         >
           React now
-        </Link>
+        </NavLink>
       )}
     </div>
   )

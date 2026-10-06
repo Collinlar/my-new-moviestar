@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -149,14 +150,14 @@ export default async function UserProfilePage({ params }: PageProps) {
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
                 {laurels.map((l) => (
                   <li key={l.id}>
-                    <Link
+                    <NavLink
                       href={`/challenges/${l.challenge.slug}`}
                       style={{ padding: '18px 22px', borderRadius: '14px', background: '#0F0D0B', border: '1px solid rgba(200,150,62,0.3)', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '4px', minHeight: '44px' }}
                     >
                       <span style={{ ...MONO, fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C8963E' }}>Challenge completed</span>
                       <span style={{ ...SERIF, fontSize: '24px', lineHeight: 1.1, color: '#F6EFE2' }}>{l.challenge.title}</span>
                       <span style={{ fontSize: '13px', color: '#6A6258' }}>{formatDay(l.completed_at)}</span>
-                    </Link>
+                    </NavLink>
                   </li>
                 ))}
               </ul>
@@ -213,7 +214,7 @@ export default async function UserProfilePage({ params }: PageProps) {
                 <p style={{ fontSize: '17px', color: '#6A6258', margin: 0 }}>
                   {displayName} {profile.display_name ? "hasn't" : "haven't"} published any reviews yet.
                 </p>
-                <Link
+                <NavLink button pendingLabel="Opening the archive..."
                   href="/browse"
                   style={{
                     height: '44px', padding: '0 20px', borderRadius: '12px',
@@ -223,7 +224,7 @@ export default async function UserProfilePage({ params }: PageProps) {
                   }}
                 >
                   Browse films
-                </Link>
+                </NavLink>
               </div>
             ) : (
               <div style={{ maxWidth: '760px', display: 'flex', flexDirection: 'column', gap: '14px' }}>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { createStaticClient } from '@/lib/supabase/static'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -243,7 +244,7 @@ export default async function TakePage({ params }: PageProps) {
 
                 {/* CTAs */}
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link
+                  <NavLink button pendingLabel="Opening Swipe..."
                     href="/swipe"
                     style={{
                       height: '52px', padding: '0 28px', borderRadius: '16px',
@@ -254,8 +255,8 @@ export default async function TakePage({ params }: PageProps) {
                     }}
                   >
                     Rate this film yourself
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink button
                     href={`/movie/${movie.id}`}
                     style={{
                       height: '52px', padding: '0 28px', borderRadius: '16px',
@@ -266,7 +267,7 @@ export default async function TakePage({ params }: PageProps) {
                     }}
                   >
                     See full profile
-                  </Link>
+                  </NavLink>
                 </div>
 
                 {/* Footer note */}

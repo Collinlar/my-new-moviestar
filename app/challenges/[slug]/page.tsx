@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
@@ -70,9 +71,9 @@ export default async function ChallengePage({ params }: PageProps) {
       <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
         <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '124px', paddingBottom: '96px' }}>
 
-          <Link href="/challenges" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+          <NavLink href="/challenges" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
             ← All challenges
-          </Link>
+          </NavLink>
 
           <header style={{ maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '18px', padding: '16px 0 40px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -160,7 +161,7 @@ export default async function ChallengePage({ params }: PageProps) {
               const isTaken = taken.has(f.movie.id)
               return (
                 <li key={f.movie.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
-                  <Link
+                  <NavLink
                     href={`/movie/${f.movie.id}`}
                     className="grid grid-cols-[56px_1fr_auto] sm:grid-cols-[40px_72px_1fr_auto] gap-4 items-center"
                     style={{ padding: '18px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -183,7 +184,7 @@ export default async function ChallengePage({ params }: PageProps) {
                         {isTaken ? 'Taken' : 'To take'}
                       </span>
                     )}
-                  </Link>
+                  </NavLink>
                 </li>
               )
             })}

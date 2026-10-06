@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Home, Play, Compass, Users, User } from 'lucide-react'
@@ -45,7 +45,7 @@ export function MobileBottomNav() {
         const resolvedHref = (label === 'You' && !isSignedIn && authHref) ? authHref : href
         const isActive = isActivePath(pathname, href, exact)
         return (
-          <Link
+          <NavLink
             key={label}
             href={resolvedHref}
             aria-current={isActive ? 'page' : undefined}
@@ -64,7 +64,7 @@ export function MobileBottomNav() {
             <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {label}
             </span>
-          </Link>
+          </NavLink>
         )
       })}
     </nav>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { SITE_URL } from '@/lib/utils'
@@ -130,18 +130,18 @@ export default function HowListingWorksPage() {
                 Think a film we have not listed belongs here? Anyone can nominate it. When 5 different people nominate the same film, an editor takes a look.
               </p>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <Link
+                <NavLink button pendingLabel="Opening the film form..."
                   href="/submit"
                   style={{ height: '52px', padding: '0 24px', borderRadius: '14px', background: '#C8963E', color: '#0B0A09', fontSize: '16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
                 >
                   Put a film forward
-                </Link>
-                <Link
+                </NavLink>
+                <NavLink button pendingLabel="Searching..."
                   href="/search"
                   style={{ height: '52px', padding: '0 24px', borderRadius: '14px', border: '1px solid rgba(237,228,210,0.18)', color: '#EDE4D2', fontSize: '16px', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
                 >
                   Find my film
-                </Link>
+                </NavLink>
               </div>
             </section>
 

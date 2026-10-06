@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { Navigation } from '@/components/Navigation'
@@ -78,9 +78,9 @@ export default async function DeckPage({ params }: PageProps) {
       <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
         <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '124px', paddingBottom: '96px' }}>
 
-          <Link href="/decks" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+          <NavLink href="/decks" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
             ← All decks
-          </Link>
+          </NavLink>
 
           <header style={{ maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '18px', padding: '16px 0 48px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -96,13 +96,13 @@ export default async function DeckPage({ params }: PageProps) {
             <h1 style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(44px,7vw,92px)', lineHeight: 0.95, color: '#F6EFE2', margin: 0 }}>{deck.title}</h1>
             {deck.description && <p style={{ margin: 0, fontSize: '19px', lineHeight: 1.6, color: '#C7BFB2' }}>{deck.description}</p>}
             <div>
-              <Link
+              <NavLink button
                 href={`/swipe?deck=${deck.slug}`}
                 style={{ height: '58px', padding: '0 28px', borderRadius: '16px', background: '#C8963E', color: '#0B0A09', fontSize: '17px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
               >
                 Swipe this deck
                 <ArrowRight size={18} />
-              </Link>
+              </NavLink>
             </div>
           </header>
 
@@ -110,7 +110,7 @@ export default async function DeckPage({ params }: PageProps) {
             <ul style={{ listStyle: 'none', margin: '0 0 40px', padding: 0, maxWidth: '720px' }}>
               {challenges.map((c) => (
                 <li key={c.slug}>
-                  <Link
+                  <NavLink
                     href={`/challenges/${c.slug}`}
                     style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '16px 18px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.35)', background: 'rgba(200,150,62,0.07)', textDecoration: 'none', minHeight: '44px' }}
                   >
@@ -118,7 +118,7 @@ export default async function DeckPage({ params }: PageProps) {
                       Challenge on this deck · {stateLine(c)}
                     </span>
                     <span style={{ fontSize: '18px', color: '#F6EFE2' }}>{c.title}: take {c.goal} and earn the laurel</span>
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -132,7 +132,7 @@ export default async function DeckPage({ params }: PageProps) {
             <ol style={{ listStyle: 'none', margin: 0, padding: 0, maxWidth: '900px' }}>
               {films.map((f, i) => (
                 <li key={f.movie.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
-                  <Link
+                  <NavLink
                     href={`/movie/${f.movie.id}`}
                     className="grid grid-cols-[56px_1fr] sm:grid-cols-[40px_72px_1fr] gap-4 items-center"
                     style={{ padding: '18px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -150,7 +150,7 @@ export default async function DeckPage({ params }: PageProps) {
                       </span>
                       {f.note && <span style={{ fontSize: '15px', lineHeight: 1.5, color: '#A39B8F' }}>{f.note}</span>}
                     </span>
-                  </Link>
+                  </NavLink>
                 </li>
               ))}
             </ol>

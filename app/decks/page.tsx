@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getPublishedDecks, sponsorLabel } from '@/lib/decks'
@@ -56,7 +57,7 @@ export default async function DecksPage() {
                 const mood = d.mood_slug ? MOOD_MAP[d.mood_slug] : null
                 return (
                   <li key={d.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
-                    <Link
+                    <NavLink
                       href={`/decks/${d.slug}`}
                       className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 md:gap-10 items-center"
                       style={{ padding: '32px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -77,7 +78,7 @@ export default async function DecksPage() {
                           ))}
                         </span>
                       )}
-                    </Link>
+                    </NavLink>
                   </li>
                 )
               })}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { getPublishedChallenges } from '@/lib/challenges'
@@ -34,7 +35,7 @@ export default async function ChallengesPage() {
     const sponsor = sponsorLabel(c)
     return (
       <li key={c.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
-        <Link
+        <NavLink
           href={`/challenges/${c.slug}`}
           className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 md:gap-10 items-center"
           style={{ padding: '32px 0', textDecoration: 'none', minHeight: '44px', opacity: muted ? 0.65 : 1 }}
@@ -56,7 +57,7 @@ export default async function ChallengesPage() {
               ))}
             </span>
           )}
-        </Link>
+        </NavLink>
       </li>
     )
   }

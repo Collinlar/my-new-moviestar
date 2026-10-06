@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { HelpfulButton } from '@/components/HelpfulButton'
@@ -176,7 +177,7 @@ export default async function AllReviewsPage() {
                 <p style={{ ...SERIF, fontSize: '22px', color: '#F6EFE2', margin: '0 0 8px' }}>No reviews yet</p>
                 <p style={{ fontSize: '15px', color: '#6A6258', margin: 0 }}>Be the first to review an African film.</p>
               </div>
-              <Link
+              <NavLink button pendingLabel="Opening the archive..."
                 href="/browse"
                 style={{
                   height: '44px', padding: '0 24px', borderRadius: '12px',
@@ -186,7 +187,7 @@ export default async function AllReviewsPage() {
                 }}
               >
                 Browse films to review
-              </Link>
+              </NavLink>
             </div>
           )}
         </div>

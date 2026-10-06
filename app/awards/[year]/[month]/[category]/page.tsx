@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -61,7 +62,7 @@ export default async function CategoryPage({ params }: PageProps) {
       <Navigation />
       <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
         <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '124px', paddingBottom: '96px' }}>
-          <Link href={cycleHref(cycle.slug)} style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>← {cycle.name}</Link>
+          <NavLink href={cycleHref(cycle.slug)} style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>← {cycle.name}</NavLink>
 
           <header style={{ maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 0 40px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>{cycle.name}</p>
@@ -91,7 +92,7 @@ export default async function CategoryPage({ params }: PageProps) {
                   {outcome.story && outcome.winners.some((w) => w.status !== 'revoked') && <p style={{ margin: '14px 0 12px', fontSize: '19px', lineHeight: 1.6, color: '#C7BFB2', maxWidth: '680px' }}>{outcome.story}</p>}
                   {outcome.winners[0] && (
                     <p style={{ margin: 0 }}>
-                      <Link href={`/recognition/${outcome.winners[0].code}`} style={{ ...MONO, fontSize: '13px', color: '#C8963E', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Verification ID {outcome.winners[0].code}</Link>
+                      <NavLink href={`/recognition/${outcome.winners[0].code}`} style={{ ...MONO, fontSize: '13px', color: '#C8963E', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Verification ID {outcome.winners[0].code}</NavLink>
                     </p>
                   )}
                 </>

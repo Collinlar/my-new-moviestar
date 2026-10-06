@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Bookmark, BookmarkCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -70,10 +70,10 @@ export function WatchlistButton({ movieId, className = '' }: Props) {
 
   if (!userId) {
     return (
-      <Link href={`/auth?next=/movie/${movieId}`} className={`btn-outline ${className}`}>
+      <NavLink button href={`/auth?next=/movie/${movieId}`} className={`btn-outline ${className}`}>
         <Bookmark className="w-4 h-4" />
         Add to watchlist
-      </Link>
+      </NavLink>
     )
   }
 

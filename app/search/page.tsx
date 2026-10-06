@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { SearchBar } from '@/components/SearchBar'
@@ -72,7 +73,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {POPULAR_SEARCHES.map((term) => (
-                    <Link
+                    <NavLink
                       key={term}
                       href={`/search?q=${encodeURIComponent(term)}`}
                       style={{
@@ -83,7 +84,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                       }}
                     >
                       {term}
-                    </Link>
+                    </NavLink>
                   ))}
                 </div>
               </div>
@@ -178,7 +179,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                   Try a different spelling, or search by genre, country, or filmmaker name.
                 </p>
               </div>
-              <Link
+              <NavLink button pendingLabel="Opening the archive..."
                 href="/browse"
                 style={{
                   height: '44px', padding: '0 24px', borderRadius: '12px',
@@ -188,7 +189,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 }}
               >
                 Browse the full archive
-              </Link>
+              </NavLink>
             </div>
           )}
         </div>

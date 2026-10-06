@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/awards-shared'
 
@@ -104,7 +104,7 @@ export function Ballot({ cycleId, categoryId, categoryName, nominees, signInHref
 
       {status.open && !status.signed_in && (
         <p style={{ margin: '14px 0 0' }}>
-          <Link href={signInHref} style={{ color: '#C8963E', fontSize: '16px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Sign in to vote</Link>
+          <NavLink href={signInHref} style={{ color: '#C8963E', fontSize: '16px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Sign in to vote</NavLink>
         </p>
       )}
 
@@ -123,11 +123,11 @@ export function Ballot({ cycleId, categoryId, categoryName, nominees, signInHref
           const mine = status.my_vote === n.id
           return (
             <li key={n.id} style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', padding: '16px 0', borderTop: '1px solid rgba(237,228,210,0.08)' }}>
-              <Link href={`/movie/${n.movieId}`} style={{ flex: 1, minWidth: '200px', textDecoration: 'none', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+              <NavLink href={`/movie/${n.movieId}`} style={{ flex: 1, minWidth: '200px', textDecoration: 'none', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
                 <span style={{ ...SERIF, fontSize: '28px', lineHeight: 1.1, color: '#F6EFE2' }}>
                   {n.title} <span style={{ fontSize: '18px', color: '#6E675E' }}>{n.year ?? ''}</span>
                 </span>
-              </Link>
+              </NavLink>
               {mine && <span style={{ ...MONO, fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C8963E' }}>Your vote</span>}
               {status.open && status.signed_in && status.account_ok && (
                 s?.taken ? (
@@ -142,9 +142,9 @@ export function Ballot({ cycleId, categoryId, categoryName, nominees, signInHref
                     </button>
                   )
                 ) : (
-                  <Link href={`/movie/${n.movieId}`} style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', fontSize: '14px', color: '#A39B8F', textDecoration: 'underline' }}>
+                  <NavLink href={`/movie/${n.movieId}`} style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', fontSize: '14px', color: '#A39B8F', textDecoration: 'underline' }}>
                     Review this movie to make your vote count
-                  </Link>
+                  </NavLink>
                 )
               )}
             </li>

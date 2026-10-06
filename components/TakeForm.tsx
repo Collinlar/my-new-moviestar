@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -147,9 +147,9 @@ export function TakeForm({ movieId, movieTitle }: Props) {
     return (
       <div className="bg-cinema-dark border border-cinema-border rounded-xl p-5 mb-6 flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm text-film-muted">Sign in to say what you thought of {movieTitle}.</p>
-        <Link href={`/auth?next=/movie/${movieId}`} className="btn-gold text-sm flex-shrink-0">
+        <NavLink button href={`/auth?next=/movie/${movieId}`} className="btn-gold text-sm flex-shrink-0">
           Sign in to add my take
-        </Link>
+        </NavLink>
       </div>
     )
   }
@@ -164,26 +164,26 @@ export function TakeForm({ movieId, movieTitle }: Props) {
         {saved.completed.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {saved.completed.map(c => (
-                  <Link
+                  <NavLink
                     key={c.slug}
                     href={`/challenges/${c.slug}`}
                     style={{ display: 'block', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.1)', textDecoration: 'none', minHeight: '44px' }}
                   >
                     <span style={{ display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: '"Geist Mono", monospace' }}>Challenge finished</span>
                     <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>{c.title}. Tap to collect your laurel.</span>
-                  </Link>
+                  </NavLink>
                 ))}
               </div>
             )}
 
         {saved.dnaReady && (
-              <Link
+              <NavLink
                 href="/dna"
                 style={{ display: 'block', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(200,150,62,0.45)', background: 'rgba(200,150,62,0.1)', textDecoration: 'none', minHeight: '44px' }}
               >
                 <span style={{ display: 'block', fontSize: '13px', color: '#C8963E', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: '"Geist Mono", monospace' }}>Movie DNA</span>
                 <span style={{ display: 'block', fontSize: '16px', color: '#F6EFE2', marginTop: '2px' }}>Your Movie DNA is ready. Tap to see it.</span>
-              </Link>
+              </NavLink>
             )}
 
         <AwardNote info={saved.awards} />

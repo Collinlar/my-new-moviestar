@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
@@ -160,9 +161,9 @@ export default async function PeoplePage({ searchParams }: PageProps) {
                   : 'Profiles are being added to the archive.'}
               </p>
               {term && (
-                <Link href="/people" style={{ color: '#C8963E', fontSize: '15px', textDecoration: 'none', minHeight: '44px', lineHeight: '44px' }}>
+                <NavLink href="/people" style={{ color: '#C8963E', fontSize: '15px', textDecoration: 'none', minHeight: '44px', lineHeight: '44px' }}>
                   See everyone
-                </Link>
+                </NavLink>
               )}
             </div>
           )}
@@ -170,15 +171,15 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           {totalPages > 1 && (
             <nav aria-label="People pages" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '48px', gap: '16px' }}>
               {page > 1 ? (
-                <Link href={pageHref(page - 1)} rel="prev" style={{ minHeight: '44px', lineHeight: '44px', color: '#EDE4D2', textDecoration: 'none', fontSize: '15px' }}>
+                <NavLink href={pageHref(page - 1)} rel="prev" style={{ minHeight: '44px', lineHeight: '44px', color: '#EDE4D2', textDecoration: 'none', fontSize: '15px' }}>
                   ← Previous
-                </Link>
+                </NavLink>
               ) : <span />}
               <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>Page {page} of {totalPages}</span>
               {page < totalPages ? (
-                <Link href={pageHref(page + 1)} rel="next" style={{ minHeight: '44px', lineHeight: '44px', color: '#EDE4D2', textDecoration: 'none', fontSize: '15px' }}>
+                <NavLink href={pageHref(page + 1)} rel="next" style={{ minHeight: '44px', lineHeight: '44px', color: '#EDE4D2', textDecoration: 'none', fontSize: '15px' }}>
                   Next →
-                </Link>
+                </NavLink>
               ) : <span />}
             </nav>
           )}

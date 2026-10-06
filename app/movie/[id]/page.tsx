@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -220,7 +221,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {movie.listing_status === 'approved' && <ListedMark />}
                   {movie.listing_status === 'approved' && selections.map((s) => (
-                    <Link
+                    <NavLink
                       key={s.slug}
                       href={`/selections/${s.slug}`}
                       title={s.note ?? s.title}
@@ -232,10 +233,10 @@ export default async function MovieDetailPage({ params }: PageProps) {
                       }}
                     >
                       {s.label}{periodLabel(s.period) ? `, ${periodLabel(s.period)}` : ''}
-                    </Link>
+                    </NavLink>
                   ))}
                   {movie.industry && movie.industry !== 'Other' && (
-                    <Link
+                    <NavLink
                       href={`/browse?industry=${encodeURIComponent(movie.industry)}`}
                       style={{
                         height: '26px', padding: '0 12px', borderRadius: '999px',
@@ -245,7 +246,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
                       }}
                     >
                       {movie.industry}
-                    </Link>
+                    </NavLink>
                   )}
                   {movie.is_canon && (
                     <span style={{
@@ -349,7 +350,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
                 {movie.keywords && (
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {movie.keywords.split(',').map((k: string) => k.trim()).filter(Boolean).map((k: string) => (
-                      <Link
+                      <NavLink
                         key={k}
                         href={`/search?q=${encodeURIComponent(k)}`}
                         style={{
@@ -360,7 +361,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
                         }}
                       >
                         {k}
-                      </Link>
+                      </NavLink>
                     ))}
                   </div>
                 )}

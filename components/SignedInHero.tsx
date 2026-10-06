@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Play } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -132,7 +133,7 @@ export function SignedInHero({ userName }: Props) {
             aria-label="Mood filters"
           >
             {MOODS.map(({ label, href, bg, text }) => (
-              <Link
+              <NavLink
                 key={label}
                 href={href}
                 role="listitem"
@@ -147,13 +148,13 @@ export function SignedInHero({ userName }: Props) {
                 }}
               >
                 {label}
-              </Link>
+              </NavLink>
             ))}
           </div>
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <Link
+            <NavLink button pendingLabel="Opening Swipe..."
               href="/swipe"
               style={{
                 height: '56px', padding: '0 28px', borderRadius: '16px',
@@ -165,8 +166,8 @@ export function SignedInHero({ userName }: Props) {
             >
               <Play size={18} />
               Continue swiping
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink button pendingLabel="Opening Discover..."
               href="/discover"
               style={{
                 height: '56px', padding: '0 28px', borderRadius: '16px',
@@ -177,7 +178,7 @@ export function SignedInHero({ userName }: Props) {
               }}
             >
               Pick a way in
-            </Link>
+            </NavLink>
           </div>
 
         </div>

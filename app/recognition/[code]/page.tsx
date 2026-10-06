@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -58,9 +59,9 @@ export default async function RecognitionPage({ params }: PageProps) {
       <Navigation />
       <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
         <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '124px', paddingBottom: '96px' }}>
-          <Link href={cycleHref(rec.cycle.slug, rec.category.slug)} style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+          <NavLink href={cycleHref(rec.cycle.slug, rec.category.slug)} style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
             ← {rec.category.name}, {rec.cycle.name}
-          </Link>
+          </NavLink>
 
           {(rec.status !== 'valid' || rec.replaces) && (
             <div role="note" style={{ maxWidth: '760px', margin: '8px 0 0', padding: '16px 18px', borderRadius: '12px', border: `1px solid ${rec.status === 'revoked' ? 'rgba(229,138,123,0.5)' : 'rgba(232,160,32,0.5)'}`, background: '#14110C' }}>
@@ -87,7 +88,7 @@ export default async function RecognitionPage({ params }: PageProps) {
                   <h2 id="why-heading" style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8C857A', margin: '0 0 12px' }}>{rec.status === 'corrected' || rec.status === 'revoked' ? 'What was said at the time' : 'Why it won'}</h2>
                   <p style={{ ...SERIF, margin: 0, fontSize: 'clamp(22px,2.6vw,30px)', lineHeight: 1.35, color: '#F6EFE2' }}>{rec.story}</p>
                   <p style={{ margin: '14px 0 0' }}>
-                    <Link href={rec.subject.href} style={{ color: '#C8963E', fontSize: '16px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>See {rec.subject.title} on MuvieStars</Link>
+                    <NavLink href={rec.subject.href} style={{ color: '#C8963E', fontSize: '16px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>See {rec.subject.title} on MuvieStars</NavLink>
                   </p>
                 </section>
               )}
@@ -109,9 +110,9 @@ export default async function RecognitionPage({ params }: PageProps) {
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {[...rec.nominees].sort((a, b) => a.subject.title.localeCompare(b.subject.title)).map((n) => (
                     <li key={n.id} style={{ borderTop: '1px solid rgba(237,228,210,0.08)', padding: '12px 0', display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                      <Link href={n.subject.href} style={{ fontSize: '19px', color: '#EDE4D2', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+                      <NavLink href={n.subject.href} style={{ fontSize: '19px', color: '#EDE4D2', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                         {n.subject.title}{n.subject.filmTitle ? <span style={{ color: '#6E675E' }}> in {n.subject.filmTitle}</span> : null}
-                      </Link>
+                      </NavLink>
                       {n.status === 'winner' && <span style={{ ...MONO, fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C8963E', alignSelf: 'center' }}>Winner</span>}
                       {n.status === 'runner_up' && <span style={{ ...MONO, fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8C857A', alignSelf: 'center' }}>Runner-up</span>}
                     </li>
@@ -179,7 +180,7 @@ export default async function RecognitionPage({ params }: PageProps) {
                 <div style={{ display: 'grid', gap: '12px', borderTop: '1px solid rgba(237,228,210,0.1)', paddingTop: '16px' }}>
                   <img src={laurelUrl(rec.code, 'dark', 'preview')} alt={`The ${rec.category.name} laurel for ${rec.cycle.name}`} width={640} height={640} loading="lazy" style={{ width: '100%', height: 'auto', borderRadius: '12px' }} />
                   <ShareHonour url={pageUrl} text={`${rec.subject.title} won ${rec.category.name}, ${rec.cycle.name} on MuvieStars.`} />
-                  <Link href={`/recognition/${rec.code}/laurel`} style={{ color: '#C8963E', fontSize: '15px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Laurel files for this honour</Link>
+                  <NavLink href={`/recognition/${rec.code}/laurel`} style={{ color: '#C8963E', fontSize: '15px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Laurel files for this honour</NavLink>
                 </div>
               )}
             </aside>

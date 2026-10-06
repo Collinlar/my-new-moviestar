@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 
@@ -27,7 +27,7 @@ export default function GoodbyePage() {
               You are welcome back any time. A new account starts fresh.
             </p>
             <p style={{ margin: 0 }}>
-              <Link href="/" style={{ color: '#C8963E', fontSize: '17px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Back to the films</Link>
+              <NavLink href="/" style={{ color: '#C8963E', fontSize: '17px', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Back to the films</NavLink>
             </p>
           </div>
         </div>

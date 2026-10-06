@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import type { Nominee } from '@/lib/awards'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
@@ -35,7 +35,7 @@ export function NomineeRows({ nominees, linked = true }: { nominees: Nominee[]; 
         return (
           <li key={n.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
             {linked ? (
-              <Link href={n.subject.href} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '16px 0', textDecoration: 'none', minHeight: '44px' }}>{inner}</Link>
+              <NavLink href={n.subject.href} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '16px 0', textDecoration: 'none', minHeight: '44px' }}>{inner}</NavLink>
             ) : (
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '16px 0' }}>{inner}</div>
             )}

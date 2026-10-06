@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import type { RecognitionItem } from '@/lib/awards'
 import type { WinItem } from '@/lib/awards-results'
 
@@ -37,32 +37,32 @@ export function RecognitionSection({ items, wins = [], selections = [], heading 
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxWidth: '760px' }}>
           {wins.map((w) => (
             <li key={w.code} style={{ borderTop: '1px solid rgba(200,150,62,0.4)' }}>
-              <Link href={w.href} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '14px 0', textDecoration: 'none', minHeight: '44px', justifyContent: 'center' }}>
+              <NavLink href={w.href} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '14px 0', textDecoration: 'none', minHeight: '44px', justifyContent: 'center' }}>
                 <span style={{ ...SERIF, fontSize: '26px', lineHeight: 1.15, color: '#F6EFE2' }}>
                   {w.who ? `${w.who}: ` : ''}{w.title}
                 </span>
                 <span style={{ ...MONO, fontSize: '12px', color: '#C8963E' }}>
                   {w.status === 'under_review' ? 'Winner, under review' : 'Winner'} · Verification ID {w.code}
                 </span>
-              </Link>
+              </NavLink>
             </li>
           ))}
           {selections.map((s) => (
             <li key={`sel-${s.slug}`} style={{ borderTop: '1px solid rgba(237,228,210,0.08)' }}>
-              <Link href={`/selections/${s.slug}`} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '14px 0', textDecoration: 'none', minHeight: '44px', justifyContent: 'center' }}>
+              <NavLink href={`/selections/${s.slug}`} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '14px 0', textDecoration: 'none', minHeight: '44px', justifyContent: 'center' }}>
                 <span style={{ ...SERIF, fontSize: '24px', lineHeight: 1.15, color: '#F6EFE2' }}>{s.label}</span>
                 {s.periodLabel && <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>{s.periodLabel}</span>}
-              </Link>
+              </NavLink>
             </li>
           ))}
           {items.filter((r) => !wonTitles.has(`${r.categoryName}, ${r.cycleName}`)).map((r, i) => (
             <li key={`${r.href}-${i}`} style={{ borderTop: '1px solid rgba(237,228,210,0.08)' }}>
-              <Link href={r.href} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '14px 0', textDecoration: 'none', minHeight: '44px', justifyContent: 'center' }}>
+              <NavLink href={r.href} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '14px 0', textDecoration: 'none', minHeight: '44px', justifyContent: 'center' }}>
                 <span style={{ ...SERIF, fontSize: '24px', lineHeight: 1.15, color: '#F6EFE2' }}>
                   {r.who ? `${r.who}: ` : ''}{r.categoryName}
                 </span>
                 <span style={{ ...MONO, fontSize: '12px', color: '#8C857A' }}>{STAGE_WORDS[r.stage] ?? 'Shortlisted'} · {r.cycleName}</span>
-              </Link>
+              </NavLink>
             </li>
           ))}
         </ul>

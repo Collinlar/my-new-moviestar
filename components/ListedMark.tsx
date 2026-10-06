@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 
 const MONO: React.CSSProperties = { fontFamily: '"Geist Mono", monospace' }
 
@@ -11,7 +11,7 @@ const Check = ({ size = 10 }: { size?: number }) => (
 /** The subtle "Listed on MuvieStars" mark. Links to the plain-words explanation of what Listed means. */
 export function ListedMark() {
   return (
-    <Link
+    <NavLink
       href="/how-listing-works"
       title="What Listed on MuvieStars means"
       style={{
@@ -23,7 +23,7 @@ export function ListedMark() {
     >
       <Check />
       Listed on MuvieStars
-    </Link>
+    </NavLink>
   )
 }
 

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { notFound } from 'next/navigation'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
@@ -64,9 +64,9 @@ export default async function SelectionPage({ params }: PageProps) {
       <main style={{ background: '#0B0A09', color: '#EDE4D2', minHeight: '100vh' }}>
         <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ paddingTop: '124px', paddingBottom: '96px' }}>
 
-          <Link href="/selections" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
+          <NavLink href="/selections" style={{ ...MONO, fontSize: '12px', color: '#8C857A', textDecoration: 'none', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
             ← All selections
-          </Link>
+          </NavLink>
 
           <header style={{ maxWidth: '760px', display: 'flex', flexDirection: 'column', gap: '18px', padding: '16px 0 56px' }}>
             <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: 0 }}>
@@ -79,7 +79,7 @@ export default async function SelectionPage({ params }: PageProps) {
           <ol style={{ listStyle: 'none', margin: 0, padding: 0, maxWidth: '960px' }}>
             {films.map((f, i) => (
               <li key={f.movie.id} style={{ borderTop: '1px solid rgba(237,228,210,0.1)' }}>
-                <Link
+                <NavLink
                   href={`/movie/${f.movie.id}`}
                   className="grid grid-cols-[88px_1fr] sm:grid-cols-[48px_110px_1fr] gap-5 items-start"
                   style={{ padding: '28px 0', textDecoration: 'none', minHeight: '44px' }}
@@ -99,7 +99,7 @@ export default async function SelectionPage({ params }: PageProps) {
                       <span style={{ fontSize: '17px', lineHeight: 1.6, color: '#C7BFB2', maxWidth: '620px' }}>{f.note || f.movie.why_listed}</span>
                     )}
                   </span>
-                </Link>
+                </NavLink>
               </li>
             ))}
           </ol>

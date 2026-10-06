@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { NavLink } from '@/components/NavLink'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -28,9 +28,9 @@ export function ChallengeJoin({ challengeId, slug, joined, signedIn, open, upcom
 
   if (!signedIn) {
     return (
-      <Link href={`/auth?next=/challenges/${slug}`} style={PRIMARY}>
+      <NavLink button pendingLabel="Opening sign in..." href={`/auth?next=/challenges/${slug}`} style={PRIMARY}>
         Sign in to join this challenge
-      </Link>
+      </NavLink>
     )
   }
 

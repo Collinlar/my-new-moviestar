@@ -235,3 +235,66 @@
     @apply absolute inset-0 bg-poster-overlay pointer-events-none;
   }
 }
+
+/* ── Tap and loading feedback ─────────────────────────────────────────────────────────────────────
+   Press: the control moves the instant it is touched, before anything has been fetched.
+   Ring: a small spinner that sits inside a link or button while its page is on the way.
+   Skeleton: a quiet shimmer where content will land, so the page arrives without a jump.
+   Progress: a thin gold bar across the top for any navigation that takes longer than a blink. */
+.ms-press { transition: transform 90ms ease-out, opacity 120ms ease-out; }
+.ms-press:active { transform: scale(0.97); }
+
+.ms-ring {
+  display: inline-block; width: 14px; height: 14px; margin-left: 10px; flex-shrink: 0;
+  border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent;
+  animation: ms-spin 700ms linear infinite; vertical-align: -2px;
+}
+@keyframes ms-spin { to { transform: rotate(360deg); } }
+
+.ms-skeleton {
+  background: linear-gradient(100deg, rgba(237,228,210,0.05) 30%, rgba(237,228,210,0.11) 50%, rgba(237,228,210,0.05) 70%);
+  background-size: 220% 100%;
+  animation: ms-shimmer 1.5s ease-in-out infinite;
+  border-radius: 10px;
+}
+@keyframes ms-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+.ms-progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 100; pointer-events: none; opacity: 0; transition: opacity 200ms ease-out; }
+.ms-progress[data-phase='running'], .ms-progress[data-phase='done'] { opacity: 1; }
+.ms-progress[data-phase='done'] { opacity: 0; transition-delay: 120ms; }
+.ms-progress-bar {
+  height: 100%; width: 0; background: #C8963E; box-shadow: 0 0 8px rgba(200,150,62,0.6);
+  transform-origin: left center;
+}
+.ms-progress[data-phase='running'] .ms-progress-bar { width: 82%; transition: width 9s cubic-bezier(0.1, 0.6, 0.2, 1); }
+.ms-progress[data-phase='done'] .ms-progress-bar { width: 100%; transition: width 160ms ease-out; }
+
+/* A one-time pop when someone joins the Club, so the change is seen and not just read. */
+@keyframes ms-pop-in { from { transform: scale(0.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ms-pop-in { animation: ms-pop-in 220ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-press, .ms-press:active { transition: none; transform: none; }
+  .ms-skeleton { animation: none; }
+  .ms-ring { animation-duration: 1800ms; }
+  .ms-progress-bar, .ms-progress[data-phase='running'] .ms-progress-bar, .ms-progress[data-phase='done'] .ms-progress-bar { transition: none; }
+  .ms-pop-in { animation: none; }
+}
+
+/* The Club poster: a band across the top on phones, the right half of the card on larger screens. */
+.ms-club-poster { min-height: var(--poster-h, 220px); }
+.ms-club-poster-fade { position: absolute; inset: 0; background: linear-gradient(to top, #12242B 0%, rgba(18,36,43,0) 55%); }
+@media (min-width: 1024px) {
+  .ms-club-poster { min-height: 480px; }
+  .ms-club-poster-fade { background: linear-gradient(to right, #12242B 0%, rgba(18,36,43,0) 40%); }
+}
+
+/* The poster in the Club page hero. Same element at every size, so the image downloads once. */
+.ms-club-hero-poster { margin: 20px 20px 0; border-radius: 20px; overflow: hidden; height: 260px; }
+@media (min-width: 1024px) {
+  .ms-club-hero-poster { position: absolute; top: 0; right: 0; bottom: 0; width: 48%; margin: 0; border-radius: 0; height: auto; }
+}
+
+/* Any NavLink dims while its page is being fetched, so a tap is never met with silence. */
+.ms-nav { transition: opacity 120ms ease-out; }
+.ms-nav:has(> .ms-pending-mark) { opacity: 0.6; }
