@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Film, LayoutDashboard, MessageSquare, Users, Shield,
-  ChevronRight, Award, Clapperboard, UserCircle, Star, Tv2, Globe, BookOpen, ListChecks, Layers, Trophy, Sparkles, Inbox, Medal,
+  ChevronRight, Award, Clapperboard, UserCircle, Star, Tv2, Globe, BookOpen, ListChecks, Layers, Trophy, Sparkles, Inbox, Medal, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,7 @@ const navSections = [
     heading: 'Content',
     items: [
       { href: '/admin/listing',   label: 'Listing',    icon: ListChecks   },
+      { href: '/admin/data-quality', label: 'Data quality', icon: Wrench   },
       { href: '/admin/movies',    label: 'Movies',     icon: Film         },
       { href: '/admin/cast-crew', label: 'Cast & Crew', icon: Users        },
       { href: '/admin/awards',    label: 'Awards',     icon: Award        },
