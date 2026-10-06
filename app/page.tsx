@@ -12,6 +12,7 @@ import { getCanonMovies, getOldButGoldMovies } from '@/lib/queries'
 import { getClubWeek, splitTitle } from '@/lib/club'
 import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
+import { HeroSwipeDeck, type DeckFilm } from '@/components/HeroSwipeDeck'
 import {
   getWorthYourTime, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
 } from '@/lib/home'
@@ -93,6 +94,18 @@ export default async function HomePage() {
 
   const clubPick = clubWeek?.movie ?? null
   const clubName = clubPick ? splitTitle(clubPick.title) : null
+  // The hero deck is a preview of Swipe, so it shows listed films. The Club pick gets its own section below,
+  // and showing it in both places would put the same poster on the page twice.
+  const deckFilms: DeckFilm[] = worth
+    .filter((f) => f.poster_url && f.id !== clubPick?.id)
+    .slice(0, 6)
+    .map((f) => ({
+      id: f.id,
+      title: splitTitle(f.title).main,
+      year: f.release_year ?? null,
+      line: [f.release_year, f.country, f.genre].filter(Boolean).join(' \u00B7 '),
+      poster: f.poster_url,
+    }))
   const schemaGraph = [websiteSchema(), organizationSchema(), faqSchema(HOME_FAQ)]
 
   return (
@@ -158,60 +171,12 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              {/* Right: swipe card, hidden on mobile */}
-              <div
-                className="hidden lg:flex"
-                style={{ gridColumn: 'span 5', flexDirection: 'column', alignItems: 'center', gap: '22px' }}
-              >
-                <div style={{ position: 'relative', width: '380px', height: '520px' }}>
-                  <div style={{ position: 'absolute', inset: 0, borderRadius: '26px', background: '#3A1520', transform: 'translateX(46px) rotate(9deg)', opacity: 0.45 }} />
-                  <div style={{ position: 'absolute', inset: 0, borderRadius: '26px', background: '#0F2230', transform: 'translateX(22px) rotate(4.5deg)', opacity: 0.7, overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: '270px', height: '2px', background: '#E8C27A' }} />
-                  </div>
-                  <div className="ph-card" style={{ position: 'absolute', inset: 0, borderRadius: '26px', overflow: 'hidden', boxShadow: '0 40px 80px rgba(0,0,0,.6)' }}>
-                    <div style={{ position: 'absolute', inset: 0, background: '#12242B' }} />
-                    <div style={{ position: 'absolute', left: '50%', top: '14%', width: '270px', height: '360px', marginLeft: '-135px', borderRadius: '135px 135px 0 0', background: '#C8963E' }} />
-                    <div style={{ position: 'absolute', left: '50%', top: '25%', width: '118px', height: '118px', marginLeft: '-59px', borderRadius: '50%', background: '#12242B' }} />
-                    <div className="ms-grain" />
-                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '60%', background: 'linear-gradient(to top,rgba(8,7,6,.96) 0%,rgba(8,7,6,.7) 40%,rgba(8,7,6,0))' }} />
-                    <div style={{ position: 'absolute', top: '16px', left: '16px', height: '30px', padding: '0 12px', borderRadius: '999px', background: 'rgba(11,10,9,0.6)', display: 'flex', alignItems: 'center', gap: '8px', ...MONO, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C8963E', display: 'inline-block' }} />
-                      Club pick
-                    </div>
-                    <div style={{ position: 'absolute', left: '24px', right: '24px', bottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ ...SERIF, fontSize: '48px', lineHeight: '0.98', color: '#F6EFE2' }}>
-                        {clubName?.main || 'Silence'}
-                      </div>
-                      <div style={{ fontSize: '15px', color: '#D8CFC0' }}>
-                        {clubPick
-                          ? `${clubPick.release_year}${clubPick.country ? ` · ${clubPick.country}` : ''}${clubPick.genre ? ` · ${clubPick.genre}` : ''}`
-                          : '2024 · Ghana · Drama'}
-                      </div>
-                    </div>
-                  </div>
+              {/* A deck anyone can try without an account: beside the words on large screens, below the buttons on phones */}
+              {deckFilms.length >= 2 && (
+                <div className="col-span-12 lg:col-span-5 flex justify-center pb-12 lg:pb-0">
+                  <HeroSwipeDeck films={deckFilms} />
                 </div>
-
-                <div style={{ display: 'flex', gap: '12px', width: '380px' }}>
-                  <NavLink button pendingLabel="Opening Swipe..."
-                    href="/swipe"
-                    style={{ flex: 1, height: '54px', borderRadius: '16px', border: '1px solid rgba(237,228,210,.16)', background: '#161411', color: '#EDE4D2', fontSize: '15px', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
-                  >
-                    <ArrowRight size={18} style={{ transform: 'rotate(180deg)' }} />
-                    Haven&apos;t seen it
-                  </NavLink>
-                  <NavLink button pendingLabel="Opening Swipe..."
-                    href="/swipe"
-                    style={{ flex: 1, height: '54px', borderRadius: '16px', background: '#C8963E', color: '#0B0A09', fontSize: '15px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
-                  >
-                    Seen it
-                    <ArrowRight size={18} />
-                  </NavLink>
-                </div>
-
-                <p style={{ fontSize: '13px', color: '#8C857A', margin: 0 }}>
-                  Try it. No account needed.
-                </p>
-              </div>
+              )}
             </div>
           </div>
         </section>
