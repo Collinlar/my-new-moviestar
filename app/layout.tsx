@@ -5,6 +5,7 @@ import { Providers } from '@/components/Providers'
 import { MobileBottomNav } from '@/components/MobileBottomNav'
 import { CookieConsent } from '@/components/CookieConsent'
 import { NavigationProgress } from '@/components/NavigationProgress'
+import { GuestSwipeCarryOver } from '@/components/GuestSwipeCarryOver'
 import '@/app/fonts.css'
 import '@/app/globals.css'
 
@@ -100,6 +101,7 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         <MobileBottomNav />
         <CookieConsent gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        <GuestSwipeCarryOver />
         {/* Spacer so content is not hidden behind the mobile bottom nav */}
         <div className="h-16 md:hidden" aria-hidden="true" />
         <Toaster

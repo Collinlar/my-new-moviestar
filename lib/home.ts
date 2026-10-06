@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { spreadByIndustry } from '@/lib/hero-deck'
 import { onlyListed } from '@/lib/listing'
 import type { Movie, Person } from '@/lib/queries'
 
@@ -22,6 +23,27 @@ export async function getWorthYourTime(limit = 6): Promise<FilmCard[]> {
       (b.average_rating ?? 0) - (a.average_rating ?? 0) ||
       (b.review_count ?? 0) - (a.review_count ?? 0))
     .slice(0, limit)
+}
+
+/**
+ * Films for the homepage swipe preview: listed, with a poster, the better-regarded ones, then spread across
+ * industries and shuffled so each visit can open on different films. Only listed films ever appear here.
+ */
+export async function getHeroDeckPool(excludeId?: string | null, limit = 12): Promise<Array<FilmCard & { industry: string | null }>> {
+  const supabase = (await createClient()) as any
+  const { data } = await onlyListed(supabase.from('movies').select(CARD + ', industry'))
+    .not('poster_url', 'is', null)
+    .order('review_count', { ascending: false })
+    .order('release_year', { ascending: false })
+    .limit(60)
+  const films = ((data ?? []) as Array<FilmCard & { industry: string | null; average_rating: number; review_count: number }>)
+    .filter((f) => f.poster_url && f.id !== excludeId)
+    .sort((a, b) =>
+      Number(!!b.why_listed) - Number(!!a.why_listed) ||
+      (b.average_rating ?? 0) - (a.average_rating ?? 0) ||
+      (b.review_count ?? 0) - (a.review_count ?? 0))
+    .slice(0, 30)
+  return spreadByIndustry(films, limit)
 }
 
 export async function getFeaturedPeople(limit = 8): Promise<Array<Pick<Person, 'id' | 'slug' | 'full_name' | 'profile_image' | 'country'>>> {

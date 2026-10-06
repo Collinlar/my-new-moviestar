@@ -29,6 +29,7 @@ const SECTIONS: LegalSection[] = [
           <li><strong>Your account.</strong> Your email address. If you sign in with Google, the name and picture Google shares with us. The display name, username, bio and picture you choose to put on your profile.</li>
           <li><strong>What you do on the site.</strong> Your ratings, takes and reviews, the performance or direction you said stood out, your watchlist and lists, your Swipe and mood choices, your decks, Club and challenge activity, and your votes in the awards.</li>
           <li><strong>Films you submit or nominate.</strong> The details you type in, including the contact email on a submission and the link you give as proof the film exists.</li>
+          <li><strong>The homepage swipe preview.</strong> If you try it before signing up, your picks are kept in your browser only. We do not receive them. If you then make an account, they are added to it: films you pulled right are marked as seen, and films you pulled left go on your watch-later list. If you never sign up, they sit on your device until you clear your site data, and we ignore any older than 30 days.</li>
           <li><strong>Shared links.</strong> When someone opens a take card or laurel link you shared, we record the visit. If they are signed in, we record which account.</li>
           <li><strong>Awards votes.</strong> One scrambled version of the connection address each vote came from. See the awards section below.</li>
           <li><strong>Laurel downloads.</strong> Which account downloaded which file, and when.</li>
@@ -106,6 +107,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <P>An essential cookie keeps you signed in. It needs no yes from you. Google Analytics sets cookies to count visits, and it only loads after you say yes in the cookie question. If you say no, nothing from Google Analytics loads.</P>
+        <P>Your browser also keeps two small notes for the site on your device: your answer to the cookie question, and your homepage swipe picks. Neither is a cookie, and neither is sent to us until you make an account.</P>
         <P>You can change your answer any time with “Cookie choices” at the bottom of any page. Saying no after a yes clears the Google Analytics cookies we can reach. YouTube may set its own cookies when you play an embedded film. The site’s fonts are kept on our own servers, so opening a page sends nothing to Google unless you chose Google sign-in or said yes to Analytics.</P>
         <P>You can also block or clear cookies in your browser settings. The site still works if you do, apart from staying signed in.</P>
       </>

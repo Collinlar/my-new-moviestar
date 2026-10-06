@@ -14,7 +14,7 @@ import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
 import { HeroSwipeDeck, type DeckFilm } from '@/components/HeroSwipeDeck'
 import {
-  getWorthYourTime, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
+  getWorthYourTime, getHeroDeckPool, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
 } from '@/lib/home'
 import { MOOD_MAP } from '@/lib/mood'
 import { getPublishedDecks, sponsorLabel } from '@/lib/decks'
@@ -77,10 +77,11 @@ export default async function HomePage() {
   const fullName       = user?.user_metadata?.full_name as string | undefined
   const firstName      = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
 
-  const [clubWeek, obg, worth, canon, people, loved, unfinished, takes, decks, challenges, selection, honours] = await Promise.all([
+  const [clubWeek, obg, worth, deckPool, canon, people, loved, unfinished, takes, decks, challenges, selection, honours] = await Promise.all([
     getClubWeek(user?.id ?? null).catch(() => null),
     getOldButGoldMovies(6),
     isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
+    isSignedIn ? Promise.resolve([]) : getHeroDeckPool(null, 14).catch(() => []),
     isSignedIn ? Promise.resolve([]) : getCanonMovies(5),
     isSignedIn ? Promise.resolve([]) : getFeaturedPeople(8),
     isSignedIn ? getBecauseYouLoved(user.id) : Promise.resolve(null),
@@ -96,9 +97,9 @@ export default async function HomePage() {
   const clubName = clubPick ? splitTitle(clubPick.title) : null
   // The hero deck is a preview of Swipe, so it shows listed films. The Club pick gets its own section below,
   // and showing it in both places would put the same poster on the page twice.
-  const deckFilms: DeckFilm[] = worth
-    .filter((f) => f.poster_url && f.id !== clubPick?.id)
-    .slice(0, 6)
+  const deckFilms: DeckFilm[] = deckPool
+    .filter((f) => f.id !== clubPick?.id)
+    .slice(0, 12)
     .map((f) => ({
       id: f.id,
       title: splitTitle(f.title).main,
