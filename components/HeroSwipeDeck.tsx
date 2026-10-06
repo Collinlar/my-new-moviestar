@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react'
 import { NavLink } from '@/components/NavLink'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { pickFresh, readGuestSwipes, writeGuestSwipe } from '@/lib/guest-swipes'
+import { BARS_ZOOM, lighterThumb as lighter, thumbnailHasBars as hasBars } from '@/lib/poster'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -20,14 +21,6 @@ function store(): Storage | null {
   try { return window.localStorage } catch { return null }
 }
 const TAP_SLOP = 6            // under this much movement it was a tap, not a swipe
-
-/** Cards behind the top one only need a smaller picture. YouTube's biggest thumbnail is far more than a card behind needs. */
-function lighter(url: string, depth: number): string {
-  return depth > 0 ? url.replace(/\/maxresdefault\.jpg$/, '/sddefault.jpg') : url
-}
-
-/** YouTube's smaller thumbnails are 4:3 with black bars above and below the 16:9 picture. Zoom in just enough to lose the bars. */
-const hasBars = (url: string) => /img\.youtube\.com\/vi\/[^/]+\/(hq|sd|mq)default\.jpg$/.test(url)
 
 /**
  * A real, working taste of Swipe on the homepage for people who have not signed up. Pull a card right for "Seen it" or
@@ -231,7 +224,7 @@ export function HeroSwipeDeck({ films: pool }: { films: DeckFilm[] }) {
                     fetchPriority={depth === 0 ? 'high' : 'auto'}
                     decoding="async"
                     draggable={false}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: hasBars(lighter(f.poster, depth)) ? 'center center' : 'center top', transform: hasBars(lighter(f.poster, depth)) ? 'scale(1.34)' : undefined, pointerEvents: 'none' }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: hasBars(lighter(f.poster, depth)) ? 'center center' : 'center top', transform: hasBars(lighter(f.poster, depth)) ? `scale(${BARS_ZOOM})` : undefined, pointerEvents: 'none' }}
                   />
                   <div className="ms-grain" />
                   <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '58%', background: 'linear-gradient(to top,rgba(8,7,6,.96) 0%,rgba(8,7,6,.7) 40%,rgba(8,7,6,0))', pointerEvents: 'none' }} />

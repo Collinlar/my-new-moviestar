@@ -59,7 +59,7 @@ async function loadHistory(supabase: any, userId: string) {
         .from('movie_interactions')
         .select('movie_id, interaction_type, created_at')
         .eq('user_id', userId)
-        .in('interaction_type', ['seen', 'unseen', 'not_interested']),
+        .in('interaction_type', ['seen', 'unseen', 'not_interested', 'undo']),
     ])
 
     for (const r of (reactions.data ?? []) as any[]) {
@@ -71,9 +71,15 @@ async function loadHistory(supabase: any, userId: string) {
     for (const w of (watchlist.data ?? []) as any[]) hard.add(w.movie_id)
 
     const cutoff = Date.now() - UNSEEN_COOLOFF_DAYS * 86_400_000
-    for (const i of (interactions.data ?? []) as any[]) {
+    // An "undo" cancels the "unseen" pull before it. If the film is passed again later, that new pull counts.
+    const rows = ((interactions.data ?? []) as any[]).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+    const lastUndo = new Map<string, number>()
+    for (const i of rows) if (i.interaction_type === 'undo') lastUndo.set(i.movie_id, new Date(i.created_at).getTime())
+    for (const i of rows) {
+      if (i.interaction_type === 'undo') continue
       if (i.interaction_type === 'unseen') {
-        if (new Date(i.created_at).getTime() > cutoff) soft.add(i.movie_id)
+        const at = new Date(i.created_at).getTime()
+        if (at > cutoff && at > (lastUndo.get(i.movie_id) ?? 0)) soft.add(i.movie_id)
       } else {
         hard.add(i.movie_id)
       }

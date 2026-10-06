@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { movie_id, interaction_type } = body
+    // How the choice was made. Anything unexpected is recorded as the ordinary button tap.
+    const source = ['swipe', 'swipe_gesture', 'swipe_key'].includes(body?.source) ? body.source : 'swipe'
 
     if (!user) {
       return NextResponse.json({ ok: true, saved: false, reason: 'not_authenticated' })
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         movie_id,
         interaction_type,
-        source: 'swipe',
+        source,
       })
 
     return NextResponse.json({ ok: true, saved: true })
