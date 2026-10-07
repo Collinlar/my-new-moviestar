@@ -52,7 +52,7 @@ export function AuthPromptSheet({ context, onSkip }: Props) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <a
-              href="/auth?mode=signup&redirect=/swipe"
+              href="/auth?mode=signup&next=/swipe"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 height: '56px', borderRadius: '18px',
@@ -64,7 +64,7 @@ export function AuthPromptSheet({ context, onSkip }: Props) {
               Create a free account
             </a>
             <a
-              href="/auth?redirect=/swipe"
+              href="/auth?next=/swipe"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 height: '56px', borderRadius: '18px',

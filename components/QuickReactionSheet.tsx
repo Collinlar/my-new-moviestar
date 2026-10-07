@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { NavLink } from '@/components/NavLink'
 import type { Movie } from '@/lib/queries'
@@ -35,6 +35,16 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
   const [awardsInfo, setAwardsInfo] = useState<AwardsInfo | null>(null)
   const [standouts, setStandouts] = useState<StandoutValue>(NO_STANDOUTS)
   const standoutOptions = useStandoutOptions(movie.id, isLoggedIn)
+
+  // While the sheet is open the page behind it stays put, and Escape closes it like a tap outside does.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onSkip() }
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const toggleTag = (slug: string) => {
     setTags(prev =>
@@ -97,18 +107,21 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
         onClick={onSkip}
         style={{
           position: 'fixed', inset: 0, zIndex: 40,
-          background: 'rgba(8,7,6,0.6)',
-          backdropFilter: 'blur(3px)',
+          background: 'rgba(8,7,6,0.72)',
         }}
       />
 
       {/* Sheet */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Your reaction to ${movie.title}`}
         onClick={e => e.stopPropagation()}
         style={{
           position: 'fixed', bottom: 0, left: '50%', zIndex: 41,
           transform: 'translateX(-50%)',
           width: '100%', maxWidth: '480px',
+          maxHeight: '90dvh', overflowY: 'auto', overscrollBehavior: 'contain',
           background: '#18150F',
           borderRadius: '28px 28px 0 0',
           padding: '20px 24px',
@@ -301,7 +314,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
             </button>
 
             <Link
-              href={`/movie/${movie.id}#review`}
+              href={`/movie/${movie.id}#community-reviews`}
               onClick={() => persist()}
               style={{ textAlign: 'center', fontSize: '14px', color: '#C8963E', textDecoration: 'none' }}
             >
@@ -324,7 +337,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <a
-                href="/auth?mode=signup&redirect=/swipe"
+                href="/auth?mode=signup&next=/swipe"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   height: '56px', borderRadius: '18px',
@@ -336,7 +349,7 @@ export function QuickReactionSheet({ movie, isLoggedIn, onSave, onSkip }: Props)
                 Create a free account
               </a>
               <a
-                href="/auth?redirect=/swipe"
+                href="/auth?next=/swipe"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   height: '56px', borderRadius: '18px',

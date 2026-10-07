@@ -93,7 +93,7 @@ export function CookieConsent({ gaId }: { gaId?: string }) {
     <section
       aria-label="Cookie choices"
       className="fixed left-3 right-3 bottom-[76px] md:left-auto md:right-6 md:bottom-6 md:w-[420px]"
-      style={{ zIndex: 60, padding: '18px', borderRadius: '16px', border: '1px solid rgba(237,228,210,0.18)', background: '#14110C', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}
+      style={{ zIndex: 35, padding: '18px', borderRadius: '16px', border: '1px solid rgba(237,228,210,0.18)', background: '#14110C', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}
     >
       <p style={{ ...MONO, margin: '0 0 6px', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C8963E' }}>Cookies</p>
       <p style={{ margin: '0 0 14px', fontSize: '15px', lineHeight: 1.55, color: '#EDE4D2' }}>

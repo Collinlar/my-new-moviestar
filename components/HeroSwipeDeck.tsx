@@ -178,7 +178,7 @@ export function HeroSwipeDeck({ films: pool }: { films: DeckFilm[] }) {
               <NavLink
                 button
                 pendingLabel="Opening sign up..."
-                href="/auth?next=/"
+                href="/auth?mode=signup&next=/"
                 style={{ height: '50px', padding: '0 22px', borderRadius: '14px', background: '#C8963E', color: '#0B0A09', fontSize: '16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
               >
                 Create my free account <ArrowRight size={18} aria-hidden="true" />

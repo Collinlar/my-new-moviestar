@@ -19,7 +19,9 @@ function GoogleIcon() {
 type Mode = 'login' | 'signup'
 
 export function AuthForm() {
-  const [mode, setMode]         = useState<Mode>('login')
+  const searchParams = useSearchParams()
+  // Links like /auth?mode=signup open on the sign-up form.
+  const [mode, setMode]         = useState<Mode>(searchParams.get('mode') === 'signup' ? 'signup' : 'login')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]     = useState(false)
@@ -27,7 +29,6 @@ export function AuthForm() {
   const [error, setError]       = useState<string | null>(null)
   const [success, setSuccess]   = useState<string | null>(null)
 
-  const searchParams = useSearchParams()
   const supabase = createClient()
 
   // Show error passed back from the auth callback route
