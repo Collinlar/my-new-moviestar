@@ -3,7 +3,7 @@ import { spreadByIndustry } from '@/lib/hero-deck'
 import { onlyListed } from '@/lib/listing'
 import type { Movie, Person } from '@/lib/queries'
 
-type FilmCard = Pick<Movie, 'id' | 'title' | 'poster_url' | 'release_year' | 'country' | 'genre'> & { why_listed?: string | null }
+type FilmCard = Pick<Movie, 'id' | 'title' | 'poster_url' | 'release_year' | 'country' | 'genre' | 'poster_focus_x' | 'poster_focus_y' | 'poster_color'> & { why_listed?: string | null }
 const CARD = 'id, title, poster_url, release_year, country, genre, why_listed, average_rating, review_count'
 
 /**
@@ -31,11 +31,14 @@ export async function getWorthYourTime(limit = 6): Promise<FilmCard[]> {
  */
 export async function getHeroDeckPool(excludeId?: string | null, limit = 12): Promise<Array<FilmCard & { industry: string | null }>> {
   const supabase = (await createClient()) as any
-  const { data } = await onlyListed(supabase.from('movies').select(CARD + ', industry'))
+  const pool = (columns: string) => onlyListed(supabase.from('movies').select(columns))
     .not('poster_url', 'is', null)
     .order('review_count', { ascending: false })
     .order('release_year', { ascending: false })
     .limit(60)
+  // The focal point and colour columns arrive with the poster upload migration. Until it has run, fall back to the plain card.
+  let { data, error } = await pool(CARD + ', industry, poster_focus_x, poster_focus_y, poster_color')
+  if (error) ({ data } = await pool(CARD + ', industry'))
   const films = ((data ?? []) as Array<FilmCard & { industry: string | null; average_rating: number; review_count: number }>)
     .filter((f) => f.poster_url && f.id !== excludeId)
     .sort((a, b) =>

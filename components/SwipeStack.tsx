@@ -9,6 +9,7 @@ import { QuickReactionSheet } from '@/components/QuickReactionSheet'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { writeGuestSwipe } from '@/lib/guest-swipes'
 import { BARS_ZOOM, lighterThumb, thumbnailHasBars } from '@/lib/poster'
+import { objectPosition } from '@/lib/images'
 import type { Movie } from '@/lib/queries'
 import type { MoodConfig } from '@/lib/mood'
 import { watchLinks } from '@/lib/watch'
@@ -632,7 +633,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
               draggable={false}
               fetchPriority="high"
               decoding="async"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: barsOn ? 'center center' : undefined, transform: barsOn ? `scale(${BARS_ZOOM})` : undefined, pointerEvents: 'none' }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: barsOn ? 'center center' : current.poster_focus_x != null || current.poster_focus_y != null ? objectPosition({ x: current.poster_focus_x, y: current.poster_focus_y }) : undefined, backgroundColor: current.poster_color ?? undefined, transform: barsOn ? `scale(${BARS_ZOOM})` : undefined, pointerEvents: 'none' }}
             />
           ) : (
             <>

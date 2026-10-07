@@ -1,27 +1,31 @@
 import { requireAdmin } from '@/lib/admin'
 import { cleanTitle, findDuplicateGroups, guessCountry, isCleanTitle, suggestYear, yearOk } from '@/lib/data-quality'
 import {
-  DataQualityDesk, type BatchRow, type CountryRow, type DupGroup, type IndustryRow, type TabKey, type TitleRow, type YearRow,
+  DataQualityDesk, type BatchRow, type CountryRow, type DupGroup, type IndustryRow, type PosterRow, type TabKey, type TitleRow, type YearRow,
 } from '@/components/admin/DataQualityDesk'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Data quality | Admin' }
 
-const TABS: TabKey[] = ['country', 'industry', 'title', 'year', 'duplicates']
+const TABS: TabKey[] = ['country', 'industry', 'title', 'year', 'duplicates', 'posters']
 const SHOW_MAX = 300
 
 interface Film {
   id: string; title: string; release_year: number | null; country: string | null; language: string | null
   industry: string | null; listing_status: string; created_at: string
+  poster_url?: string | null; poster_path?: string | null
 }
 
-/** Every film, a thousand at a time (the database caps a single answer). */
-async function loadFilms(db: any): Promise<Film[]> {
+/**
+ * Every film, a thousand at a time (the database caps a single answer). `postersReady` is false when the poster upload
+ * migration has not been run, in which case the poster columns are left out so the other tabs still work.
+ */
+async function loadFilms(db: any, withPosters: boolean): Promise<Film[]> {
   const out: Film[] = []
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db
       .from('movies')
-      .select('id, title, release_year, country, language, industry, listing_status, created_at')
+      .select('id, title, release_year, country, language, industry, listing_status, created_at' + (withPosters ? ', poster_url, poster_path' : ''))
       .order('created_at', { ascending: true })
       .range(from, from + 999)
     if (error || !data) break
@@ -39,7 +43,9 @@ export default async function DataQualityPage({ searchParams }: Props) {
   const db = supabase as any
   const tab: TabKey = (TABS as string[]).includes(sp.tab ?? '') ? (sp.tab as TabKey) : 'country'
 
-  const films = await loadFilms(db)
+  // A one-row probe tells us whether the poster columns exist yet.
+  const postersReady = !(await db.from('movies').select('poster_path').limit(1)).error
+  const films = await loadFilms(db, postersReady)
   const blank = (s: string | null) => !s || !s.trim()
 
   // ---- countries: films with none, and what their title, language or description says ----
@@ -107,6 +113,15 @@ export default async function DataQualityPage({ searchParams }: Props) {
       }))
     : []
 
+  // ---- posters: films with no uploaded poster, listed first, then those with no picture at all ----
+  const posterKind = (f: Film): PosterRow['kind'] => !f.poster_url ? 'none' : /img\.youtube\.com\/vi\//.test(f.poster_url) ? 'thumbnail' : 'link'
+  const posterAll = postersReady ? films.filter((f) => !f.poster_path) : []
+  const posterRows: PosterRow[] = tab === 'posters'
+    ? posterAll
+        .map((f) => ({ id: f.id, title: f.title, year: f.release_year, status: f.listing_status, url: f.poster_url ?? null, kind: posterKind(f) }))
+        .sort((a, b) => Number(b.status === 'approved') - Number(a.status === 'approved') || Number(b.kind === 'none') - Number(a.kind === 'none') || a.title.localeCompare(b.title))
+    : []
+
   // ---- recent batches, for undo ----
   const { data: changeRows, error: changeError } = await db
     .from('movie_data_changes')
@@ -131,6 +146,7 @@ export default async function DataQualityPage({ searchParams }: Props) {
     titleUnclean: films.filter((f) => !isCleanTitle(f.title)).length,
     year: noYear.length,
     duplicates: dupAll.length,
+    posters: postersReady ? posterAll.length : null,
     total: films.length,
   }
 
@@ -153,6 +169,7 @@ export default async function DataQualityPage({ searchParams }: Props) {
         titleRows={titleRows}
         yearRows={yearRows}
         dupGroups={dupGroups}
+        posterRows={posterRows}
         batches={batches}
         logReady={!changeError}
       />

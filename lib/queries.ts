@@ -19,6 +19,19 @@ export interface Movie {
   industry?: string
   release_year: number
   poster_url: string
+  poster_path?: string | null
+  poster_sm_url?: string | null
+  poster_lg_url?: string | null
+  poster_blur?: string | null
+  poster_color?: string | null
+  poster_focus_x?: number | null
+  poster_focus_y?: number | null
+  banner_url?: string | null
+  banner_path?: string | null
+  banner_blur?: string | null
+  banner_color?: string | null
+  banner_focus_x?: number | null
+  banner_focus_y?: number | null
   youtube_url?: string
   average_rating: number
   review_count: number

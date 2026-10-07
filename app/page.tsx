@@ -12,6 +12,7 @@ import { getCanonMovies, getOldButGoldMovies } from '@/lib/queries'
 import { getClubWeek, splitTitle } from '@/lib/club'
 import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
+import { objectPosition } from '@/lib/images'
 import { HeroSwipeDeck, type DeckFilm } from '@/components/HeroSwipeDeck'
 import {
   getWorthYourTime, getHeroDeckPool, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
@@ -106,6 +107,8 @@ export default async function HomePage() {
       year: f.release_year ?? null,
       line: [f.release_year, f.country, f.genre].filter(Boolean).join(' \u00B7 '),
       poster: f.poster_url,
+      focus: f.poster_focus_x != null || f.poster_focus_y != null ? objectPosition({ x: f.poster_focus_x, y: f.poster_focus_y }) : undefined,
+      color: f.poster_color ?? null,
     }))
   const schemaGraph = [websiteSchema(), organizationSchema(), faqSchema(HOME_FAQ)]
 
@@ -225,7 +228,7 @@ export default async function HomePage() {
             {clubPick.poster_url ? (
               /* On a phone the poster is a band above the words. On a large screen it is the right half. */
               <div className="order-first lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1" style={{ position: 'relative' }}>
-                <ClubPoster src={clubPick.poster_url} alt={`${clubPick.title} poster`} />
+                <ClubPoster src={clubPick.poster_url} alt={`${clubPick.title} poster`} focus={{ x: clubPick.poster_focus_x, y: clubPick.poster_focus_y }} color={clubPick.poster_color} />
               </div>
             ) : (
               <>

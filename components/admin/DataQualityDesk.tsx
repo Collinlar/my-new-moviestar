@@ -7,7 +7,9 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { COUNTRIES, INDUSTRIES } from '@/lib/utils'
 
-export type TabKey = 'country' | 'industry' | 'title' | 'year' | 'duplicates'
+export type TabKey = 'country' | 'industry' | 'title' | 'year' | 'duplicates' | 'posters'
+
+export interface PosterRow { id: string; title: string; year: number | null; status: string; url: string | null; kind: 'none' | 'thumbnail' | 'link' }
 
 export interface CountryRow { id: string; title: string; year: number | null; status: string; language: string | null; guess: { country: string; from: 'title' | 'language' | 'description' } | null }
 export interface IndustryRow { id: string; title: string; year: number | null; status: string; country: string; from: string | null; to: string }
@@ -19,6 +21,8 @@ export interface BatchRow { id: string; at: string; changes: number; reverted: n
 
 interface Counts {
   country: number; countryGuessed: number | null; industry: number; title: number; titleUnclean: number; year: number; duplicates: number; total: number
+  /** Null when the poster upload migration has not been run, so the tab can say so instead of showing a wrong number. */
+  posters: number | null
 }
 
 interface Props {
@@ -30,6 +34,7 @@ interface Props {
   titleRows: TitleRow[]
   yearRows: YearRow[]
   dupGroups: DupGroup[]
+  posterRows: PosterRow[]
   batches: BatchRow[]
   logReady: boolean
 }
@@ -365,6 +370,42 @@ function DuplicatesTab({ groups, max }: { groups: DupGroup[]; max: number }) {
   )
 }
 
+// ---- posters ---------------------------------------------------------------------------------------------
+
+const POSTER_NOTE: Record<PosterRow['kind'], string> = {
+  none: 'No picture at all',
+  thumbnail: 'YouTube thumbnail, wide and low resolution',
+  link: 'Pasted link, not uploaded',
+}
+
+function PostersTab({ rows, max, ready }: { rows: PosterRow[]; max: number; ready: boolean }) {
+  if (!ready) return <Empty>Poster uploads are not set up on this database yet. Run <code className="text-film-gold">20261001000012_film_images.sql</code> in the Supabase SQL editor, then reload.</Empty>
+  if (rows.length === 0) return <Empty>Every film has an uploaded poster.</Empty>
+  const shown = rows.slice(0, max)
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-film-muted max-w-2xl">
+        These films have no uploaded poster. Listed films come first, and films with no picture at all come before those that use a thumbnail.
+        Open one, upload a portrait poster, and it is saved in three sizes.
+      </p>
+      <div className="cinema-card divide-y divide-cinema-border">
+        {shown.map((r) => (
+          <div key={r.id} className="flex items-center gap-3 p-3">
+            <div style={{ width: 40, height: 60, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: '#15120E' }}>
+              {r.url && <img src={r.url} alt="" width={40} height={60} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <FilmCell id={r.id} title={r.title} year={r.year} status={r.status} extra={POSTER_NOTE[r.kind]} />
+            </div>
+            <Link href={`/admin/movies/${r.id}/edit#poster-studio`} className="btn-outline py-1.5 text-sm shrink-0">Add the poster</Link>
+          </div>
+        ))}
+      </div>
+      <Capped shown={shown.length} total={rows.length} max={max} />
+    </div>
+  )
+}
+
 // ---- the desk --------------------------------------------------------------------------------------------
 
 export function DataQualityDesk(p: Props) {
@@ -376,6 +417,7 @@ export function DataQualityDesk(p: Props) {
     { key: 'title', label: 'Messy titles', n: p.counts.title },
     { key: 'year', label: 'Year missing or wrong', n: p.counts.year },
     { key: 'duplicates', label: 'Possible duplicates', n: p.counts.duplicates },
+    { key: 'posters', label: 'No uploaded poster', n: p.counts.posters ?? 0 },
   ]
 
   async function undo(id: string) {
@@ -412,6 +454,7 @@ export function DataQualityDesk(p: Props) {
       {p.tab === 'title' && <TitleTab key={`t-${p.titleRows.length}`} rows={p.titleRows} max={p.showMax} />}
       {p.tab === 'year' && <YearTab key={`y-${p.yearRows.length}`} rows={p.yearRows} max={p.showMax} />}
       {p.tab === 'duplicates' && <DuplicatesTab key={`d-${p.dupGroups.length}`} groups={p.dupGroups} max={p.showMax} />}
+      {p.tab === 'posters' && <PostersTab rows={p.posterRows} max={p.showMax} ready={p.counts.posters != null} />}
 
       <section aria-labelledby="dq-batches" className="pt-4">
         <h2 id="dq-batches" className="section-label mb-2">Recent batches</h2>

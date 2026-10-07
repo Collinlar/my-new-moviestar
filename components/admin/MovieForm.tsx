@@ -33,6 +33,7 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
   const router = useRouter()
   const supabase = createClient() as any
 
+  const uploadedPoster = !!movie?.poster_path
   const [saving, setSaving] = useState(false)
   const [credits, setCredits] = useState<CreditDraft[]>(initialCredits)
   const [form, setForm] = useState({
@@ -83,7 +84,7 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
     if (!form.genre) { toast.error('Genre is required'); return }
     if (!form.language) { toast.error('Language is required'); return }
     if (!form.release_year || isNaN(Number(form.release_year))) { toast.error('Valid release year is required'); return }
-    if (!form.poster_url.trim()) { toast.error('Poster URL is required'); return }
+    if (!uploadedPoster && !form.poster_url.trim()) { toast.error('Poster URL is required. For a film that is already saved, upload a poster in Poster and banner above.'); return }
     const dupCredit = findDuplicate(credits)
     if (dupCredit) { toast.error(dupCredit); return }
 
@@ -106,7 +107,6 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
       release_year:        Number(form.release_year),
       country:             form.country.trim() || null,
       director:            directorText || null,
-      poster_url:          form.poster_url.trim(),
       youtube_url:         form.youtube_url.trim() || null,
       distribution_status: form.distribution_status || null,
       cultural_context:    form.cultural_context.trim() || null,
@@ -116,6 +116,8 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
       canon_essay:         form.canon_essay.trim() || null,
       canon_essay_author:  form.canon_essay.trim() ? (form.canon_essay_author.trim() || 'MuvieStars Editorial') : null,
       streaming_links:     streamingLinks,
+      // An uploaded poster is managed in Poster and banner. Leaving the link out here stops this form from writing an old one back over it.
+      ...(uploadedPoster ? {} : { poster_url: form.poster_url.trim() }),
     }
 
     let error
@@ -236,7 +238,9 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
           Media
         </h2>
         <div className="space-y-4">
-          {field('Poster URL', (
+          {uploadedPoster ? (
+            <p className="text-sm text-film-muted">This film has an uploaded poster. Change it in <a href="#poster-studio" className="text-film-gold underline">Poster and banner</a> at the top of the page.</p>
+          ) : field('Poster URL', (
             <input className={inputClass} type="url" value={form.poster_url} onChange={set('poster_url')} placeholder="https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg" />
           ), true)}
           {form.poster_url && (

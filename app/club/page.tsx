@@ -64,7 +64,7 @@ export default async function ClubPage() {
           {clubPick?.poster_url ? (
             /* One poster, placed by CSS: a framed band above the words on phones, the right half of the hero on larger screens. */
             <div className="ms-club-hero-poster">
-              <ClubPoster src={clubPick.poster_url} alt={`${clubPick.title} poster`} mobileHeight={260} />
+              <ClubPoster src={clubPick.poster_url} alt={`${clubPick.title} poster`} mobileHeight={260} focus={{ x: clubPick.poster_focus_x, y: clubPick.poster_focus_y }} color={clubPick.poster_color} />
             </div>
           ) : (
             <>

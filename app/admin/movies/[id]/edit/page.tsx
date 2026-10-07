@@ -3,6 +3,7 @@ import { MovieForm } from '@/components/admin/MovieForm'
 import { notFound } from 'next/navigation'
 import { draftsFromRows, type CreditRow } from '@/lib/credits'
 import type { Movie } from '@/lib/queries'
+import { PosterStudio, type StudioImage } from '@/components/admin/PosterStudio'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,35 @@ export default async function EditMoviePage({ params }: Props) {
   ])
 
   if (!data) notFound()
+  const movie = data as Movie
+
+  // The latest upload record for each kind holds the original, so the crop can be adjusted without uploading again.
+  const { data: imageRows } = await (supabase as any)
+    .from('movie_images')
+    .select('kind, original_path, crop, quality, bytes, src_width, src_height, removed_at, created_at')
+    .eq('movie_id', id)
+    .is('removed_at', null)
+    .order('created_at', { ascending: false })
+  const latest = (kind: 'poster' | 'banner') => (imageRows ?? []).find((r: any) => r.kind === kind)
+  const image = (kind: 'poster' | 'banner'): StudioImage => {
+    const row = latest(kind)
+    const path = kind === 'poster' ? movie.poster_path : movie.banner_path
+    const uploaded = !!path && !!row
+    return {
+      url: kind === 'poster' ? movie.poster_url : movie.banner_url ?? null,
+      uploaded,
+      color: (kind === 'poster' ? movie.poster_color : movie.banner_color) ?? null,
+      focusX: (kind === 'poster' ? movie.poster_focus_x : movie.banner_focus_x) ?? null,
+      focusY: (kind === 'poster' ? movie.poster_focus_y : movie.banner_focus_y) ?? null,
+      originalPath: uploaded ? row.original_path : null,
+      originalUrl: uploaded ? supabase.storage.from('posters').getPublicUrl(row.original_path).data.publicUrl : null,
+      crop: uploaded ? row.crop : null,
+      quality: uploaded ? row.quality : null,
+      bytes: uploaded ? row.bytes : null,
+      sourceWidth: uploaded ? row.src_width : null,
+      sourceHeight: uploaded ? row.src_height : null,
+    }
+  }
 
   return (
     <div className="p-8">
@@ -32,7 +62,8 @@ export default async function EditMoviePage({ params }: Props) {
           Edit: <span className="text-film-gold">{(data as Movie).title}</span>
         </h1>
       </div>
-      <MovieForm movie={data as Movie} initialCredits={draftsFromRows((creditRows as CreditRow[]) || [])} />
+      <PosterStudio movieId={movie.id} title={movie.title} poster={image('poster')} banner={image('banner')} />
+      <MovieForm movie={movie} initialCredits={draftsFromRows((creditRows as CreditRow[]) || [])} />
     </div>
   )
 }

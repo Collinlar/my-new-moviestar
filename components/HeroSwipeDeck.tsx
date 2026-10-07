@@ -11,7 +11,7 @@ import { BARS_ZOOM, lighterThumb as lighter, thumbnailHasBars as hasBars } from 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
 
-export interface DeckFilm { id: string; title: string; year: number | null; line: string; poster: string }
+export interface DeckFilm { id: string; title: string; year: number | null; line: string; poster: string; focus?: string; color?: string | null }
 
 const COMMIT_DISTANCE = 96    // how far a card must be pulled to count as a choice
 const FLY_MS = 260
@@ -212,7 +212,7 @@ export function HeroSwipeDeck({ films: pool }: { films: DeckFilm[] }) {
                   onPointerCancel={isTop ? cancel : undefined}
                   role={isTop ? 'link' : undefined}
                   aria-label={isTop ? `${f.title}. Tap to open the film, or pull sideways to choose.` : undefined}
-                  style={{ position: 'absolute', inset: 0, borderRadius: '26px', overflow: 'hidden', background: '#12242B', boxShadow: depth === 0 ? '0 40px 80px rgba(0,0,0,.6)' : '0 20px 40px rgba(0,0,0,.4)', ...style(depth) }}
+                  style={{ position: 'absolute', inset: 0, borderRadius: '26px', overflow: 'hidden', background: f.color || '#12242B', boxShadow: depth === 0 ? '0 40px 80px rgba(0,0,0,.6)' : '0 20px 40px rgba(0,0,0,.4)', ...style(depth) }}
                 >
                   <img
                     src={lighter(f.poster, depth)}
@@ -224,7 +224,7 @@ export function HeroSwipeDeck({ films: pool }: { films: DeckFilm[] }) {
                     fetchPriority={depth === 0 ? 'high' : 'auto'}
                     decoding="async"
                     draggable={false}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: hasBars(lighter(f.poster, depth)) ? 'center center' : 'center top', transform: hasBars(lighter(f.poster, depth)) ? `scale(${BARS_ZOOM})` : undefined, pointerEvents: 'none' }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: hasBars(lighter(f.poster, depth)) ? 'center center' : f.focus ?? 'center top', transform: hasBars(lighter(f.poster, depth)) ? `scale(${BARS_ZOOM})` : undefined, pointerEvents: 'none' }}
                   />
                   <div className="ms-grain" />
                   <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '58%', background: 'linear-gradient(to top,rgba(8,7,6,.96) 0%,rgba(8,7,6,.7) 40%,rgba(8,7,6,0))', pointerEvents: 'none' }} />
