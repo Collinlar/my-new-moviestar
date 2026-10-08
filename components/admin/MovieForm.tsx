@@ -9,12 +9,18 @@ import { Plus, Trash2 } from 'lucide-react'
 import type { Movie, StreamingLink } from '@/lib/queries'
 import { CreditsEditor } from '@/components/admin/CreditsEditor'
 import { saveCredits, findDuplicate, type CreditDraft } from '@/lib/credits'
+import { YouTubeCheck } from '@/components/admin/YouTubeCheck'
+import { ACCESS_OPTIONS, REGION_OPTIONS, accessText } from '@/lib/watch'
+import type { WatchCheck } from '@/lib/youtube'
 
+const BLANK_LINK: StreamingLink = { platform: '', url: '', free: false, access: null, price_ghs: null, regions: null, note: null }
 const DIST_STATUSES = ['streaming', 'theatrical', 'home_video', 'festival', 'limited', 'unknown']
 
 interface Props {
   movie?: Movie
   initialCredits?: CreditDraft[]
+  /** What the last YouTube link check found, for a film that is already saved. */
+  watchCheck?: WatchCheck | null
 }
 
 function field(label: string, children: React.ReactNode, required = false) {
@@ -28,7 +34,7 @@ function field(label: string, children: React.ReactNode, required = false) {
   )
 }
 
-export function MovieForm({ movie, initialCredits = [] }: Props) {
+export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Props) {
   const isEdit = !!movie
   const router = useRouter()
   const supabase = createClient() as any
@@ -60,12 +66,20 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
   const [streamingLinks, setStreamingLinks] = useState<StreamingLink[]>(
     movie?.streaming_links ?? []
   )
-  const [newLink, setNewLink] = useState<StreamingLink>({ platform: '', url: '', free: false })
+  const [newLink, setNewLink] = useState<StreamingLink>(BLANK_LINK)
 
   const addStreamingLink = () => {
     if (!newLink.platform || !newLink.url.trim()) return
-    setStreamingLinks(prev => [...prev, { ...newLink, url: newLink.url.trim() }])
-    setNewLink({ platform: '', url: '', free: false })
+    const access = newLink.access ?? null
+    const link: StreamingLink = {
+      platform: newLink.platform, url: newLink.url.trim(), access,
+      // The older flag stays in step, because older code and exports read it.
+      free: access === 'free' || access === 'ads',
+      price_ghs: access === 'rent' || access === 'buy' || access === 'subscription' ? (newLink.price_ghs || null) : null,
+      regions: newLink.regions ?? null, note: newLink.note?.trim() || null,
+    }
+    setStreamingLinks(prev => [...prev, link])
+    setNewLink(BLANK_LINK)
   }
 
   const removeStreamingLink = (i: number) =>
@@ -255,6 +269,7 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
           {field('YouTube URL (trailer/watch link)', (
             <input className={inputClass} type="url" value={form.youtube_url} onChange={set('youtube_url')} placeholder="https://www.youtube.com/watch?v=VIDEO_ID" />
           ))}
+          {isEdit && movie && <YouTubeCheck movieId={movie.id} savedUrl={movie.youtube_url ?? null} formUrl={form.youtube_url} check={watchCheck} />}
         </div>
       </section>
 
@@ -285,11 +300,9 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
             {streamingLinks.map((link, i) => (
               <div key={i} className="flex items-center gap-3 p-3 bg-cinema-surface rounded-lg border border-cinema-border">
                 <span className="text-sm font-medium text-film-cream flex-1">{link.platform}</span>
-                {link.free && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-film-gold/15 text-film-amber border border-film-gold/20">
-                    FREE
-                  </span>
-                )}
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${link.free ? 'bg-film-gold/15 text-film-amber border-film-gold/20' : 'text-film-muted border-cinema-border'}`}>
+                  {accessText(link)}
+                </span>
                 <span className="text-xs text-film-muted truncate max-w-[200px]">{link.url}</span>
                 <button
                   type="button"
@@ -305,46 +318,89 @@ export function MovieForm({ movie, initialCredits = [] }: Props) {
         )}
 
         {/* Add new link */}
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto_auto] gap-2 items-end">
-          <div>
-            <label className="block text-xs text-film-muted mb-1">Platform</label>
-            <select
-              className={inputClass}
-              value={newLink.platform}
-              onChange={e => setNewLink(prev => ({ ...prev, platform: e.target.value }))}
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-2">
+            <div>
+              <label className="block text-xs text-film-muted mb-1">Platform</label>
+              <select
+                className={inputClass}
+                value={newLink.platform}
+                onChange={e => setNewLink(prev => ({ ...prev, platform: e.target.value }))}
+              >
+                <option value="">Select</option>
+                {STREAMING_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-film-muted mb-1">URL</label>
+              <input
+                className={inputClass}
+                type="url"
+                value={newLink.url}
+                onChange={e => setNewLink(prev => ({ ...prev, url: e.target.value }))}
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr] gap-2">
+            <div>
+              <label className="block text-xs text-film-muted mb-1">How do people watch it?</label>
+              <select
+                className={inputClass}
+                value={newLink.access ?? ''}
+                onChange={e => setNewLink(prev => ({ ...prev, access: (e.target.value || null) as StreamingLink['access'] }))}
+              >
+                <option value="">Not sure</option>
+                {ACCESS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-film-muted mb-1">Price in GHS (rent, buy, monthly)</label>
+              <input
+                className={inputClass}
+                type="number"
+                min={0}
+                step="0.5"
+                inputMode="decimal"
+                disabled={!['rent', 'buy', 'subscription'].includes(newLink.access ?? '')}
+                value={newLink.price_ghs ?? ''}
+                onChange={e => setNewLink(prev => ({ ...prev, price_ghs: e.target.value ? Number(e.target.value) : null }))}
+                placeholder="15"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-film-muted mb-1">Where does it work?</label>
+              <select
+                className={inputClass}
+                value={newLink.regions ?? ''}
+                onChange={e => setNewLink(prev => ({ ...prev, regions: (e.target.value || null) as StreamingLink['regions'] }))}
+              >
+                <option value="">Not sure</option>
+                {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+            <div>
+              <label className="block text-xs text-film-muted mb-1">One line for viewers (optional)</label>
+              <input
+                className={inputClass}
+                maxLength={140}
+                value={newLink.note ?? ''}
+                onChange={e => setNewLink(prev => ({ ...prev, note: e.target.value }))}
+                placeholder="Full film with English subtitles"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={addStreamingLink}
+              disabled={!newLink.platform || !newLink.url.trim()}
+              className="btn-outline p-2 disabled:opacity-40 flex items-center gap-1"
             >
-              <option value="">Select</option>
-              {STREAMING_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              <span className="text-sm">Add this link</span>
+            </button>
           </div>
-          <div>
-            <label className="block text-xs text-film-muted mb-1">URL</label>
-            <input
-              className={inputClass}
-              type="url"
-              value={newLink.url}
-              onChange={e => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-              placeholder="https://..."
-            />
-          </div>
-          <label className="flex items-center gap-2 pb-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={newLink.free}
-              onChange={e => setNewLink(prev => ({ ...prev, free: e.target.checked }))}
-              className="w-4 h-4 rounded accent-film-gold"
-            />
-            <span className="text-sm text-film-muted whitespace-nowrap">Free</span>
-          </label>
-          <button
-            type="button"
-            onClick={addStreamingLink}
-            disabled={!newLink.platform || !newLink.url.trim()}
-            className="btn-outline p-2 disabled:opacity-40 flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            <span className="text-sm">Add</span>
-          </button>
         </div>
       </section>
 

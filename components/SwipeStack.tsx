@@ -12,7 +12,8 @@ import { BARS_ZOOM, lighterThumb, thumbnailHasBars } from '@/lib/poster'
 import { objectPosition } from '@/lib/images'
 import type { Movie } from '@/lib/queries'
 import type { MoodConfig } from '@/lib/mood'
-import { watchLinks } from '@/lib/watch'
+import { playable, watchHeadline, watchLinks } from '@/lib/watch'
+import { WatchChip } from '@/components/WatchChip'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -458,7 +459,9 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
   const nextArt = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length]
   const hasPoster = !!(current.poster_url && current.poster_url.startsWith('http'))
   const nextPoster = next?.poster_url && next.poster_url.startsWith('http') ? lighterThumb(next.poster_url, 1) : null
-  const watchOptions = passed ? watchLinks(passed) : []
+  // Links known to be blocked in Ghana or removed are left out of the quick strip. The film page shows the full story.
+  const watchOptions = passed ? playable(watchLinks(passed, passed.watch_check ?? null)) : []
+  const headline = watchHeadline(watchLinks(current, current.watch_check ?? null))
   const pull = Math.min(Math.abs(dx) / COMMIT_DISTANCE, 1)
   const barsOn = hasPoster && thumbnailHasBars(current.poster_url!)
 
@@ -576,8 +579,12 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
                         rel="noopener noreferrer"
                         style={{ minHeight: '44px', padding: '0 16px', borderRadius: '12px', background: '#EDE4D2', color: '#0B0A09', fontSize: '14px', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                       >
-                        Watch on {w.label}
-                        {w.free && <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.08em', color: '#2F6B45' }}>FREE</span>}
+                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25, padding: '6px 0' }}>
+                          <span>Watch on {w.label}</span>
+                          <span style={{ ...MONO, fontSize: '10.5px', fontWeight: 500, letterSpacing: '0.04em', color: w.free ? '#2F6B45' : '#5B5246' }}>
+                            {[w.access, w.facts.find((x) => /^\d+(h| min)/.test(x))].filter(Boolean).join(' · ')}
+                          </span>
+                        </span>
                       </a>
                     ))}
                     <p style={{ flexBasis: '100%', margin: 0, fontSize: '12px', color: '#8C857A' }}>Come back and tell us what you thought.</p>
@@ -653,6 +660,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
           <div style={{ position: 'absolute', top: '24px', right: '24px', padding: '6px 12px', borderRadius: '10px', border: '2px solid #EDE4D2', color: '#EDE4D2', background: 'rgba(11,10,9,0.55)', ...MONO, fontSize: '14px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', transform: 'rotate(8deg)', opacity: dx < 0 ? pull : 0, pointerEvents: 'none' }}>Not seen</div>
 
           <div style={{ position: 'absolute', left: '24px', right: '24px', bottom: '28px', display: 'flex', flexDirection: 'column', gap: '8px', pointerEvents: 'none' }}>
+            {headline && <WatchChip text={headline.text} color={headline.color} free={headline.free} />}
             <div style={{ ...SERIF, fontSize: '42px', lineHeight: '1', color: '#F6EFE2' }}>
               {current.title}
             </div>

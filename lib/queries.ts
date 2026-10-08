@@ -2,11 +2,18 @@ import { createClient } from '@/lib/supabase/server'
 import { createStaticClient } from '@/lib/supabase/static'
 import { cleanSearchTerm, isUuid, type Socials } from '@/lib/people'
 import { onlyListed, type ListingStatus } from '@/lib/listing'
+import type { WatchCheck } from '@/lib/youtube'
 
 export interface StreamingLink {
   platform: string
   url: string
   free: boolean
+  /** How a viewer gets it. Older links only have free. */
+  access?: 'free' | 'ads' | 'subscription' | 'rent' | 'buy' | null
+  /** Price in GHS for rent, buy or a monthly subscription. */
+  price_ghs?: number | null
+  regions?: 'ghana' | 'africa' | 'world' | null
+  note?: string | null
 }
 
 export interface Movie {
@@ -47,6 +54,8 @@ export interface Movie {
   production_company?: string
   distribution_status?: string
   streaming_links?: StreamingLink[]
+  /** What the last link check found. Only set where a page asks for it. */
+  watch_check?: WatchCheck | null
   festivals?: string
   is_canon?: boolean
   featured?: boolean

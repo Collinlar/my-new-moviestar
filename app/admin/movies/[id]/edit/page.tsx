@@ -3,6 +3,7 @@ import { MovieForm } from '@/components/admin/MovieForm'
 import { notFound } from 'next/navigation'
 import { draftsFromRows, type CreditRow } from '@/lib/credits'
 import type { Movie } from '@/lib/queries'
+import { loadWatchChecks } from '@/lib/watch-checks'
 import { PosterStudio, type StudioImage } from '@/components/admin/PosterStudio'
 
 export const dynamic = 'force-dynamic'
@@ -25,6 +26,7 @@ export default async function EditMoviePage({ params }: Props) {
 
   if (!data) notFound()
   const movie = data as Movie
+  const watchCheck = (await loadWatchChecks(supabase, [id])).get(id) ?? null
 
   // The latest upload record for each kind holds the original, so the crop can be adjusted without uploading again.
   const { data: imageRows } = await (supabase as any)
@@ -63,7 +65,7 @@ export default async function EditMoviePage({ params }: Props) {
         </h1>
       </div>
       <PosterStudio movieId={movie.id} title={movie.title} poster={image('poster')} banner={image('banner')} />
-      <MovieForm movie={movie} initialCredits={draftsFromRows((creditRows as CreditRow[]) || [])} />
+      <MovieForm movie={movie} watchCheck={watchCheck} initialCredits={draftsFromRows((creditRows as CreditRow[]) || [])} />
     </div>
   )
 }

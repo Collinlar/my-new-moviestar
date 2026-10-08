@@ -5,6 +5,7 @@ import { getDeckCards, getSwipeDeck } from '@/lib/deck'
 import { SwipeStack } from '@/components/SwipeStack'
 import { MOOD_MAP } from '@/lib/mood'
 import { createClient } from '@/lib/supabase/server'
+import { withWatchChecks } from '@/lib/watch-checks'
 
 export const metadata: Metadata = {
   title: 'Swipe Through African Cinema | MuvieStars',
@@ -30,7 +31,9 @@ export default async function SwipePage({ searchParams }: PageProps) {
 
   // A published deck takes priority. An unknown or unpublished deck quietly falls back to the ordinary deck.
   const fromDeck = deckSlug ? await getDeckCards({ userId: user?.id ?? null, deckSlug, limit: 40 }) : null
-  const movies = fromDeck ? fromDeck.movies : await getSwipeDeck({ userId: user?.id ?? null, mood: moodConfig, limit: 30 })
+  const deck = fromDeck ? fromDeck.movies : await getSwipeDeck({ userId: user?.id ?? null, mood: moodConfig, limit: 30 })
+  // Each card says where the film can be watched, so it needs what the last link check found.
+  const movies = await withWatchChecks(supabase, deck)
   const display = fromDeck ? fromDeck.display : moodConfig
 
   return (

@@ -7,7 +7,10 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { COUNTRIES, INDUSTRIES } from '@/lib/utils'
 
-export type TabKey = 'country' | 'industry' | 'title' | 'year' | 'duplicates' | 'posters'
+export type TabKey = 'country' | 'industry' | 'title' | 'year' | 'duplicates' | 'posters' | 'watch'
+
+export interface WatchRow { id: string; title: string; year: number | null; status: string; url: string; state: 'ok' | 'ghana_blocked' | 'gone' | 'not_a_video' | 'unchecked'; short: boolean; detail: string | null }
+export interface WatchSummary { withLink: number; ok: number; gone: number; blocked: number; short: number; unchecked: number; other: number; hasKey: boolean }
 
 export interface PosterRow { id: string; title: string; year: number | null; status: string; url: string | null; kind: 'none' | 'thumbnail' | 'link' }
 
@@ -23,6 +26,8 @@ interface Counts {
   country: number; countryGuessed: number | null; industry: number; title: number; titleUnclean: number; year: number; duplicates: number; total: number
   /** Null when the poster upload migration has not been run, so the tab can say so instead of showing a wrong number. */
   posters: number | null
+  /** Null when the link checks table does not exist yet. */
+  watch: WatchSummary | null
 }
 
 interface Props {
@@ -35,6 +40,7 @@ interface Props {
   yearRows: YearRow[]
   dupGroups: DupGroup[]
   posterRows: PosterRow[]
+  watchRows: WatchRow[]
   batches: BatchRow[]
   logReady: boolean
 }
@@ -406,6 +412,80 @@ function PostersTab({ rows, max, ready }: { rows: PosterRow[]; max: number; read
   )
 }
 
+// ---- YouTube links ---------------------------------------------------------------------------------------
+
+const WATCH_WORD: Record<WatchRow['state'], string> = {
+  gone: 'Video is gone or private', ghana_blocked: 'Blocked in Ghana', not_a_video: 'Channel or playlist link', unchecked: 'Not checked yet', ok: 'Plays',
+}
+
+function WatchTab({ rows, summary, max }: { rows: WatchRow[]; summary: WatchSummary | null; max: number }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(0)
+  if (!summary) return <Empty>Link checks are not set up on this database yet. Run <code className="text-film-gold">20261001000013_watch_checks.sql</code> in the Supabase SQL editor, then reload.</Empty>
+
+  async function checkAll() {
+    setBusy(true); setDone(0)
+    let after: string | null = null, total = 0, unreachable = 0
+    try {
+      do {
+        const res: Response = await fetch('/api/admin/watch-checks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true, after }) })
+        const json: any = await res.json().catch(() => ({}))
+        if (!res.ok) { toast.error(json.error ?? 'That check did not go through. Try again.'); break }
+        total += json.checked ?? 0; unreachable += json.unreachable ?? 0
+        setDone(total)
+        after = json.nextCursor ?? null
+      } while (after)
+      if (!after) toast.success(`${total} links checked.${unreachable ? ` ${unreachable} could not be reached and keep their old answer.` : ''}`)
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
+    } finally {
+      setBusy(false)
+      router.refresh()
+    }
+  }
+
+  const shown = rows.slice(0, max)
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-film-muted max-w-2xl">
+        Each film's YouTube link is checked for whether the video still exists, who owns it, how long it is, whether it has captions, and whether the owner blocks it in Ghana.
+        Viewers never see a link that is gone, and a link blocked in Ghana is marked on the film page.
+      </p>
+      {!summary.hasKey && (
+        <div className="cinema-card p-3 text-sm text-film-amber">
+          No YouTube key is set, so checks only learn whether a video exists and who owns it. Add <code>YOUTUBE_API_KEY</code> to the environment (a free key from the Google Cloud console, YouTube Data API v3) to also get length, captions and the Ghana block.
+        </div>
+      )}
+      <div className="cinema-card p-4 flex flex-wrap gap-x-8 gap-y-3">
+        <div><p className="text-2xl font-bold text-film-cream leading-none">{summary.withLink}</p><p className="text-xs text-film-muted mt-1">films with a YouTube link</p></div>
+        <div><p className="text-2xl font-bold text-film-cream leading-none">{summary.ok}</p><p className="text-xs text-film-muted mt-1">play fine</p></div>
+        <div><p className="text-2xl font-bold text-film-cream leading-none">{summary.gone}</p><p className="text-xs text-film-muted mt-1">gone or private</p></div>
+        <div><p className="text-2xl font-bold text-film-cream leading-none">{summary.blocked}</p><p className="text-xs text-film-muted mt-1">blocked in Ghana</p></div>
+        <div><p className="text-2xl font-bold text-film-cream leading-none">{summary.short}</p><p className="text-xs text-film-muted mt-1">under 25 min, maybe trailers</p></div>
+        <div><p className="text-2xl font-bold text-film-cream leading-none">{summary.unchecked}</p><p className="text-xs text-film-muted mt-1">never checked</p></div>
+      </div>
+      <button className="btn-gold py-2 text-sm disabled:opacity-40" disabled={busy || summary.withLink === 0} onClick={checkAll}>
+        {busy ? `Asking YouTube, ${done} checked so far...` : summary.unchecked === summary.withLink ? 'Check every YouTube link' : 'Check every YouTube link again'}
+      </button>
+      {rows.length === 0 ? <Empty>No link needs attention.</Empty> : (
+        <div className="cinema-card divide-y divide-cinema-border">
+          {shown.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 p-3">
+              <div className="min-w-0 flex-1">
+                <FilmCell id={r.id} title={r.title} year={r.year} status={r.status} extra={r.short && r.state === 'ok' ? 'Under 25 min' + (r.detail ? ', ' + r.detail : '') : WATCH_WORD[r.state]} />
+              </div>
+              <a href={r.url} target="_blank" rel="noopener noreferrer" className="btn-ghost py-1.5 text-sm shrink-0">Open the link</a>
+              <Link href={`/admin/movies/${r.id}/edit`} className="btn-outline py-1.5 text-sm shrink-0">Fix the link</Link>
+            </div>
+          ))}
+        </div>
+      )}
+      <Capped shown={shown.length} total={rows.length} max={max} />
+    </div>
+  )
+}
+
 // ---- the desk --------------------------------------------------------------------------------------------
 
 export function DataQualityDesk(p: Props) {
@@ -418,6 +498,7 @@ export function DataQualityDesk(p: Props) {
     { key: 'year', label: 'Year missing or wrong', n: p.counts.year },
     { key: 'duplicates', label: 'Possible duplicates', n: p.counts.duplicates },
     { key: 'posters', label: 'No uploaded poster', n: p.counts.posters ?? 0 },
+    { key: 'watch', label: 'YouTube links', n: p.counts.watch ? p.counts.watch.gone + p.counts.watch.blocked + p.counts.watch.unchecked : 0 },
   ]
 
   async function undo(id: string) {
@@ -454,6 +535,7 @@ export function DataQualityDesk(p: Props) {
       {p.tab === 'title' && <TitleTab key={`t-${p.titleRows.length}`} rows={p.titleRows} max={p.showMax} />}
       {p.tab === 'year' && <YearTab key={`y-${p.yearRows.length}`} rows={p.yearRows} max={p.showMax} />}
       {p.tab === 'duplicates' && <DuplicatesTab key={`d-${p.dupGroups.length}`} groups={p.dupGroups} max={p.showMax} />}
+      {p.tab === 'watch' && <WatchTab rows={p.watchRows} summary={p.counts.watch} max={p.showMax} />}
       {p.tab === 'posters' && <PostersTab rows={p.posterRows} max={p.showMax} ready={p.counts.posters != null} />}
 
       <section aria-labelledby="dq-batches" className="pt-4">

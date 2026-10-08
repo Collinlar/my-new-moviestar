@@ -1,19 +1,21 @@
 import { requireAdmin } from '@/lib/admin'
+import { hasYouTubeKey } from '@/lib/youtube-server'
+import { isShort, youtubeId } from '@/lib/youtube'
 import { cleanTitle, findDuplicateGroups, guessCountry, isCleanTitle, suggestYear, yearOk } from '@/lib/data-quality'
 import {
-  DataQualityDesk, type BatchRow, type CountryRow, type DupGroup, type IndustryRow, type PosterRow, type TabKey, type TitleRow, type YearRow,
+  DataQualityDesk, type BatchRow, type CountryRow, type DupGroup, type IndustryRow, type PosterRow, type TabKey, type TitleRow, type WatchRow, type WatchSummary, type YearRow,
 } from '@/components/admin/DataQualityDesk'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Data quality | Admin' }
 
-const TABS: TabKey[] = ['country', 'industry', 'title', 'year', 'duplicates', 'posters']
+const TABS: TabKey[] = ['country', 'industry', 'title', 'year', 'duplicates', 'posters', 'watch']
 const SHOW_MAX = 300
 
 interface Film {
   id: string; title: string; release_year: number | null; country: string | null; language: string | null
   industry: string | null; listing_status: string; created_at: string
-  poster_url?: string | null; poster_path?: string | null
+  poster_url?: string | null; poster_path?: string | null; youtube_url?: string | null
 }
 
 /**
@@ -25,7 +27,7 @@ async function loadFilms(db: any, withPosters: boolean): Promise<Film[]> {
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db
       .from('movies')
-      .select('id, title, release_year, country, language, industry, listing_status, created_at' + (withPosters ? ', poster_url, poster_path' : ''))
+      .select('id, title, release_year, country, language, industry, listing_status, created_at, youtube_url' + (withPosters ? ', poster_url, poster_path' : ''))
       .order('created_at', { ascending: true })
       .range(from, from + 999)
     if (error || !data) break
@@ -33,6 +35,18 @@ async function loadFilms(db: any, withPosters: boolean): Promise<Film[]> {
     if (data.length < 1000) break
   }
   return out
+}
+
+/** What the last YouTube link check found, for every film that has one. ready is false when the table does not exist yet. */
+async function loadChecks(db: any): Promise<{ ready: boolean; byFilm: Map<string, { state: WatchRow['state']; video_id: string | null; duration_seconds: number | null; channel_title: string | null }> }> {
+  const byFilm = new Map<string, { state: WatchRow['state']; video_id: string | null; duration_seconds: number | null; channel_title: string | null }>()
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from('movie_watch_checks').select('movie_id, state, video_id, duration_seconds, channel_title').order('movie_id').range(from, from + 999)
+    if (error) return { ready: false, byFilm }
+    for (const r of data ?? []) byFilm.set(r.movie_id, r)
+    if (!data || data.length < 1000) break
+  }
+  return { ready: true, byFilm }
 }
 
 interface Props { searchParams: Promise<{ tab?: string }> }
@@ -122,6 +136,34 @@ export default async function DataQualityPage({ searchParams }: Props) {
         .sort((a, b) => Number(b.status === 'approved') - Number(a.status === 'approved') || Number(b.kind === 'none') - Number(a.kind === 'none') || a.title.localeCompare(b.title))
     : []
 
+  // ---- YouTube links ----
+  const checks = await loadChecks(db)
+  const linked = films.filter((f) => !blank(f.youtube_url ?? null))
+  const watchState = (f: Film): { state: WatchRow['state']; short: boolean; detail: string | null } => {
+    const c = checks.byFilm.get(f.id)
+    // A check belongs to the video it was made for. If the link has changed since, it counts as unchecked.
+    if (!c || (c.video_id ?? null) !== youtubeId(f.youtube_url)) return { state: 'unchecked', short: false, detail: null }
+    return { state: c.state, short: isShort(c.duration_seconds), detail: c.duration_seconds ? Math.round(c.duration_seconds / 60) + ' min' : null }
+  }
+  const linkedStates = linked.map((f) => ({ f, ...watchState(f) }))
+  const watchSummary: WatchSummary | null = checks.ready ? {
+    withLink: linked.length,
+    ok: linkedStates.filter((x) => x.state === 'ok').length,
+    gone: linkedStates.filter((x) => x.state === 'gone').length,
+    blocked: linkedStates.filter((x) => x.state === 'ghana_blocked').length,
+    short: linkedStates.filter((x) => x.state === 'ok' && x.short).length,
+    unchecked: linkedStates.filter((x) => x.state === 'unchecked').length,
+    other: linkedStates.filter((x) => x.state === 'not_a_video').length,
+    hasKey: hasYouTubeKey(),
+  } : null
+  const WATCH_ORDER: Record<WatchRow['state'], number> = { gone: 0, ghana_blocked: 1, not_a_video: 2, ok: 3, unchecked: 4 }
+  const watchRows: WatchRow[] = tab === 'watch' && checks.ready
+    ? linkedStates
+        .filter((x) => x.state !== 'ok' || x.short)
+        .map((x) => ({ id: x.f.id, title: x.f.title, year: x.f.release_year, status: x.f.listing_status, url: x.f.youtube_url as string, state: x.state, short: x.short, detail: x.detail }))
+        .sort((a, b) => WATCH_ORDER[a.state] - WATCH_ORDER[b.state] || a.title.localeCompare(b.title))
+    : []
+
   // ---- recent batches, for undo ----
   const { data: changeRows, error: changeError } = await db
     .from('movie_data_changes')
@@ -147,6 +189,7 @@ export default async function DataQualityPage({ searchParams }: Props) {
     year: noYear.length,
     duplicates: dupAll.length,
     posters: postersReady ? posterAll.length : null,
+    watch: watchSummary,
     total: films.length,
   }
 
@@ -170,6 +213,7 @@ export default async function DataQualityPage({ searchParams }: Props) {
         yearRows={yearRows}
         dupGroups={dupGroups}
         posterRows={posterRows}
+        watchRows={watchRows}
         batches={batches}
         logReady={!changeError}
       />

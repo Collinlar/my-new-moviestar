@@ -25,6 +25,9 @@ import { getRecognitionForMovie } from '@/lib/awards'
 import { getWinsForMovie } from '@/lib/awards-results'
 import { RecognitionSection } from '@/components/RecognitionSection'
 import { watchLinks } from '@/lib/watch'
+import { WatchPanel } from '@/components/WatchPanel'
+import { loadWatchChecks } from '@/lib/watch-checks'
+import { createClient } from '@/lib/supabase/server'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
 
 // Films that were turned down or taken down should not be found through search engines.
@@ -86,7 +89,7 @@ export const revalidate = 3600
 
 export default async function MovieDetailPage({ params }: PageProps) {
   const { id } = await params
-  const [movie, reviews, cast, awards, verdict, communityTakes, selections, recognition, wins] = await Promise.all([
+  const [movie, reviews, cast, awards, verdict, communityTakes, selections, recognition, wins, watchChecks] = await Promise.all([
     getMovieById(id),
     getMovieReviews(id, 8),
     getMovieCast(id),
@@ -96,6 +99,8 @@ export default async function MovieDetailPage({ params }: PageProps) {
     getSelectionsForMovie(id).catch(() => []),
     getRecognitionForMovie(id).catch(() => []),
     getWinsForMovie(id).catch(() => []),
+    // What the last link check found: who put the video there, how long it is, whether it plays in Ghana.
+    (async () => loadWatchChecks(await createClient(), [id]))().catch(() => new Map()),
   ])
 
   if (!movie) notFound()
@@ -112,7 +117,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
   const dir       = movie.director || movie.creator?.name
   const wonAwards = awards.filter((a) => a.won)
-  const watch     = watchLinks(movie)
+  const watch     = watchLinks(movie, watchChecks.get(id) ?? null)
 
   // Directors link to their profiles when they have one. Older films fall back to the text field.
   const directorCredits = cast.filter((c: any) => c.role === 'director' && c.person?.slug)
@@ -717,41 +722,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
         />
 
         {/* ─── WHERE TO WATCH ─────────────────────────────────────────────── */}
-        {watch.length > 0 && (
-          <section id="where-to-watch" style={SECTION} aria-labelledby="watch-heading">
-            <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20">
-              <p style={{ ...MONO, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E', margin: '0 0 20px' }}>
-                Where to watch
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {watch.map((link, i) => (
-                  <a
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      height: '44px', padding: '0 20px', borderRadius: '12px',
-                      border: '1px solid rgba(237,228,210,0.12)', background: '#15120E',
-                      color: '#EDE4D2', fontSize: '14px', fontWeight: 500,
-                      textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
-                    }}
-                  >
-                    {link.label}
-                    {link.free && (
-                      <span style={{
-                        height: '20px', padding: '0 8px', borderRadius: '4px',
-                        background: 'rgba(127,168,139,0.15)', border: '1px solid rgba(127,168,139,0.25)',
-                        ...MONO, fontSize: '10px', fontWeight: 700, color: '#7FA88B',
-                        display: 'inline-flex', alignItems: 'center',
-                      }}>FREE</span>
-                    )}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+        <WatchPanel options={watch} title={movie.title} sectionStyle={SECTION} />
 
         {/* ─── SIMILAR FILMS ──────────────────────────────────────────────── */}
         {similar.length > 0 && (
