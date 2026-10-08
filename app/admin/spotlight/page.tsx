@@ -53,6 +53,7 @@ export default async function AdminSpotlightPage() {
         <p className="mt-2 text-sm text-film-muted max-w-2xl">
           One listed film, put at the top of the homepage for a set time, with your headline and a button. Spotlights are editorial: there is no sponsor and no
           paid placement, and that is what makes it worth tapping. When none is live, the homepage shows no Spotlight at all.
+          The homepage is refreshed once a minute, so a change you make can take up to a minute to show. A Spotlight that is already scheduled starts and ends on the minute.
         </p>
       </div>
       <SpotlightManager items={items} log={log} adminId={user.id} ready={ready} now={now} />

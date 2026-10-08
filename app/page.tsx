@@ -8,8 +8,8 @@ import { FilmShelf } from '@/components/FilmShelf'
 import { SignedInHero } from '@/components/SignedInHero'
 import { OnboardingFlow } from '@/components/OnboardingFlow'
 import { createClient } from '@/lib/supabase/server'
-import { getCanonMovies, getOldButGoldMovies } from '@/lib/queries'
-import { getClubWeek, splitTitle } from '@/lib/club'
+import { getClubState, splitTitle } from '@/lib/club'
+import { getHomePublic } from '@/lib/home-public'
 import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
 import { objectPosition } from '@/lib/images'
@@ -17,7 +17,7 @@ import { pickPoster } from '@/lib/poster'
 import { HeroSwipeDeck, type DeckFilm } from '@/components/HeroSwipeDeck'
 import { SpotlightBand } from '@/components/SpotlightBand'
 import { SpotlightCta } from '@/components/SpotlightCta'
-import { getLiveSpotlight } from '@/lib/spotlight-data'
+import { chooseSpotlight } from '@/lib/spotlight-data'
 import { ctaHref, ctaLabel } from '@/lib/spotlight'
 import {
   getWorthYourTime, getHeroDeckPool, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
@@ -84,23 +84,23 @@ export default async function HomePage() {
   const fullName       = user?.user_metadata?.full_name as string | undefined
   const firstName      = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
 
-  const [clubWeek, obg, worth, deckPool, canon, people, loved, unfinished, takes, decks, challenges, selection, honours, spotlight] = await Promise.all([
-    getClubWeek(user?.id ?? null).catch(() => null),
-    getOldButGoldMovies(6),
-    isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
-    isSignedIn ? Promise.resolve([]) : getHeroDeckPool(null, 14).catch(() => []),
-    isSignedIn ? Promise.resolve([]) : getCanonMovies(5),
-    isSignedIn ? Promise.resolve([]) : getFeaturedPeople(8),
+  // Most of the page is the same for everyone, so it comes from one shared lookup that is refreshed once a minute.
+  // Only what belongs to the signed-in person is asked of the database on each visit.
+  const pub = await getHomePublic()
+  const [clubState, loved, unfinished, takes] = await Promise.all([
+    isSignedIn && pub.club ? getClubState(user.id, pub.club.movie.id) : Promise.resolve('none' as const),
     isSignedIn ? getBecauseYouLoved(user.id) : Promise.resolve(null),
     isSignedIn ? getUnfinishedTitles(user.id) : Promise.resolve([]),
     isSignedIn ? getRecentTakes(user.id) : Promise.resolve([]),
-    getPublishedDecks({ featuredOnly: true, limit: 3 }).catch(() => []),
-    getPublishedChallenges({ featuredOnly: true, openOnly: true, limit: 2 }).catch(() => []),
-    getCurrentSelection().catch(() => null),
-    getPublicCycles(1).catch(() => []),
-    // The editors' pick for right now, if there is one. Never allowed to break the page.
-    getLiveSpotlight(supabase, isSignedIn).catch(() => null),
   ])
+  const clubWeek = pub.club ? { ...pub.club, state: clubState } : null
+  const { obg, decks, challenges, selection, honours } = pub
+  const worth    = isSignedIn ? [] : pub.worth
+  const deckPool = isSignedIn ? [] : pub.deckPool
+  const canon    = isSignedIn ? [] : pub.canon
+  const people   = isSignedIn ? [] : pub.people
+  // Which Spotlight is live is worked out on every visit, so one starts and ends on the minute even though the data is shared.
+  const spotlight = chooseSpotlight(pub.spotlights, isSignedIn)
 
   const clubPick = clubWeek?.movie ?? null
   const clubName = clubPick ? splitTitle(clubPick.title) : null

@@ -16,6 +16,9 @@ export interface ClubWeek {
 
 const DAY = 86_400_000
 
+/** The part of this week's Club that is the same for everyone: the film, the days left, how many have joined. */
+export type ClubWeekPublic = Omit<ClubWeek, 'state'>
+
 /** Days until the cycle ends. Falls back to the Monday-to-Sunday week when the cycle has no end date. */
 export function daysUntil(endsAt?: string | null, now = new Date()): number {
   if (endsAt) return Math.max(1, Math.ceil((new Date(endsAt).getTime() - now.getTime()) / DAY))
@@ -61,4 +64,39 @@ export async function getClubWeek(userId: string | null): Promise<ClubWeek | nul
   }
 
   return { movie, daysLeft: daysUntil(cycle.ends_at), participantCount, state }
+}
+
+/**
+ * The shared half of getClubWeek: no cookies and nothing about the visitor, so it can be fetched once and cached for the
+ * homepage. Pair it with getClubState for someone who is signed in.
+ */
+export async function getClubWeekPublic(): Promise<ClubWeekPublic | null> {
+  const cycle = await getCurrentClubCycle()
+  if (!cycle) return null
+  const movie = await getMovieById(cycle.movie_id)
+  if (!movie) return null
+  let participantCount = 0
+  try {
+    const supabase = (await createClient()) as any
+    const { count } = await supabase.from('club_participation').select('*', { count: 'exact', head: true }).eq('movie_id', movie.id).in('status', ['watching', 'completed'])
+    participantCount = (count as number) || 0
+  } catch {
+    // The participation table may not exist yet. The pick still shows.
+  }
+  return { movie, daysLeft: daysUntil(cycle.ends_at), participantCount }
+}
+
+/** Where this person is in the Club film: the other half of getClubWeek, two small queries about them alone. */
+export async function getClubState(userId: string, movieId: string): Promise<ClubState> {
+  try {
+    const supabase = (await createClient()) as any
+    const [mine, take] = await Promise.all([
+      supabase.from('club_participation').select('status').eq('movie_id', movieId).eq('user_id', userId).maybeSingle(),
+      supabase.from('takes').select('movie_id').eq('movie_id', movieId).eq('user_id', userId).maybeSingle(),
+    ])
+    const status = mine?.data?.status as string | undefined
+    return take?.data ? 'took' : status === 'completed' ? 'seen' : status === 'watching' ? 'watching' : 'none'
+  } catch {
+    return 'none'
+  }
 }
