@@ -22,6 +22,8 @@ const MOODS = [
 
 interface Props {
   userName: string | null
+  /** A Spotlight sits above, and already clears the header. */
+  belowSpotlight?: boolean
 }
 
 interface Stats {
@@ -29,7 +31,7 @@ interface Stats {
   watchlist: number
 }
 
-export function SignedInHero({ userName }: Props) {
+export function SignedInHero({ userName, belowSpotlight = false }: Props) {
   const [greeting, setGreeting]   = useState('Good evening')
   const [stats, setStats]         = useState<Stats | null>(null)
 
@@ -70,7 +72,7 @@ export function SignedInHero({ userName }: Props) {
 
   return (
     <section
-      style={{ background: '#0B0A09', paddingTop: '76px' }}
+      style={{ background: '#0B0A09', paddingTop: belowSpotlight ? '0' : '76px' }}
       aria-labelledby="signed-in-hero-heading"
     >
       <div className="ms-grain" aria-hidden="true" />

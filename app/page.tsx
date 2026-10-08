@@ -14,6 +14,10 @@ import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
 import { objectPosition } from '@/lib/images'
 import { HeroSwipeDeck, type DeckFilm } from '@/components/HeroSwipeDeck'
+import { SpotlightBand } from '@/components/SpotlightBand'
+import { SpotlightCta } from '@/components/SpotlightCta'
+import { getLiveSpotlight } from '@/lib/spotlight-data'
+import { ctaHref, ctaLabel } from '@/lib/spotlight'
 import {
   getWorthYourTime, getHeroDeckPool, getFeaturedPeople, getBecauseYouLoved, getUnfinishedTitles, getRecentTakes,
 } from '@/lib/home'
@@ -78,7 +82,7 @@ export default async function HomePage() {
   const fullName       = user?.user_metadata?.full_name as string | undefined
   const firstName      = fullName?.split(' ')[0] || (user?.email as string | undefined)?.split('@')[0] || null
 
-  const [clubWeek, obg, worth, deckPool, canon, people, loved, unfinished, takes, decks, challenges, selection, honours] = await Promise.all([
+  const [clubWeek, obg, worth, deckPool, canon, people, loved, unfinished, takes, decks, challenges, selection, honours, spotlight] = await Promise.all([
     getClubWeek(user?.id ?? null).catch(() => null),
     getOldButGoldMovies(6),
     isSignedIn ? Promise.resolve([]) : getWorthYourTime(6),
@@ -92,6 +96,8 @@ export default async function HomePage() {
     getPublishedChallenges({ featuredOnly: true, openOnly: true, limit: 2 }).catch(() => []),
     getCurrentSelection().catch(() => null),
     getPublicCycles(1).catch(() => []),
+    // The editors' pick for right now, if there is one. Never allowed to break the page.
+    getLiveSpotlight(supabase, isSignedIn).catch(() => null),
   ])
 
   const clubPick = clubWeek?.movie ?? null
@@ -99,7 +105,7 @@ export default async function HomePage() {
   // The hero deck is a preview of Swipe, so it shows listed films. The Club pick gets its own section below,
   // and showing it in both places would put the same poster on the page twice.
   const deckFilms: DeckFilm[] = deckPool
-    .filter((f) => f.id !== clubPick?.id)
+    .filter((f) => f.id !== clubPick?.id && f.id !== spotlight?.film.id)
     .slice(0, 12)
     .map((f) => ({
       id: f.id,
@@ -125,12 +131,22 @@ export default async function HomePage() {
 
       <main style={{ background: '#0B0A09', color: '#EDE4D2' }}>
 
+        {/* ── SPOTLIGHT: one film the editors want you to watch now. Nothing renders when none is live. ── */}
+        {spotlight && (
+          <SpotlightBand
+            film={spotlight.film}
+            headline={spotlight.spotlight.headline}
+            line={spotlight.spotlight.line}
+            cta={<SpotlightCta id={spotlight.spotlight.id} href={ctaHref(spotlight.spotlight.cta_kind, spotlight.film.id)} label={ctaLabel(spotlight.spotlight.cta_kind)} />}
+          />
+        )}
+
         {/* ── HERO ─────────────────────────────────────────────────────── */}
         {isSignedIn ? (
-          <SignedInHero userName={firstName} />
+          <SignedInHero userName={firstName} belowSpotlight={!!spotlight} />
         ) : (
         <section
-          className="relative pt-[76px] overflow-hidden"
+          className={`relative ${spotlight ? 'pt-[24px]' : 'pt-[76px]'} overflow-hidden`}
           style={{ minHeight: '760px', background: '#0B0A09' }}
           aria-labelledby="hero-heading"
         >
