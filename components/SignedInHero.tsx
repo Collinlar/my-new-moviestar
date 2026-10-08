@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { NavLink } from '@/components/NavLink'
 import { Play } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { loadSupabase } from '@/lib/session'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -43,8 +43,9 @@ export function SignedInHero({ userName, belowSpotlight = false }: Props) {
   }, [])
 
   useEffect(() => {
-    const supabase = createClient() as any
     const load = async () => {
+      // Loaded here, when a signed-in person has landed, so it is not part of the page for everyone else.
+      const supabase = (await loadSupabase()) as any
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 

@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer'
 import { getTrendingMovies } from '@/lib/queries'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, formatRating, capitalise } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -76,8 +77,9 @@ export default async function TrendingPage() {
                         {/* Poster */}
                         <div style={{ aspectRatio: '2/3', borderRadius: '14px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
                           {movie.poster_url ? (
-                            <img
-                              src={movie.poster_url}
+                            <PosterImg
+                              role="card"
+                              film={movie}
                               alt={`${movie.title} poster`}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               loading={rank < 3 ? 'eager' : 'lazy'}
@@ -157,8 +159,9 @@ export default async function TrendingPage() {
                         {/* Poster thumb */}
                         <div style={{ width: '36px', height: '52px', borderRadius: '6px', overflow: 'hidden', background: '#15120E', flexShrink: 0 }}>
                           {movie.poster_url ? (
-                            <img
-                              src={movie.poster_url}
+                            <PosterImg
+                              role="tiny"
+                              film={movie}
                               alt={movie.title}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               loading="lazy"

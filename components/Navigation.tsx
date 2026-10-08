@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { Search, Menu, X, Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isActivePath } from '@/lib/nav'
-import { createClient } from '@/lib/supabase/client'
+import { hasSessionCookie, loadSupabase } from '@/lib/session'
 import type { User } from '@supabase/supabase-js'
 
 const ADMIN_EMAIL = 'kofcollkcl100@gmail.com'
@@ -25,7 +25,6 @@ export function Navigation() {
   const [open, setOpen]         = useState(false)
   const [user, setUser]       = useState<User | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -34,28 +33,36 @@ export function Navigation() {
   }, [])
 
   useEffect(() => {
-    const checkUser = async () => {
+    // No session cookie means nobody is signed in, so the Supabase library (about 120 KB) is never loaded for a visitor.
+    if (!hasSessionCookie()) { setUser(null); setIsAdmin(false); return }
+    let cancelled = false
+    let unsubscribe = () => {}
+    ;(async () => {
+      const supabase = await loadSupabase()
+      if (cancelled) return
       const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
       setUser(user ?? null)
       if (user) {
         const admin = user.email === ADMIN_EMAIL
         if (!admin) {
           const { data } = await (supabase as any).from('profiles').select('role').eq('user_id', user.id).single()
-          setIsAdmin(data?.role === 'admin')
+          if (!cancelled) setIsAdmin(data?.role === 'admin')
         } else {
           setIsAdmin(true)
         }
       }
-    }
-    checkUser()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (!session?.user) setIsAdmin(false)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null)
+        if (!session?.user) setIsAdmin(false)
+      })
+      unsubscribe = () => subscription.unsubscribe()
+    })()
+    return () => { cancelled = true; unsubscribe() }
+  }, [pathname])
 
   const handleSignOut = async () => {
+    const supabase = await loadSupabase()
     await supabase.auth.signOut()
     window.location.href = '/'
   }
@@ -69,7 +76,7 @@ export function Navigation() {
           'fixed top-0 inset-x-0 z-50 transition-all duration-300',
           isHome && !scrolled
             ? 'bg-transparent'
-            : 'bg-cinema-black/95 backdrop-blur-sm border-b border-cinema-border'
+            : 'bg-cinema-black border-b border-cinema-border'
         )}
       >
         <div className="section-container">
@@ -169,7 +176,7 @@ export function Navigation() {
           onClick={() => setOpen(false)}
           aria-hidden="true"
         >
-          <div className="absolute inset-0 bg-cinema-black/80 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-cinema-black/90" />
           <nav
             className="absolute top-16 inset-x-0 bg-cinema-dark border-b border-cinema-border p-4"
             onClick={(e) => e.stopPropagation()}

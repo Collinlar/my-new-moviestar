@@ -220,8 +220,10 @@ export function HeroSwipeDeck({ films: pool }: { films: DeckFilm[] }) {
                     alt=""
                     width={380}
                     height={520}
-                    loading={depth === 0 ? 'eager' : 'lazy'}
-                    fetchPriority={depth === 0 ? 'high' : 'auto'}
+                    // All three cards are on screen at once, so none may wait for lazy loading (it held one back for 4 seconds on a slow phone).
+                    // The top one is the page's biggest picture and goes first.
+                    loading="eager"
+                    fetchPriority={depth === 0 ? 'high' : 'low'}
                     decoding="async"
                     draggable={false}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: hasBars(lighter(f.poster, depth)) ? 'center center' : f.focus ?? 'center top', transform: hasBars(lighter(f.poster, depth)) ? `scale(${BARS_ZOOM})` : undefined, pointerEvents: 'none' }}

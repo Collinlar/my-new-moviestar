@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer'
 import { HelpfulButton } from '@/components/HelpfulButton'
 import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -75,8 +76,9 @@ export default async function AllReviewsPage() {
                   {/* Poster */}
                   {review.movie?.poster_url && (
                     <Link href={`/movie/${review.movie.id}`} style={{ flexShrink: 0 }} tabIndex={-1} aria-hidden="true">
-                      <img
-                        src={review.movie.poster_url}
+                      <PosterImg
+                        role="tiny"
+                        film={review.movie}
                         alt={review.movie.title}
                         style={{ width: '44px', height: '62px', borderRadius: '8px', objectFit: 'cover', display: 'block' }}
                         loading="lazy"

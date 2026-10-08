@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { NavLink } from '@/components/NavLink'
 import type { Movie } from '@/lib/queries'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -53,8 +54,9 @@ export function FilmShelf({ id, eyebrow, title, note, href, hrefLabel, films }: 
               <Link href={`/movie/${m.id}`} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', background: '#15120E' }}>
                   {m.poster_url && (
-                    <img
-                      src={m.poster_url}
+                    <PosterImg
+                      role="card"
+                      film={m}
                       alt={`${m.title} poster`}
                       width={240}
                       height={360}

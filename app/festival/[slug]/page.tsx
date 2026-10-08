@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, formatRating } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -235,8 +236,9 @@ function AwardEntry({ award, won }: { award: any; won: boolean }) {
       {/* Poster */}
       <Link href={`/movie/${movie.id}`} style={{ flexShrink: 0 }} tabIndex={-1} aria-hidden="true">
         {movie.poster_url ? (
-          <img
-            src={movie.poster_url}
+          <PosterImg
+            role="tiny"
+            film={movie}
             alt={movie.title}
             style={{ width: '36px', height: '52px', borderRadius: '6px', objectFit: 'cover', display: 'block' }}
             loading="lazy"

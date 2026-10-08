@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer'
 import { getSelectionBySlug, periodLabel, MIN_SELECTION_FILMS } from '@/lib/selections'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -87,7 +88,7 @@ export default async function SelectionPage({ params }: PageProps) {
                   <span className="hidden sm:block" style={{ ...SERIF, fontSize: '34px', color: '#6E675E' }}>{String(i + 1).padStart(2, '0')}</span>
                   <span style={{ width: '100%', aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', background: '#15120E', display: 'block' }}>
                     {f.movie.poster_url && (
-                      <img src={f.movie.poster_url} alt="" width={110} height={165} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <PosterImg role="card" film={f.movie} alt="" width={110} height={165} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     )}
                   </span>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>

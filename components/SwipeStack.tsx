@@ -8,7 +8,7 @@ import { ArrowRight, Bookmark } from 'lucide-react'
 import { QuickReactionSheet } from '@/components/QuickReactionSheet'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { writeGuestSwipe } from '@/lib/guest-swipes'
-import { BARS_ZOOM, lighterThumb, thumbnailHasBars } from '@/lib/poster'
+import { BARS_ZOOM, pickPoster, thumbnailHasBars } from '@/lib/poster'
 import { objectPosition } from '@/lib/images'
 import type { Movie } from '@/lib/queries'
 import type { MoodConfig } from '@/lib/mood'
@@ -112,7 +112,8 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
   // The next two posters are fetched before they are needed, so the next card is already there when this one leaves.
   useEffect(() => {
     for (const m of movies.slice(idx + 1, idx + 3)) {
-      if (m?.poster_url?.startsWith('http')) { const im = new Image(); im.src = lighterThumb(m.poster_url, 1) }
+      const p = m ? pickPoster(m, 'large') : null
+      if (p?.src.startsWith('http')) { const im = new Image(); im.src = p.src }
     }
   }, [idx, movies])
 
@@ -457,13 +458,16 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
 
   const art     = CARD_PALETTES[idx % CARD_PALETTES.length]
   const nextArt = CARD_PALETTES[(idx + 1) % CARD_PALETTES.length]
-  const hasPoster = !!(current.poster_url && current.poster_url.startsWith('http'))
-  const nextPoster = next?.poster_url && next.poster_url.startsWith('http') ? lighterThumb(next.poster_url, 1) : null
+  // The card says how big it is, so a 330 KB YouTube original becomes the 50 to 100 KB size that fits it, and an uploaded poster uses its own copy.
+  const cur = pickPoster(current, 'large')
+  const hasPoster = !!cur?.src.startsWith('http')
+  const nextPick = next ? pickPoster(next, 'large') : null
+  const nextPoster = nextPick?.src.startsWith('http') ? nextPick.src : null
   // Links known to be blocked in Ghana or removed are left out of the quick strip. The film page shows the full story.
   const watchOptions = passed ? playable(watchLinks(passed, passed.watch_check ?? null)) : []
   const headline = watchHeadline(watchLinks(current, current.watch_check ?? null))
   const pull = Math.min(Math.abs(dx) / COMMIT_DISTANCE, 1)
-  const barsOn = hasPoster && thumbnailHasBars(current.poster_url!)
+  const barsOn = hasPoster && (cur?.zoom ?? 1) > 1
 
   const cardTransform = exit === 'left'
     ? 'translateX(-130%) rotate(-14deg)'
@@ -635,7 +639,7 @@ export function SwipeStack({ movies, totalCount, userId, mood }: {
         >
           {hasPoster ? (
             <img
-              src={current.poster_url!}
+              src={cur!.src}
               alt={current.title}
               draggable={false}
               fetchPriority="high"

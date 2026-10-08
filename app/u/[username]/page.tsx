@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/utils'
 import { getLaurels } from '@/lib/challenges'
 import { formatDay } from '@/lib/challenges-shared'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -242,8 +243,9 @@ export default async function UserProfilePage({ params }: PageProps) {
                     {/* Poster */}
                     <Link href={`/movie/${review.movie?.id}`} style={{ flexShrink: 0 }} tabIndex={-1} aria-hidden="true">
                       {review.movie?.poster_url ? (
-                        <img
-                          src={review.movie.poster_url}
+                        <PosterImg
+                          role="tiny"
+                          film={review.movie}
                           alt={review.movie?.title}
                           style={{ width: '44px', height: '62px', borderRadius: '8px', objectFit: 'cover', display: 'block' }}
                           loading="lazy"

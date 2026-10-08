@@ -13,6 +13,7 @@ import { getClubWeek, splitTitle } from '@/lib/club'
 import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
 import { objectPosition } from '@/lib/images'
+import { pickPoster } from '@/lib/poster'
 import { HeroSwipeDeck, type DeckFilm } from '@/components/HeroSwipeDeck'
 import { SpotlightBand } from '@/components/SpotlightBand'
 import { SpotlightCta } from '@/components/SpotlightCta'
@@ -29,6 +30,7 @@ import { getPublicCycles } from '@/lib/awards'
 import { cycleHref, formatDate } from '@/lib/awards-shared'
 import { sponsorLabel as challengeSponsor, stateLine, goalPhrase } from '@/lib/challenges-shared'
 import { websiteSchema, organizationSchema, faqSchema } from '@/lib/schema'
+import { PosterImg } from '@/components/PosterImg'
 
 export const metadata: Metadata = {
   title: { absolute: 'MuvieStars: Standout African Cinema, Rated by the People Who Watch It' },
@@ -112,7 +114,8 @@ export default async function HomePage() {
       title: splitTitle(f.title).main,
       year: f.release_year ?? null,
       line: [f.release_year, f.country, f.genre].filter(Boolean).join(' \u00B7 '),
-      poster: f.poster_url,
+      // The right size for a 380 px card: 50 to 100 KB for a YouTube picture instead of up to 330 KB.
+      poster: pickPoster(f, 'large')?.src ?? f.poster_url,
       focus: f.poster_focus_x != null || f.poster_focus_y != null ? objectPosition({ x: f.poster_focus_x, y: f.poster_focus_y }) : undefined,
       color: f.poster_color ?? null,
     }))
@@ -210,7 +213,7 @@ export default async function HomePage() {
             <div style={{ borderRadius: '28px', background: '#12242B', position: 'relative', overflow: 'hidden', padding: '20px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div className="ms-grain" />
               {clubPick.poster_url && (
-                <img src={clubPick.poster_url} alt={`${clubPick.title} poster`} width={84} height={126} style={{ position: 'relative', width: '84px', height: '126px', objectFit: 'cover', borderRadius: '12px', flexShrink: 0 }} loading="lazy" />
+                <PosterImg role="tiny" film={clubPick} alt={`${clubPick.title} poster`} width={84} height={126} style={{ position: 'relative', width: '84px', height: '126px', objectFit: 'cover', borderRadius: '12px', flexShrink: 0 }} loading="lazy" />
               )}
               <div style={{ position: 'relative', flex: '1 1 260px', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
                 <span style={{ ...MONO, fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C8963E' }}>MuvieStars Club · This week</span>
@@ -387,7 +390,7 @@ export default async function HomePage() {
                 <li key={t.id} style={{ display: 'grid', gridTemplateColumns: '56px 1fr', gap: '16px', padding: '18px 0', borderTop: '1px solid rgba(237,228,210,.1)' }}>
                   <Link href={`/movie/${t.movie.id}`} style={{ display: 'block', width: '56px', aspectRatio: '2/3', borderRadius: '8px', overflow: 'hidden', background: '#15120E' }}>
                     {t.movie.poster_url && (
-                      <img src={t.movie.poster_url} alt="" width={56} height={84} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <PosterImg role="tiny" film={t.movie} alt="" width={56} height={84} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     )}
                   </Link>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>

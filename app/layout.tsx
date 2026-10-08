@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
-import { Providers } from '@/components/Providers'
 import { MobileBottomNav } from '@/components/MobileBottomNav'
 import { CookieConsent } from '@/components/CookieConsent'
 import { NavigationProgress } from '@/components/NavigationProgress'
@@ -95,10 +94,12 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/geist-normal-400-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/instrument-serif-normal-400-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://anjavnuqkkmpsnjmopou.supabase.co" />
+        {/* Most film pictures are YouTube thumbnails. Opening the connection early takes about half a second off the first one on a slow phone. */}
+        <link rel="preconnect" href="https://img.youtube.com" />
       </head>
       <body>
         <Suspense fallback={null}><NavigationProgress /></Suspense>
-        <Providers>{children}</Providers>
+        {children}
         <MobileBottomNav />
         <CookieConsent gaId={process.env.NEXT_PUBLIC_GA_ID} />
         <GuestSwipeCarryOver />

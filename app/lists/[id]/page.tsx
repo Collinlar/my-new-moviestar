@@ -6,6 +6,7 @@ import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -207,8 +208,9 @@ export default async function ListPage({ params }: PageProps) {
                     background: '#15120E', position: 'relative',
                   }}>
                     {movie.poster_url ? (
-                      <img
-                        src={movie.poster_url}
+                      <PosterImg
+                        role="card"
+                        film={movie}
                         alt={movie.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         loading="lazy"

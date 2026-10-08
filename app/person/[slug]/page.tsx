@@ -15,6 +15,7 @@ import {
   describeRoles, isUuid,
 } from '@/lib/people'
 import { SITE_URL, truncate } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -222,7 +223,7 @@ export default async function PersonPage({ params }: PageProps) {
                   <Link key={movie.id} href={`/movie/${movie.id}`} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
                       {movie.poster_url && (
-                        <img src={movie.poster_url} alt={`${movie.title} poster`} width={140} height={210} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <PosterImg role="card" film={movie} alt={`${movie.title} poster`} width={140} height={210} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       )}
                       {movie.average_rating > 0 && (
                         <div style={{ position: 'absolute', top: '7px', right: '7px', height: '22px', padding: '0 7px', borderRadius: '999px', background: 'rgba(11,10,9,0.8)', ...MONO, fontSize: '10px', fontWeight: 700, color: '#C8963E', display: 'flex', alignItems: 'center' }}>

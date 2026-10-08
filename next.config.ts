@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // The fonts never change under the same name, so a returning visitor should not even ask for them.
+        source: '/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },

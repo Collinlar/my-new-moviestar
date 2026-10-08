@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import { PosterImg } from '@/components/PosterImg'
 import { Star } from 'lucide-react'
 import { cn, capitalise, formatRating } from '@/lib/utils'
 
@@ -10,6 +10,8 @@ interface MovieCardProps {
   genre: string
   language?: string
   poster_url?: string
+  poster_sm_url?: string | null
+  poster_lg_url?: string | null
   average_rating?: number
   review_count?: number
   director?: string
@@ -19,7 +21,7 @@ interface MovieCardProps {
 
 export function MovieCard({
   id, title, release_year, genre, language,
-  poster_url, average_rating, review_count,
+  poster_url, poster_sm_url, poster_lg_url, average_rating, review_count,
   director, isCanon, className,
 }: MovieCardProps) {
   return (
@@ -31,13 +33,12 @@ export function MovieCard({
       {/* Poster */}
       <div className="poster-wrap">
         {poster_url ? (
-          <Image
-            src={poster_url}
+          <PosterImg
+            film={{ poster_url, poster_sm_url, poster_lg_url }}
+            role="card"
             alt={`${title} movie poster`}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            className="transition-transform duration-500 group-hover:scale-105"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-cinema-surface">
@@ -98,7 +99,7 @@ export function MovieCard({
 /* Wide / horizontal variant */
 export function MovieCardWide({
   id, title, release_year, genre, language,
-  poster_url, average_rating, review_count,
+  poster_url, poster_sm_url, poster_lg_url, average_rating, review_count,
   director, className,
 }: MovieCardProps) {
   return (
@@ -114,13 +115,12 @@ export function MovieCardWide({
       <div className="relative flex-shrink-0 w-20 rounded overflow-hidden bg-cinema-surface"
            style={{ aspectRatio: '2/3' }}>
         {poster_url ? (
-          <Image
-            src={poster_url}
+          <PosterImg
+            film={{ poster_url, poster_sm_url, poster_lg_url }}
+            role="tiny"
             alt={`${title} poster`}
-            fill
-            sizes="80px"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            className="group-hover:scale-105 transition-transform duration-300"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

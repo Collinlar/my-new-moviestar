@@ -29,6 +29,7 @@ import { WatchPanel } from '@/components/WatchPanel'
 import { loadWatchChecks } from '@/lib/watch-checks'
 import { createClient } from '@/lib/supabase/server'
 import { capitalise, formatRating, truncate, SITE_URL } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 // Films that were turned down or taken down should not be found through search engines.
 const HIDDEN_FROM_SEARCH = ['rejected', 'archived', 'delisted']
@@ -151,17 +152,6 @@ export default async function MovieDetailPage({ params }: PageProps) {
           style={{ position: 'relative', paddingTop: '76px', overflow: 'hidden', background: '#0B0A09' }}
           aria-label={`${movie.title} header`}
         >
-          {/* Blurred backdrop */}
-          {movie.poster_url && (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }} aria-hidden="true">
-              <img
-                src={movie.poster_url}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(60px)', transform: 'scale(1.15)', opacity: 0.08 }}
-              />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(11,10,9,0.5) 0%, #0B0A09 85%)' }} />
-            </div>
-          )}
           <div className="ms-grain" style={{ zIndex: 1 }} aria-hidden="true" />
 
           <div className="max-w-screen-2xl mx-auto px-5 sm:px-10 lg:px-20" style={{ position: 'relative', zIndex: 2, paddingTop: '48px', paddingBottom: '72px' }}>
@@ -184,11 +174,13 @@ export default async function MovieDetailPage({ params }: PageProps) {
               <div className="max-w-[220px] mx-auto w-full lg:max-w-none lg:mx-0" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ borderRadius: '16px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E', position: 'relative', boxShadow: '0 32px 64px rgba(0,0,0,0.6)' }}>
                   {movie.poster_url ? (
-                    <img
-                      src={movie.poster_url}
+                    <PosterImg
+                      role="large"
+                      film={movie}
                       alt={`${movie.title} poster`}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       loading="eager"
+                      fetchPriority="high"
                     />
                   ) : (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.15 }}>🎬</div>
@@ -740,8 +732,9 @@ export default async function MovieDetailPage({ params }: PageProps) {
                   >
                     <div style={{ aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
                       {m.poster_url ? (
-                        <img
-                          src={m.poster_url}
+                        <PosterImg
+                          role="card"
+                          film={m}
                           alt={m.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           loading="lazy"

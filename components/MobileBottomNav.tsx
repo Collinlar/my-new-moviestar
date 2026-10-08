@@ -4,7 +4,7 @@ import { NavLink } from '@/components/NavLink'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Home, Play, Compass, Users, User } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { hasSessionCookie } from '@/lib/session'
 import { isActivePath } from '@/lib/nav'
 
 const MONO: React.CSSProperties = { fontFamily: '"Geist Mono", monospace' }
@@ -20,13 +20,10 @@ const NAV = [
 export function MobileBottomNav() {
   const pathname  = usePathname()
   const [isSignedIn, setIsSignedIn] = useState(false)
-  const supabase = createClient()
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setIsSignedIn(!!user))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setIsSignedIn(!!s?.user))
-    return () => subscription.unsubscribe()
-  }, [])
+  // Signed in or not is only needed to choose where "You" goes, so the session cookie answers it without loading the
+  // Supabase library. It is read again on every page change, which is when a sign-in or sign-out lands.
+  useEffect(() => { setIsSignedIn(hasSessionCookie()) }, [pathname])
 
   return (
     <nav
@@ -34,8 +31,7 @@ export function MobileBottomNav() {
       aria-label="Mobile navigation"
       style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 30,
-        background: 'rgba(11,10,9,0.97)',
-        backdropFilter: 'blur(16px)',
+        background: '#0B0A09',
         borderTop: '1px solid rgba(237,228,210,0.08)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         display: 'flex',

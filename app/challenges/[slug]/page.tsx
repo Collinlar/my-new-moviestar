@@ -12,6 +12,7 @@ import { getChallengeBySlug, getChallengeProgress } from '@/lib/challenges'
 import { challengeState, formatDay, sponsorLabel, stateLine } from '@/lib/challenges-shared'
 import { breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -169,7 +170,7 @@ export default async function ChallengePage({ params }: PageProps) {
                     <span className="hidden sm:block" style={{ ...SERIF, fontSize: '28px', color: '#6E675E' }}>{String(i + 1).padStart(2, '0')}</span>
                     <span style={{ width: '56px', aspectRatio: '2/3', borderRadius: '8px', overflow: 'hidden', background: '#15120E', display: 'block' }}>
                       {f.movie.poster_url && (
-                        <img src={f.movie.poster_url} alt="" width={56} height={84} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <PosterImg role="tiny" film={f.movie} alt="" width={56} height={84} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       )}
                     </span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>

@@ -8,6 +8,7 @@ import { EditProfileForm } from '@/components/EditProfileForm'
 import { SignOutButton } from '@/components/SignOutButton'
 import { DeleteAccount } from '@/components/DeleteAccount'
 import { createClient } from '@/lib/supabase/server'
+import { PosterImg } from '@/components/PosterImg'
 
 export const metadata: Metadata = {
   title: 'Your account',
@@ -245,8 +246,9 @@ export default async function AccountPage() {
                       >
                         <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E' }}>
                           {m.poster_url ? (
-                            <img
-                              src={m.poster_url}
+                            <PosterImg
+                              role="card"
+                              film={m}
                               alt={m.title}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               loading="lazy"
@@ -262,7 +264,6 @@ export default async function AccountPage() {
                               position: 'absolute', bottom: '8px', right: '8px',
                               width: '28px', height: '28px', borderRadius: '50%',
                               background: meta.bg,
-                              backdropFilter: 'blur(4px)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: '14px',
                             }}>
@@ -342,8 +343,9 @@ export default async function AccountPage() {
                       >
                         <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E' }}>
                           {m.poster_url ? (
-                            <img
-                              src={m.poster_url}
+                            <PosterImg
+                              role="card"
+                              film={m}
                               alt={m.title}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               loading="lazy"
@@ -426,8 +428,9 @@ export default async function AccountPage() {
                       >
                         {m?.poster_url ? (
                           <Link href={`/movie/${m.id}`} style={{ flexShrink: 0 }}>
-                            <img
-                              src={m.poster_url}
+                            <PosterImg
+                              role="tiny"
+                              film={m}
                               alt={m.title}
                               style={{ width: '36px', height: '52px', borderRadius: '6px', objectFit: 'cover', border: '1px solid rgba(237,228,210,0.08)' }}
                               loading="lazy"

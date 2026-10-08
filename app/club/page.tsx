@@ -10,6 +10,7 @@ import { ClubActions } from '@/components/ClubActions'
 import { ClubPoster } from '@/components/ClubPoster'
 import { CommunityVerdict } from '@/components/CommunityVerdict'
 import { createClient } from '@/lib/supabase/server'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -270,8 +271,9 @@ export default async function ClubPage() {
                     >
                       <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '2/3', background: '#15120E' }}>
                         {m.poster_url ? (
-                          <img
-                            src={m.poster_url}
+                          <PosterImg
+                            role="card"
+                            film={m}
                             alt={`${m.title} poster`}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
                             loading="lazy"

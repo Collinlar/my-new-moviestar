@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, ArrowRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { loadSupabase } from '@/lib/session'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -46,7 +46,6 @@ interface Props {
 
 export function OnboardingFlow({ show, userName }: Props) {
   const router = useRouter()
-  const supabase = createClient()
 
   const [step, setStep]         = useState<Step>('genres')
   const [genres, setGenres]     = useState<string[]>([])
@@ -72,6 +71,7 @@ export function OnboardingFlow({ show, userName }: Props) {
   const completeOnboarding = async () => {
     setSaving(true)
     try {
+      const supabase = await loadSupabase()
       await supabase.auth.updateUser({
         data: {
           onboarding_completed: true,
@@ -87,6 +87,7 @@ export function OnboardingFlow({ show, userName }: Props) {
 
   const skip = async () => {
     try {
+      const supabase = await loadSupabase()
       await supabase.auth.updateUser({ data: { onboarding_completed: true } })
     } catch {}
     setVisible(false)
@@ -100,8 +101,7 @@ export function OnboardingFlow({ show, userName }: Props) {
       <div
         style={{
           position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(8,7,6,0.88)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(8,7,6,0.92)',
         }}
         aria-hidden="true"
       />

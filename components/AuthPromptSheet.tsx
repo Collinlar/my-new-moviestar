@@ -19,8 +19,7 @@ export function AuthPromptSheet({ context, onSkip }: Props) {
         onClick={onSkip}
         style={{
           position: 'fixed', inset: 0, zIndex: 40,
-          background: 'rgba(8,7,6,0.65)',
-          backdropFilter: 'blur(3px)',
+          background: 'rgba(8,7,6,0.72)',
         }}
       />
       <div

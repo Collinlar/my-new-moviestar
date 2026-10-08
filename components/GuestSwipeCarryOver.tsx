@@ -1,28 +1,33 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
 import { clearGuestSwipes, readGuestSwipes } from '@/lib/guest-swipes'
+import { hasSessionCookie } from '@/lib/session'
 
 /**
  * When someone who tried the homepage swipe preview signs in or signs up, their picks come with them. Mounted once
  * for the whole site, so it works whichever page sign-in lands on. The picks are only removed from this device after
  * they have been saved to the account.
+ *
+ * It does not load the Supabase library: the server checks who is signed in when the picks arrive. It only looks for
+ * a session cookie, and only when there are picks to carry, so most visitors cost nothing here. It looks again on every
+ * page change, which is when a sign-in lands.
  */
 export function GuestSwipeCarryOver() {
   const busy = useRef(false)
+  const pathname = usePathname()
 
   useEffect(() => {
-    const supabase = createClient() as any
+    let storage: Storage | null = null
+    try { storage = window.localStorage } catch { return }
+    if (!hasSessionCookie()) return
+    const items = readGuestSwipes(storage)
+    if (items.length === 0 || busy.current) return
 
-    async function carry() {
-      if (busy.current) return
-      let storage: Storage | null = null
-      try { storage = window.localStorage } catch { return }
-      const items = readGuestSwipes(storage)
-      if (items.length === 0) return
-      busy.current = true
+    busy.current = true
+    ;(async () => {
       try {
         const res = await fetch('/api/guest-swipes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) })
         if (!res.ok) return
@@ -41,14 +46,8 @@ export function GuestSwipeCarryOver() {
       } finally {
         busy.current = false
       }
-    }
-
-    supabase.auth.getUser().then(({ data }: any) => { if (data?.user) carry() })
-    const { data: sub } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-      if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) carry()
-    })
-    return () => sub.subscription.unsubscribe()
-  }, [])
+    })()
+  }, [pathname])
 
   return null
 }

@@ -7,6 +7,7 @@ import { getCreatorById, getCreatorMovies, getAllCreatorIds } from '@/lib/querie
 import { hasSupabaseConfig } from '@/lib/supabase/env'
 import { personSchema, breadcrumbSchema } from '@/lib/schema'
 import { SITE_URL, truncate } from '@/lib/utils'
+import { PosterImg } from '@/components/PosterImg'
 
 const SERIF: React.CSSProperties = { fontFamily: '"Instrument Serif", Georgia, serif' }
 const MONO: React.CSSProperties  = { fontFamily: '"Geist Mono", monospace' }
@@ -148,8 +149,9 @@ export default async function CreatorPage({ params }: PageProps) {
                   >
                     <div style={{ aspectRatio: '2/3', borderRadius: '10px', overflow: 'hidden', background: '#15120E', position: 'relative' }}>
                       {movie.poster_url ? (
-                        <img
-                          src={movie.poster_url}
+                        <PosterImg
+                          role="card"
+                          film={movie}
                           alt={movie.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           loading="lazy"
