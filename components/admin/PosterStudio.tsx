@@ -27,14 +27,52 @@ export interface StudioImage {
 
 interface Props { movieId: string; title: string; poster: StudioImage; banner: StudioImage }
 
+/** A poster chosen and cropped on the Add a movie form, held until the film exists and can own it. */
+export interface PendingPoster { file: File; crop: Crop; focus: Focus; quality: number }
+
+/** What the Add a movie form shows before anything has been chosen. */
+const NO_IMAGE: StudioImage = {
+  url: null, uploaded: false, color: null, focusX: null, focusY: null, originalPath: null, originalUrl: null,
+  crop: null, quality: null, bytes: null, sourceWidth: null, sourceHeight: null,
+}
+
+/**
+ * Sends a poster chosen on the Add a movie form, once the film has an id. Returns null when it worked, or a sentence that
+ * says what went wrong. The film itself is already saved by then, so a failure never loses it.
+ */
+export async function uploadPendingPoster(movieId: string, p: PendingPoster): Promise<string | null> {
+  try {
+    const supabase = createClient() as any
+    const ext = p.file.type === 'image/png' ? 'png' : p.file.type === 'image/webp' ? 'webp' : 'jpg'
+    const path = originalPath(movieId, 'poster', Date.now(), ext)
+    const up = await supabase.storage.from('posters').upload(path, p.file, { contentType: p.file.type, upsert: false })
+    if (up.error) return 'The picture could not be sent. Check your connection.'
+    const res = await fetch('/api/admin/posters', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ movie_id: movieId, kind: 'poster', original_path: path, crop: p.crop, focus: p.focus, quality: p.quality }),
+    })
+    const json = await res.json().catch(() => ({}))
+    return res.ok ? null : (json.error ?? 'The poster did not save.')
+  } catch {
+    return 'We could not reach the server. Check your connection.'
+  }
+}
+
 const BTN = 'btn-outline py-2 text-sm'
 const GOLD = 'btn-gold py-2 text-sm disabled:opacity-40'
 const ZOOM_MAX = 4
 const DISPLAY_W = 420
 
-function Editor({ movieId, kind, image }: { movieId: string; kind: ImageKind; image: StudioImage }) {
+/**
+ * The crop, focal point and quality editor. With a movieId it saves straight away. With movieId null (the Add a movie form,
+ * where the film has no id yet) it keeps the choice and hands it to onPick, and the form sends it after the film is saved.
+ */
+function Editor({ movieId, kind, image, onPick }: { movieId: string | null; kind: ImageKind; image: StudioImage; onPick?: (p: PendingPoster | null) => void }) {
   const router = useRouter()
+  const deferred = movieId === null
   const spec = SPECS[kind]
+  // Deferred only: the picture and crop that were kept, so they can be adjusted again before the film is saved.
+  const [kept, setKept] = useState<{ preview: string | null; src: string; crop: Crop } | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const imgEl = useRef<HTMLImageElement>(null)
 
@@ -96,6 +134,8 @@ function Editor({ movieId, kind, image }: { movieId: string; kind: ImageKind; im
     if (!f) return
     if (!ACCEPTED_TYPES.includes(f.type)) { setError('Use a JPG, PNG or WebP picture.'); return }
     if (f.size > MAX_ORIGINAL_BYTES) { setError(`That file is ${formatBytes(f.size)}. The most we can take is ${formatBytes(MAX_ORIGINAL_BYTES)}.`); return }
+    // On the Add a movie form a new picture replaces the one that was kept, until its crop is kept too.
+    if (deferred && kept) { setKept(null); onPick?.(null) }
     startFrom(URL.createObjectURL(f), f, null)
   }
 
@@ -145,13 +185,21 @@ function Editor({ movieId, kind, image }: { movieId: string; kind: ImageKind; im
   // ---- saving ----
   const save = useCallback(async () => {
     if (!crop || !src) return
+    if (deferred) {
+      // No film yet. Keep the choice, show it, and let the form send it once the film is saved.
+      if (!file) return
+      onPick?.({ file, crop, focus, quality })
+      setKept({ preview, src, crop })
+      setSrc(null); setNatural(null); setError(null)
+      return
+    }
     setBusy('save'); setError(null)
     try {
       const supabase = createClient() as any
       let path = image.originalPath
       if (file) {
         const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-        path = originalPath(movieId, kind, Date.now(), ext)
+        path = originalPath(movieId!, kind, Date.now(), ext)
         const up = await supabase.storage.from('posters').upload(path, file, { contentType: file.type, upsert: false })
         if (up.error) { setError('The picture could not be sent. Check your connection and try again.'); return }
       }
@@ -169,7 +217,12 @@ function Editor({ movieId, kind, image }: { movieId: string; kind: ImageKind; im
     } finally {
       setBusy(null)
     }
-  }, [crop, src, file, image.originalPath, movieId, kind, focus, quality, spec.label, router])
+  }, [crop, src, file, image.originalPath, movieId, kind, focus, quality, spec.label, router, deferred, onPick, preview])
+
+  function dropKept() {
+    setKept(null); setFile(null); setSrc(null); setNatural(null); setPreview(null); setError(null)
+    onPick?.(null)
+  }
 
   async function remove() {
     if (!confirm(`Remove the uploaded ${spec.label.toLowerCase()}? ${kind === 'poster' ? 'The link it replaced comes back.' : 'The film will have no banner.'}`)) return
@@ -197,8 +250,37 @@ function Editor({ movieId, kind, image }: { movieId: string; kind: ImageKind; im
 
   return (
     <div className="space-y-5">
+      {/* Add a movie form: nothing is saved yet, so this is the picture waiting for the film to be added */}
+      {!editing && deferred && (
+        <div className="flex flex-wrap gap-6 items-start">
+          <div style={{ width: 120, aspectRatio: String(spec.aspect), background: '#15120E', borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
+            {kept?.preview
+              ? <img src={kept.preview} alt="The poster you chose" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span className="absolute inset-0 flex items-center justify-center text-xs text-film-muted p-3 text-center">No poster yet</span>}
+          </div>
+          <div className="space-y-2 text-sm max-w-md">
+            {kept ? (
+              <p className="text-film-cream">Poster ready. It is cropped and sent when you add the film.</p>
+            ) : (
+              <p className="text-film-muted">Upload a portrait poster, then crop it. You can also leave this and add it later from the film&apos;s page.</p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {kept ? (
+                <>
+                  <button type="button" className={BTN} onClick={() => startFrom(kept.src, file, kept.crop)}>Adjust the crop</button>
+                  <button type="button" className={BTN} onClick={() => fileInput.current?.click()}>Choose a different picture</button>
+                  <button type="button" className="btn-ghost py-2 text-sm text-red-400" onClick={dropKept}>Remove it</button>
+                </>
+              ) : (
+                <button type="button" className={GOLD} onClick={() => fileInput.current?.click()}>Upload a poster</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* What is there now */}
-      {!editing && (
+      {!editing && !deferred && (
         <div className="flex flex-wrap gap-6 items-start">
           <div style={{ width: kind === 'poster' ? 140 : 280, aspectRatio: String(spec.aspect), background: image.color ?? '#15120E', borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
             {image.url
@@ -307,9 +389,9 @@ function Editor({ movieId, kind, image }: { movieId: string; kind: ImageKind; im
             {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
             <div className="flex flex-wrap gap-2">
               <button type="button" className={GOLD} disabled={!!busy || !crop || !natural || tooSmall} onClick={save}>
-                {busy === 'save' ? `Resizing and saving the ${spec.label.toLowerCase()}...` : `Save the ${spec.label.toLowerCase()}`}
+                {busy === 'save' ? `Resizing and saving the ${spec.label.toLowerCase()}...` : deferred ? 'Keep this crop' : `Save the ${spec.label.toLowerCase()}`}
               </button>
-              <button type="button" className={BTN} disabled={!!busy} onClick={() => { setSrc(null); setFile(null); setNatural(null); setError(null) }}>Not now</button>
+              <button type="button" className={BTN} disabled={!!busy} onClick={() => { setSrc(null); if (!kept) setFile(null); setNatural(null); setError(null) }}>Not now</button>
               <button type="button" className="btn-ghost py-2 text-sm" disabled={!!busy} onClick={() => fileInput.current?.click()}>Choose a different picture</button>
             </div>
           </div>
@@ -354,4 +436,9 @@ export function PosterStudio({ movieId, title, poster, banner }: Props) {
       <Editor key={tab} movieId={movieId} kind={tab} image={tab === 'poster' ? poster : banner} />
     </section>
   )
+}
+
+/** Poster upload for the Add a movie form. The film has no id yet, so the choice is held and sent after the film is saved. */
+export function PosterPicker({ onChange }: { onChange: (p: PendingPoster | null) => void }) {
+  return <Editor movieId={null} kind="poster" image={NO_IMAGE} onPick={onChange} />
 }

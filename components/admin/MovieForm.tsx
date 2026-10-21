@@ -10,6 +10,7 @@ import type { Movie, StreamingLink } from '@/lib/queries'
 import { CreditsEditor } from '@/components/admin/CreditsEditor'
 import { saveCredits, findDuplicate, type CreditDraft } from '@/lib/credits'
 import { YouTubeCheck } from '@/components/admin/YouTubeCheck'
+import { PosterPicker, uploadPendingPoster, type PendingPoster } from '@/components/admin/PosterStudio'
 import { ACCESS_OPTIONS, REGION_OPTIONS, accessText } from '@/lib/watch'
 import type { WatchCheck } from '@/lib/youtube'
 
@@ -41,6 +42,8 @@ export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Pro
 
   const uploadedPoster = !!movie?.poster_path
   const [saving, setSaving] = useState(false)
+  // A poster chosen on the Add a movie form. The film has no id yet, so it is sent right after the film is saved.
+  const [pendingPoster, setPendingPoster] = useState<PendingPoster | null>(null)
   const [credits, setCredits] = useState<CreditDraft[]>(initialCredits)
   const [form, setForm] = useState({
     title:               movie?.title               ?? '',
@@ -98,7 +101,6 @@ export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Pro
     if (!form.genre) { toast.error('Genre is required'); return }
     if (!form.language) { toast.error('Language is required'); return }
     if (!form.release_year || isNaN(Number(form.release_year))) { toast.error('Valid release year is required'); return }
-    if (!uploadedPoster && !form.poster_url.trim()) { toast.error('Poster URL is required. For a film that is already saved, upload a poster in Poster and banner above.'); return }
     const dupCredit = findDuplicate(credits)
     if (dupCredit) { toast.error(dupCredit); return }
 
@@ -131,7 +133,8 @@ export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Pro
       canon_essay_author:  form.canon_essay.trim() ? (form.canon_essay_author.trim() || 'MuvieStars Editorial') : null,
       streaming_links:     streamingLinks,
       // An uploaded poster is managed in Poster and banner. Leaving the link out here stops this form from writing an old one back over it.
-      ...(uploadedPoster ? {} : { poster_url: form.poster_url.trim() }),
+      // A poster is optional. A film can be added without one and given one later.
+      ...(uploadedPoster ? {} : { poster_url: form.poster_url.trim() || null }),
     }
 
     let error
@@ -151,7 +154,17 @@ export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Pro
     }
 
     const creditError = await saveCredits(supabase, movieId, credits, initialCredits.flatMap(c => (c.id ? [c.id] : [])))
+
+    // A poster chosen on this form goes up now that the film has an id. The film is already saved either way.
+    const posterError = !isEdit && pendingPoster ? await uploadPendingPoster(movieId, pendingPoster) : null
     setSaving(false)
+
+    if (posterError) {
+      toast.error(`"${payload.title}" was added, but the poster did not upload. ${posterError} Upload it from the film's page.`)
+      router.push(`/admin/movies/${movieId}/edit#poster-studio`)
+      router.refresh()
+      return
+    }
 
     if (creditError) {
       // The film exists now; send them to its edit page so the credits can be retried without losing the film.
@@ -254,10 +267,23 @@ export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Pro
         <div className="space-y-4">
           {uploadedPoster ? (
             <p className="text-sm text-film-muted">This film has an uploaded poster. Change it in <a href="#poster-studio" className="text-film-gold underline">Poster and banner</a> at the top of the page.</p>
-          ) : field('Poster URL', (
-            <input className={inputClass} type="url" value={form.poster_url} onChange={set('poster_url')} placeholder="https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg" />
-          ), true)}
-          {form.poster_url && (
+          ) : (
+            <>
+              {field('Poster URL (optional)', (
+                <input className={inputClass} type="url" value={form.poster_url} onChange={set('poster_url')} placeholder="https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg" />
+              ))}
+              {!isEdit && (
+                <div className="rounded-lg border border-cinema-border bg-cinema-surface p-4 space-y-3">
+                  <p className="text-xs font-semibold text-film-muted uppercase tracking-wide">Or upload a poster</p>
+                  <PosterPicker onChange={setPendingPoster} />
+                  {pendingPoster && form.poster_url.trim() && (
+                    <p className="text-xs text-film-muted">The uploaded poster is used. The link above is kept only as a fallback if you ever remove the upload.</p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+          {form.poster_url && !pendingPoster && (
             <img
               src={form.poster_url}
               alt="Poster preview"
@@ -266,7 +292,7 @@ export function MovieForm({ movie, initialCredits = [], watchCheck = null }: Pro
               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           )}
-          {field('YouTube URL (trailer/watch link)', (
+          {field('YouTube URL (trailer/watch link, optional)', (
             <input className={inputClass} type="url" value={form.youtube_url} onChange={set('youtube_url')} placeholder="https://www.youtube.com/watch?v=VIDEO_ID" />
           ))}
           {isEdit && movie && <YouTubeCheck movieId={movie.id} savedUrl={movie.youtube_url ?? null} formUrl={form.youtube_url} check={watchCheck} />}
