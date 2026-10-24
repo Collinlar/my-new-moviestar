@@ -161,10 +161,6 @@ export default async function HomePage() {
                 style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}
                 className="col-span-12 lg:col-span-7 flex flex-col gap-8"
               >
-                <p style={{ ...MONO, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#C8963E' }}>
-                  African cinema worth your time
-                </p>
-
                 <h1
                   id="hero-heading"
                   style={{ ...SERIF, fontWeight: 400, fontSize: 'clamp(52px, 8vw, 116px)', lineHeight: '0.92', letterSpacing: '-0.025em', color: '#F6EFE2', margin: 0 }}
