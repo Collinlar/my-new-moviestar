@@ -25,16 +25,18 @@ export function MobileBottomNav() {
   // Supabase library. It is read again on every page change, which is when a sign-in or sign-out lands.
   useEffect(() => { setIsSignedIn(hasSessionCookie()) }, [pathname])
 
+  // Admin has its own side menu and its own forms, whose buttons sit at the bottom of the page. This bar would cover them.
+  if (pathname.startsWith('/admin')) return null
+
   return (
     <nav
-      className="md:hidden"
+      className="flex md:hidden"
       aria-label="Mobile navigation"
       style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 30,
         background: '#0B0A09',
         borderTop: '1px solid rgba(237,228,210,0.08)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        display: 'flex',
       }}
     >
       {NAV.map(({ href, label, Icon, exact, authHref }) => {
